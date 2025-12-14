@@ -1,0 +1,6 @@
+# Ignore integrate folder
+integrate/
+# Ignore Python cache and bytecode
+__pycache__/
+*.pycinstance/mental_health.db
+instance/mental_health.db
