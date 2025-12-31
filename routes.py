@@ -45,9 +45,9 @@ def get_fallback_response(message):
     if is_crisis:
         response = """I'm very concerned about what you've shared. Your life has value and there are people who want to help you. Please reach out for immediate support:
 
-🔴 National Suicide Prevention Lifeline: 988 or 1-800-273-8255
-📱 Crisis Text Line: Text HOME to 741741
-🆘 Emergency Services: 911
+National Suicide Prevention Lifeline: 988 or 1-800-273-8255
+Crisis Text Line: Text HOME to 741741
+Emergency Services: 911
 
 You don't have to go through this alone. Would you like me to help you find local mental health resources?"""
         return {
