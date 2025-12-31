@@ -1,17 +1,19 @@
+from xml.parsers.expat import model
 from dotenv import load_dotenv
 load_dotenv()
 import json
 import os
 import logging
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 # Initialize Gemini client with API key from environment
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY environment variable not set. Please set it in your environment.")
 
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-pro')
+client = genai.Client(api_key=GEMINI_API_KEY)
+
 
 # Crisis keywords for detection
 CRISIS_KEYWORDS = [
@@ -64,9 +66,11 @@ def chat_with_ai(message, user_context=None, chat_history=None):
         
         # Add current user message
         conversation_context += f"User: {message}\n\nPlease respond as a supportive mental health assistant:"
-        
-        response = model.generate_content(conversation_context)
-        
+ 
+        response = client.models.generate_content(
+        model="gemini-2.5-flash", 
+        contents=conversation_context
+        )
         ai_response = response.text or "I'm here to support you. Could you tell me more about how you're feeling?"
         
         return {
@@ -105,11 +109,11 @@ Respond in JSON format with these fields:
 - professional_help_recommended: boolean
 - urgency_level: string (low/medium/high)
 """
-
-        response = client.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                response_mime_type="application/json"
+        response = client.models.generate_content(
+            model="gemini-2.5-flash", 
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                 response_mime_type="application/json"
             )
         )
         
