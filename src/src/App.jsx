@@ -1,17 +1,55 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
-
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import LandingPage from './components/LandingPage'
-
+import Kalpvriksha from './components/Kalpvriksha'
+import Chat from './components/Chat'
+import Register from './components/Register'
+import Dashboard from './components/Dashboard'
+import Onboarding from './components/Onboarding'
+import SideBar from './components/SideBar'
+//children routes
 function App() {
-  const [count, setCount] = useState(0)
+  const router = createBrowserRouter([
+    {
+      path: "/",
+      element: <LandingPage />
+    },
+    {
+      path: "/register",
+      element: <Register/>
+    },
+    {
+      path: "/start-journey",
+      element: <Onboarding/>
+    },
+    {
+      path:"/app",
+      element:
+        <SideBar/>
+,
+      children:[
+        {
+          path:"chat",
+          element:<Chat/>,
+          children:[{
+            path:":id",
+            element:<Chat/>
+          }
+          ]
+        },
+        {
+          path:"dashboard",
+          element:<Dashboard/>
+        }
+      ]
+  }
+  ])
+  return(
+        <div>
+      <RouterProvider router={router} />
+    </div>
 
-  return (
-    <>
-    <LandingPage/>
-    </>
   )
 }
 
