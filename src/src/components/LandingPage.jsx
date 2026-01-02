@@ -4,7 +4,7 @@ const LandingPage = () => {
   return (
     <div className="bg-[#0E1116] font-serif">
       {/* Navbar */}
-      <header className="bg-transparent border-b border-2 border-white/30 backdrop-blur-md shadow-sm fixed top-0 w-full z-50">
+      <header className="bg-transparent border-b-2 border-white/30 backdrop-blur-md shadow-sm fixed top-0 w-full z-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           {/* Logo */}
           <a href="/" className="flex items-center space-x-2">
@@ -53,7 +53,7 @@ const LandingPage = () => {
             A comprehensive platform designed specifically for high school students, providing professional mental health support, assessments, and counseling in a safe, confidential environment.
           </p>
           <a href="/register"
-            className="inline-block px-8 py-4 rounded-lg bg-[#c495e6] text-lg text-white hover:bg-[#e4bef2] transition-colors">
+            className="inline-block px-4 py-2 rounded-lg bg-[#c495e6] text-lg text-white hover:bg-[#e4bef2] transition-colors">
             Register
           </a>
         </div>

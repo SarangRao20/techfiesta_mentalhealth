@@ -8,45 +8,57 @@ import Register from './components/Register'
 import Dashboard from './components/Dashboard'
 import Onboarding from './components/Onboarding'
 import SideBar from './components/SideBar'
+import MagicBento from './components/MagicBento'
+import ChatHistory from './components/ChatHistory'
+import TasksManager from './components/TasksManager'
 //children routes
 function App() {
   const router = createBrowserRouter([
     {
       path: "/",
-      element: <LandingPage />
+      element:
+        <div>
+          <LandingPage />
+          <TasksManager/>
+        </div>
     },
     {
       path: "/register",
-      element: <Register/>
+      element: <Register />
     },
     {
       path: "/start-journey",
-      element: <Onboarding/>
+      element: <Onboarding />
     },
+
     {
-      path:"/app",
+      path: "/app",
       element:
-        <SideBar/>
-,
-      children:[
+        <SideBar />
+      ,
+      children: [
         {
-          path:"chat",
-          element:<Chat/>,
-          children:[{
-            path:":id",
-            element:<Chat/>
+          path: "chat",
+          element: <Chat />,
+          children: [{
+            path: ":id",
+            element: <ChatHistory />
           }
           ]
         },
         {
-          path:"dashboard",
-          element:<Dashboard/>
-        }
+          path: "dashboard",
+          element: <Dashboard />
+        },
+        {
+          path: "tasks-manager",
+          element: <TasksManager />
+        },
       ]
-  }
+    }
   ])
-  return(
-        <div>
+  return (
+    <div>
       <RouterProvider router={router} />
     </div>
 
