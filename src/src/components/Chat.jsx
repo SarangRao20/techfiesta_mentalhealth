@@ -5,20 +5,21 @@ import { useParams } from 'react-router-dom';
 const Chat = () => {
 
     const [messages, setMessages] = useState([{
-        role,content
+        "role": "user",
+        "content": "Hello"
     }]);
     const [endmood, setendMood] = useState([
         {
-            dominant_emotion,
-            confidence_level,
-            clarity_level,
-            engagement,
-            primary_intent,
-            topic_cluster,
-            trend
+            "dominant_emotion": "neutral",
+            "confidence_level": 0.8,
+            "clarity_level": 0.9,
+            "engagement": 0.7,
+            "primary_intent": "support",
+            "topic_cluster": "wellness",
+            "trend": "positive"
         }
     ]);
-    // const {sessionId} = useParams()
+    const {sessionId} = useParams()
     // sessionId = crypto.randomUUID()
     // localStorage={
     //     chat:{
@@ -36,7 +37,7 @@ const Chat = () => {
     // const[FeatureInsight,setFeatureInsight] = useState() - currently not in use
 
     return (
-        <div>
+        <div className='bg-black'> 
 chat
         </div>
     )

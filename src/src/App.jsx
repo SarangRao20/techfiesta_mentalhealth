@@ -11,6 +11,7 @@ import SideBar from './components/SideBar'
 import MagicBento from './components/MagicBento'
 import ChatHistory from './components/ChatHistory'
 import TasksManager from './components/TasksManager'
+import Consultant from './components/Consultant'
 //children routes
 function App() {
   const router = createBrowserRouter([
@@ -54,6 +55,12 @@ function App() {
           path: "tasks-manager",
           element: <TasksManager />
         },
+        {
+          path:"consultation",
+          element:<Consultant/>
+        },
+        {
+        }
       ]
     }
   ])
