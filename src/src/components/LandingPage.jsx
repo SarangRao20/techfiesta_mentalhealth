@@ -97,21 +97,25 @@ const LandingPage = () => {
           </a>
 
           {/* Nav links */}
-          <nav className="hidden md:flex space-x-8">
+          <nav className="hidden lg:flex space-x-6">
             <a href="#features" className="text-gray-400 hover:text-[#c495e6] transition-all duration-300 font-medium relative group">
               Features
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#c495e6] to-[#e4bef2] group-hover:w-full transition-all duration-300"></span>
-            </a>
-            <a href="#statistics" className="text-gray-400 hover:text-[#c495e6] transition-all duration-300 font-medium relative group">
-              Impact
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#c495e6] to-[#e4bef2] group-hover:w-full transition-all duration-300"></span>
             </a>
             <a href="#testimonials" className="text-gray-400 hover:text-[#c495e6] transition-all duration-300 font-medium relative group">
               Stories
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#c495e6] to-[#e4bef2] group-hover:w-full transition-all duration-300"></span>
             </a>
-            <a href="#contact" className="text-gray-400 hover:text-[#c495e6] transition-all duration-300 font-medium relative group">
-              Contact
+            <a href="#why-mindwell" className="text-gray-400 hover:text-[#c495e6] transition-all duration-300 font-medium relative group">
+              Why Us
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#c495e6] to-[#e4bef2] group-hover:w-full transition-all duration-300"></span>
+            </a>
+            <a href="#resources" className="text-gray-400 hover:text-[#c495e6] transition-all duration-300 font-medium relative group">
+              Resources
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#c495e6] to-[#e4bef2] group-hover:w-full transition-all duration-300"></span>
+            </a>
+            <a href="#faq" className="text-gray-400 hover:text-[#c495e6] transition-all duration-300 font-medium relative group">
+              FAQ
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#c495e6] to-[#e4bef2] group-hover:w-full transition-all duration-300"></span>
             </a>
           </nav>
@@ -256,7 +260,7 @@ const LandingPage = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="py-24 relative">
+      <section id="testimonials" className="py-24 relative scroll-mt-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl md:text-5xl font-bold text-center text-white mb-16">
             Stories of <span className="bg-gradient-to-r from-[#c495e6] to-[#e4bef2] bg-clip-text text-transparent">Transformation</span>
@@ -302,7 +306,7 @@ const LandingPage = () => {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-24 relative">
+      <section id="how-it-works" className="py-24 relative scroll-mt-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
@@ -367,7 +371,7 @@ const LandingPage = () => {
       </section>
 
       {/* Why Choose MindWell Section */}
-      <section className="py-24 relative bg-gradient-to-b from-transparent to-purple-500/5">
+      <section id="why-mindwell" className="py-24 relative bg-gradient-to-b from-transparent to-purple-500/5 scroll-mt-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
@@ -429,7 +433,7 @@ const LandingPage = () => {
       </section>
 
       {/* Mental Health Resources Section */}
-      <section className="py-24 relative">
+      <section id="resources" className="py-24 relative scroll-mt-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
@@ -496,7 +500,7 @@ const LandingPage = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-24 relative">
+      <section id="faq" className="py-24 relative scroll-mt-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
