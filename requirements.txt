@@ -1,5 +1,8 @@
+Flask
 Flask-Login
 Flask-SQLAlchemy
+Jinja2==3.1.2
+MarkupSafe==2.1.3
 Werkzeug
 python-dotenv
 pandas
