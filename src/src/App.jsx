@@ -12,6 +12,7 @@ import MagicBento from './components/MagicBento'
 import ChatHistory from './components/ChatHistory'
 import TasksManager from './components/TasksManager'
 import Consultant from './components/Consultant'
+import Community from './components/Community'
 //children routes
 function App() {
   const router = createBrowserRouter([
@@ -58,6 +59,10 @@ function App() {
         {
           path:"consultation",
           element:<Consultant/>
+        },
+        {
+          path:"community",
+          element:<Community/>
         },
         {
         }

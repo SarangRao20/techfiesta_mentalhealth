@@ -60,7 +60,39 @@ function SideBar() {
             <ChatItem sessionId={13} label="React personalization config" />
             <ChatItem sessionId={14} label="Dynamic UI Chat" />
           </div>
+
+          {/* User Section (BOTTOM) */}
+<div className="mt-auto pt-4 border-t border-white/10">
+  <div className="flex items-center gap-3 mb-3">
+    {/* Avatar */}
+    <div className="w-10 h-10 rounded-full bg-purple-300/30 flex items-center justify-center">
+      <span className="text-lg">👤</span>
+    </div>
+
+    {/* Username */}
+    <span className="text-sm font-medium text-white">
+      Username
+    </span>
+  </div>
+
+  {/* Logout */}
+  <button
+    onClick={() => {
+      // TODO: logout logic
+      console.log("logout");
+    }}
+    className="w-full flex items-center justify-center gap-2
+               bg-red-600 hover:bg-red-700
+               text-white text-sm
+               py-2 rounded-lg transition"
+  >
+    Logout
+  </button>
+</div>
+
         </div>
+
+        
       </aside>
 
       {/* MAIN CONTENT */}

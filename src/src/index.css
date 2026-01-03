@@ -12,3 +12,22 @@
 input[type="time"] {
   @apply text-white
 }
+
+@keyframes flame {
+  0% {
+    transform: scale(0.9) rotate(-2deg);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.1) rotate(2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.95) rotate(-1deg);
+    opacity: 0.8;
+  }
+}
+
+.animate-flame {
+  animation: flame 1.5s ease-in-out infinite;
+}
