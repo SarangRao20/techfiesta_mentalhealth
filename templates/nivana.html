@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nivana - Presence</title>
+    <!-- Use a very clean, minimal font -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a; /* Deep blue/slate */
+            --text-color: #e2e8f0; /* Soft white */
+            --accent-color: #38bdf8; /* Calming blue */
+            --button-bg: rgba(255, 255, 255, 0.1);
+            --button-hover: rgba(255, 255, 255, 0.2);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            transition: background-color 0.5s ease;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 600px;
+            padding: 2rem;
+            opacity: 0;
+            animation: fadeIn 1.5s ease-out forwards;
+        }
+
+        h1 {
+            font-weight: 300;
+            font-size: 2rem;
+            line-height: 1.4;
+            margin-bottom: 2rem;
+        }
+
+        p {
+            font-size: 1.25rem;
+            font-weight: 300;
+            margin-bottom: 3rem;
+            opacity: 0.9;
+        }
+
+        .btn {
+            background: var(--button-bg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-color);
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5rem;
+        }
+
+        .btn:hover {
+            background: var(--button-hover);
+            transform: translateY(-2px);
+        }
+
+        /* Fade In Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Pulse Animation for Focus */
+        .pulse {
+            animation: pulse 3s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(56, 189, 248, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+        }
+
+        /* Input styling for Step 4 */
+        .input-field {
+            background: rgba(0,0,0,0.2);
+            border: none;
+            border-bottom: 2px solid var(--accent-color);
+            padding: 1rem;
+            width: 100%;
+            color: white;
+            font-size: 1.2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .input-field:focus {
+            outline: none;
+            background: rgba(0,0,0,0.3);
+        }
+
+        /* Hidden class */
+        .hidden { display: none; }
+        
+        .timer-display {
+            font-size: 4rem;
+            font-weight: 200;
+            margin: 2rem 0;
+        }
+    </style>
+</head>
+<body>
+
+
+    <div class="container">
+        {% if text %}
+            <h1>{{ text | safe }}</h1>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('nivana') }}" id="nivana-form">
+            
+            {% if step == 1 %}
+                <!-- STEP 1: Presence -->
+                <button type="submit" name="action" value="next" class="btn pulse">{{ cta }}</button>
+            
+            {% elif step == 2 or step == 3 or step == 7 %}
+                <!-- STEP 2, 3, 7: Binary Choices -->
+                <div class="d-flex justify-content-center flex-wrap">
+                    {% for option in options %}
+                        <button type="submit" name="value" value="{{ option.value }}" 
+                                class="btn {{ option.class or 'btn-outline-light' }}">
+                            {{ option.label }}
+                        </button>
+                    {% endfor %}
+                </div>
+
+            {% elif step == 4 %}
+                <!-- STEP 4: Controlled Expression -->
+                <div class="d-flex flex-column align-items-center">
+                    <input type="text" name="text_input" class="input-field" 
+                           placeholder="Type here..." maxlength="100" autocomplete="off" autofocus required>
+                    <button type="submit" class="btn mt-3">Continue</button>
+                </div>
+
+            {% elif step == 5 %}
+                <!-- STEP 5: Projective Check -->
+                <div class="d-flex flex-column align-items-center">
+                    {% if image_url %}
+                        <img src="{{ image_url }}" alt="Abstract Shape" 
+                             style="max-width: 300px; border-radius: 10px; margin-bottom: 2rem; opacity: 0.8;">
+                    {% endif %}
+                    <input type="text" name="projective_desc" class="input-field" 
+                           placeholder="What do you see?" autocomplete="off" autofocus required>
+                    <button type="submit" class="btn mt-3">Submit</button>
+                </div>
+
+            {% elif step == 6 %}
+                <!-- STEP 6: Micro-Intervention -->
+                <div class="timer-display" id="timer">{{ timer }}</div>
+                <script>
+                    let timeLeft = parseInt("{{ timer|default(30) }}");
+                    const timerElement = document.getElementById('timer');
+                    const form = document.getElementById('nivana-form');
+                    
+                    const countdown = setInterval(() => {
+                        timeLeft--;
+                        timerElement.textContent = timeLeft;
+                        if (timeLeft <= 0) {
+                            clearInterval(countdown);
+                            // Auto-submit after timer
+                            const hiddenInput = document.createElement('input');
+                            hiddenInput.type = 'hidden';
+                            hiddenInput.name = 'action';
+                            hiddenInput.value = 'timeout';
+                            form.appendChild(hiddenInput);
+                            form.submit();
+                        }
+                    }, 1000);
+                </script>
+                <!-- Allow skipping if panic -->
+                <button type="submit" name="action" value="skip" class="btn btn-sm" style="opacity: 0.5; margin-top: 2rem;">I can't wait</button>
+
+            {% endif %}
+
+        </form>
+    </div>
+
+
+    <script>
+        // Simple client-side utility if needed
+    </script>
+</body>
+</html>
