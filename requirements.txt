@@ -1,5 +1,8 @@
+Flask
 Flask-Login
 Flask-SQLAlchemy
+Jinja2==3.1.2
+MarkupSafe==2.1.3
 Werkzeug
 python-dotenv
 pandas
@@ -11,3 +14,8 @@ langchain-community
 langchain-core
 google-genai
 streamlit-audiorecorder
+flask_babel
+reportlab
+flask_restx
+flask_cors
+flask_migrate
