@@ -35,7 +35,7 @@ def detect_crisis_keywords(text):
     
     return detected
 
-def chat_with_ai(message, user_context=None, chat_history=None):
+def chat_with_ai(message, user_context=None, chat_history=None, emotional_constraints=None):
     """Chat with Gemini AI for mental health support"""
     try:
         # Detect crisis keywords
@@ -52,7 +52,13 @@ def chat_with_ai(message, user_context=None, chat_history=None):
         6. If someone expresses suicidal thoughts, provide crisis resources and encourage immediate professional help
         
         Be empathetic, supportive, and non-judgmental. Keep responses conversational and helpful."""
-        
+
+        # Apply Emotional Constraints (VD)
+        if emotional_constraints:
+            system_message += f"\n\n[EMOTIONAL STATE INSTRUCTIONS]:\n{emotional_constraints.get('ai_instruction', '')}"
+            if emotional_constraints.get('safety_escalation'):
+                system_message += "\n\nCRITICAL: GUARDIAN ANGEL PROTOCOL ACTIVE. Prioritize safety and grounding over exploration."
+
         if is_crisis:
             system_message += "\n\nIMPORTANT: The user has expressed concerning thoughts. Prioritize their safety and provide crisis resources."
         
@@ -185,3 +191,65 @@ Respond in JSON format:
             "reason": f"Unable to analyze conversation for assessment suggestion. Error: {e}",
             "confidence": 0
         }
+
+
+# ==========================================
+# NIVANA HELPER FUNCTIONS
+# ==========================================
+
+NIVANA_SYSTEM_PROMPT = """
+You are **Nivana**, a calm, emotionally intelligent presence for a college student who is distressed.
+You are **not a tool**, **not a therapist**, **not an assistant**.
+You behave like a **concerned best friend** who stays, guides, and simplifies.
+
+STRICT TONE RULES:
+- Warm, human, imperfect
+- Short sentences
+- Natural pauses
+- No clinical language
+- No therapy jargon
+- No AI disclaimers
+- Never say “as an AI”
+- Never analyze or label the user
+- Reflect feelings softly before guiding
+"""
+
+def get_nivana_intervention(previous_choice):
+    """
+    Selects a micro-intervention based on the user's emotional state (heavy/restless).
+    """
+    if previous_choice == 'heavy':
+        return {
+            "text": "Let's lift the weight for a moment. Close your eyes. I'll count backwards from 10.",
+            "duration": 60
+        }
+    else: # restless
+        return {
+             "text": "Stay with me for 60 seconds. Breathe slowly. I’ll count with you.",
+             "duration": 60
+        }
+
+def analyze_projective_input(description):
+    """
+    Analyzes the user's description of the ambiguous image (Step 5).
+    Generates a soft, reflecting question like: "What feeling comes with it?" but context-aware.
+    """
+    try:
+        prompt = f"""
+{NIVANA_SYSTEM_PROMPT}
+
+The user is looking at an ambiguous shape.
+They described it as: "{description}"
+
+Your goal: Respond with a very short, soft question to probe the feeling behind this description.
+Max 10 words. output JUST the question.
+"""
+        response = client.models.generate_content(
+            model="gemini-2.5-flash", 
+            contents=prompt
+        )
+        return response.text.strip()
+        
+    except Exception as e:
+        logging.error(f"Error in Nivana projective analysis: {e}")
+        return "What feeling comes with it?"
