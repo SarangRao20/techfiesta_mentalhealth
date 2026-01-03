@@ -11,3 +11,8 @@ langchain-community
 langchain-core
 google-genai
 streamlit-audiorecorder
+flask_babel
+reportlab
+flask-migrate
+flask_restx
+flask_cors
