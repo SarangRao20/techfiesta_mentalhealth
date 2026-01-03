@@ -245,7 +245,7 @@ const LandingPage = () => {
                 }`}
                 style={{ transitionDelay: `${idx * 100}ms` }}
               >
-                <div className="p-8 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-300 hover:bg-white/10">
+                <div className="p-8 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-300 hover:bg-white/10 h-full flex flex-col justify-center items-center text-center">
                   <h3 className={`text-5xl font-bold ${stat.color} mb-4`}>
                     {isVisible[`animate-stat-${idx}`] && (
                       <CountUp end={stat.value} suffix={stat.suffix || ''} />
@@ -323,25 +323,41 @@ const LandingPage = () => {
                 step: "01",
                 title: "Create Your Account",
                 desc: "Sign up with a secure, confidential account. Your privacy is our priority - all data is encrypted and protected.",
-                icon: "🔐"
+                icon: (
+                  <svg className="w-12 h-12 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                )
               },
               {
                 step: "02",
                 title: "Complete Initial Assessment",
                 desc: "Take our professional mental health assessments (PHQ-9, GAD-7, GHQ) to understand your baseline and identify areas that need support.",
-                icon: "📋"
+                icon: (
+                  <svg className="w-12 h-12 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                )
               },
               {
                 step: "03",
                 title: "Get Personalized Recommendations",
                 desc: "Based on your assessment, receive tailored recommendations including AI chatbot support, counselor matching, and wellness resources.",
-                icon: "🎯"
+                icon: (
+                  <svg className="w-12 h-12 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )
               },
               {
                 step: "04",
                 title: "Start Your Wellness Journey",
                 desc: "Access 24/7 AI support, book sessions with professional counselors, track your progress, and use our wellness tools daily.",
-                icon: "🌱"
+                icon: (
+                  <svg className="w-12 h-12 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                )
               }
             ].map((item, idx) => (
               <div
@@ -353,7 +369,7 @@ const LandingPage = () => {
                 style={{ transitionDelay: `${idx * 150}ms` }}
               >
                 <div className="flex-shrink-0">
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-white/20 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform duration-300">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-white/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     {item.icon}
                   </div>
                 </div>
@@ -387,32 +403,57 @@ const LandingPage = () => {
               {
                 title: "Student-Centric Design",
                 desc: "Built specifically for high school students, understanding your unique challenges with academic pressure, social dynamics, and personal growth.",
-                icon: "🎓"
+                icon: (
+                  <svg className="w-12 h-12 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
+                  </svg>
+                )
               },
               {
                 title: "Complete Confidentiality",
                 desc: "Your conversations and data are fully encrypted and private. We never share information without your explicit consent.",
-                icon: "🔒"
+                icon: (
+                  <svg className="w-12 h-12 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                  </svg>
+                )
               },
               {
                 title: "Professional Standards",
                 desc: "All our counselors are licensed mental health professionals with experience working with adolescents and young adults.",
-                icon: "✅"
+                icon: (
+                  <svg className="w-12 h-12 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                )
               },
               {
                 title: "Evidence-Based Tools",
                 desc: "We use clinically validated assessments (PHQ-9, GAD-7, GHQ-12) recognized by mental health professionals worldwide.",
-                icon: "📊"
+                icon: (
+                  <svg className="w-12 h-12 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                  </svg>
+                )
               },
               {
                 title: "24/7 Availability",
                 desc: "Mental health doesn't follow a schedule. Our AI companion is always available when you need support, day or night.",
-                icon: "⏰"
+                icon: (
+                  <svg className="w-12 h-12 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                  </svg>
+                )
               },
               {
                 title: "Affordable Access",
                 desc: "We believe mental health care should be accessible. Our platform offers free assessments and affordable counseling options.",
-                icon: "💰"
+                icon: (
+                  <svg className="w-12 h-12 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+                  </svg>
+                )
               }
             ].map((item, idx) => (
               <div
@@ -423,7 +464,7 @@ const LandingPage = () => {
                 }`}
                 style={{ transitionDelay: `${idx * 100}ms` }}
               >
-                <div className="text-5xl mb-4">{item.icon}</div>
+                <div className="mb-4">{item.icon}</div>
                 <h3 className="text-xl font-bold text-white mb-3">{item.title}</h3>
                 <p className="text-gray-400 leading-relaxed">{item.desc}</p>
               </div>
@@ -563,11 +604,11 @@ const LandingPage = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
               <a href="/register"
-                className="px-10 py-5 text-lg rounded-xl bg-gradient-to-r from-[#c495e6] to-[#9b6fc7] text-white font-semibold hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 transform hover:scale-105">
+                className="px-8 py-3.5 text-base rounded-xl bg-gradient-to-r from-[#c495e6] to-[#9b6fc7] text-white font-semibold hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 transform hover:scale-105">
                 Register Now
               </a>
               <a href="#contact"
-                className="px-10 py-5 text-lg rounded-xl border-2 border-[#c495e6] text-[#c495e6] font-semibold hover:bg-[#c495e6] hover:text-white transition-all duration-300 transform hover:scale-105">
+                className="px-8 py-3.5 text-base rounded-xl border-2 border-[#c495e6] text-[#c495e6] font-semibold hover:bg-[#c495e6] hover:text-white transition-all duration-300 transform hover:scale-105">
                 Contact Support
               </a>
             </div>
