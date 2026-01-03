@@ -4,6 +4,7 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import hashlib
 import json
+from sqlalchemy.dialects.postgresql import JSONB
 
 class RoutineTask(db.Model):
     __tablename__ = 'routine_tasks'
@@ -12,7 +13,7 @@ class RoutineTask(db.Model):
     title = db.Column(db.String(100), nullable=False)
     start_time = db.Column(db.String(5), nullable=False)  # HH:MM
     end_time = db.Column(db.String(5), nullable=False)    # HH:MM
-    notes = db.Column(db.String(500))
+    notes = db.Column(db.Text)
     status = db.Column(db.String(20), default='pending')  # pending, completed, skipped
     created_date = db.Column(db.Date, default=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -40,6 +41,9 @@ class RoutineTask(db.Model):
             'created_at': self.created_at,
             'updated_at': self.updated_at
         }
+
+    def __repr__(self):
+        return f"<RoutineTask {self.id}: {self.title} ({self.start_time}-{self.end_time})>"
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -93,11 +97,11 @@ class ChatSession(db.Model):
     session_start = db.Column(db.DateTime, default=datetime.utcnow)
     session_end = db.Column(db.DateTime)
     crisis_flag = db.Column(db.Boolean, default=False)
-    keywords_detected = db.Column(db.Text)  # JSON string of detected keywords
+    keywords_detected = db.Column(JSONB)  # JSON string of detected keywords
     
     # Emotional Vector Dynamics (VD) State
-    emotional_vectors = db.Column(db.Text)  # JSON string of current vectors (valence, arousal, etc.)
-    emotional_history = db.Column(db.Text)  # JSON string of historical snapshots for trend analysis
+    emotional_vectors = db.Column(JSONB)  # JSON string of current vectors (valence, arousal, etc.)
+    emotional_history = db.Column(JSONB)  # JSON string of historical snapshots for trend analysis
 
     # Relationship
     messages = db.relationship('ChatMessage', backref='session', lazy=True, cascade='all, delete-orphan')
@@ -108,13 +112,13 @@ class ChatMessage(db.Model):
     message_type = db.Column(db.String(10), nullable=False)  # user, bot
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    crisis_keywords = db.Column(db.Text)  # JSON string of crisis keywords in this message
+    crisis_keywords = db.Column(JSONB)  # JSON string of crisis keywords in this message
 
 class Assessment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     assessment_type = db.Column(db.String(10), nullable=False)  # PHQ-9, GAD-7, GHQ
-    responses = db.Column(db.Text, nullable=False)  # JSON string of responses
+    responses = db.Column(JSONB, nullable=False)  # JSON string of responses
     score = db.Column(db.Integer, nullable=False)
     severity_level = db.Column(db.String(20), nullable=False)
     recommendations = db.Column(db.Text)
@@ -193,20 +197,5 @@ class AvailabilitySlot(db.Model):
 
     counsellor = db.relationship('User', foreign_keys=[counsellor_id], backref='availability_slots')
 
-class RoutineTask(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    title = db.Column(db.String(100), nullable=False)
-    start_time = db.Column(db.String(5), nullable=False) # HH:MM
-    end_time = db.Column(db.String(5), nullable=False)   # HH:MM
-    notes = db.Column(db.Text)
-    status = db.Column(db.String(20), default='pending') # pending, completed, skipped
-    created_date = db.Column(db.Date, default=datetime.utcnow().date)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    user = db.relationship('User', backref='routine_tasks')
-
-    def __repr__(self):
-        return f"<RoutineTask {self.id}: {self.title} ({self.start_time}-{self.end_time})>"
 
