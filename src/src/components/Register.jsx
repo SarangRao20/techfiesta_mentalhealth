@@ -1,8 +1,8 @@
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import download from "../assets/download.png";
 import { useNavigate } from "react-router-dom";
+
 export default function Register() {
+  const navigate = useNavigate();
   const { register, handleSubmit, watch } = useForm({
     defaultValues: { role: "student" },
   });
@@ -15,7 +15,7 @@ export default function Register() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    console.log(data)
+
     if (send.ok) {
       alert("Registration successful! Please log in.");
       navigate("/login");
@@ -23,88 +23,73 @@ export default function Register() {
       alert("Registration failed. Please try again.");
     }
   };
-  // #0E1116   (Primary background)
-  // #141923 
+
+  const inputClass =
+    "w-full rounded-lg bg-[#0E1116] border border-white/20 text-white px-3 py-1.5 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition text-sm";
+
+  const selectClass =
+    "w-full rounded-lg bg-[#0E1116] border border-white/20 text-white px-3 py-1.5 appearance-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition text-sm bg-[url('data:image/svg+xml;utf8,<svg fill=\\\"white\\\" height=\\\"20\\\" viewBox=\\\"0 0 24 24\\\" width=\\\"20\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"><path d=\\\"M7 10l5 5 5-5z\\\"/></svg>')] bg-no-repeat bg-[right_0.8rem_center]";
+
   return (
-    <div className="min-h-screen  flex flex-col items-center justify-center px-4 py-5">
-      <div className="w-full bg-white shadow-lg max-w-xl rounded-xl border-white/60 border-1 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-[#0E1116] to-[#141923] flex items-center justify-center px-4">
+      <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-[#0f1320]/60 backdrop-blur-xl shadow-[0_0_30px_rgba(0,0,0,0.5)]">
 
         {/* Header */}
-        <div className="  text-black border-b-2 text-center py-4">
-          <h3 className="text-xl  font-semibold flex items-center justify-center gap-2">
-            <i className="fas fa-user-plus" />
-            Join Us Today!
+        <div className="border-b border-white/10 text-center py-4">
+          <h3 className="text-xl font-semibold text-white tracking-wide">
+            Create Your Account
           </h3>
+          <p className="text-gray-400 text-xs mt-1">
+            Join NirVana and begin your journey
+          </p>
         </div>
 
         {/* Body */}
-        <div className="p-6">
+        <div className="p-5">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
 
             {/* Name + Username */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm  text-black font-medium mb-1">
-                  <i className="fas fa-id-card  mr-1" />
+                <label className="block text-xs text-gray-300 mb-1">
                   Full Name
                 </label>
-                <input
-                  {...register("full_name", { required: true })}
-                  className="w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2  "
-                />
+                <input {...register("full_name", { required: true })} className={inputClass} />
               </div>
 
               <div>
-                <label className="block text-sm   text-black font-medium mb-1">
-                  <i className="fas fa-user    mr-1" />
+                <label className="block text-xs text-gray-300 mb-1">
                   Username
                 </label>
-                <input
-                  {...register("username", { required: true })}
-                  className="w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2  "
-                />
+                <input {...register("username", { required: true })} className={inputClass} />
               </div>
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm   text-black font-medium mb-1">
-                <i className="fas fa-envelope    mr-1" />
+              <label className="block text-xs text-gray-300 mb-1">
                 Email
               </label>
-              <input
-                type="email"
-                {...register("email", { required: true })}
-                className="w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2  "
-              />
+              <input type="email" {...register("email", { required: true })} className={inputClass} />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm   text-black font-medium mb-1">
-                <i className="fas fa-lock    mr-1" />
+              <label className="block text-xs text-gray-300 mb-1">
                 Password
               </label>
-              <input
-                type="password"
-                {...register("password", { required: true })}
-                className="w-full rounded-md border px-3 py-2 bg-blue-50 focus:outline-none focus:ring-2  "
-              />
+              <input type="password" {...register("password", { required: true })} className={inputClass} />
             </div>
 
             {/* Role + Student ID */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm  text-black font-medium mb-1">
-                  <i className="fas fa-users    mr-1" />
+                <label className="block text-xs text-gray-300 mb-1">
                   Role
                 </label>
-                <select
-                  {...register("role")}
-                  className="w-full rounded-md border px-3 py-2 text-black focus:outline-none focus:ring-2  "
-                >
+                <select {...register("role")} className={selectClass}>
                   <option value="student">Student</option>
-                  <option value="teacher">Teacher/Mentor</option>
+                  <option value="teacher">Teacher / Mentor</option>
                   <option value="counsellor">Counsellor</option>
                   <option value="admin">Administrator</option>
                 </select>
@@ -112,16 +97,12 @@ export default function Register() {
 
               {role === "student" && (
                 <div>
-                  <label className="block text-sm   text-black font-medium mb-1">
-                    <i className="fas fa-id-badge    mr-1" />
+                  <label className="block text-xs text-gray-300 mb-1">
                     Student ID
                   </label>
-                  <input
-                    {...register("student_id")}
-                    className="w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2  "
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Will be encrypted for privacy
+                  <input {...register("student_id")} className={inputClass} />
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    Encrypted for privacy
                   </p>
                 </div>
               )}
@@ -130,14 +111,10 @@ export default function Register() {
             {/* Accommodation */}
             {role === "student" && (
               <div>
-                <label className="block text-sm font-medium mb-1  text-black">
-                  <i className="fas fa-home    mr-1" />
+                <label className="block text-xs text-gray-300 mb-1">
                   Accommodation Type
                 </label>
-                <select
-                  {...register("accommodation_type")}
-                  className="w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2  "
-                >
+                <select {...register("accommodation_type")} className={selectClass}>
                   <option value="">Select...</option>
                   <option value="hostel">Hostel</option>
                   <option value="local">Local</option>
@@ -148,27 +125,26 @@ export default function Register() {
             {/* Submit */}
             <button
               type="submit"
-              className="w-full bg-blue-200 text-black/60 py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
+              className="w-full mt-3 bg-gradient-to-r from-purple-600 to-purple-500 
+              hover:from-purple-500 hover:to-purple-400 text-white py-2 
+              rounded-xl font-semibold tracking-wide transition 
+              shadow-lg shadow-purple-700/40 hover:shadow-purple-500/60
+              hover:scale-[1.01] active:scale-[0.99] text-sm"
             >
-              <i className="fas fa-user-plus" />
               Create Account
             </button>
           </form>
 
           {/* Footer */}
-          <div className="text-center  text-black mt-4 text-sm">
+          <div className="text-center text-gray-300 mt-4 text-xs">
             Already have an account?{" "}
-            <a href="/login" className="   font-medium hover:underline">
+            <a href="/login" className="text-purple-400 hover:underline">
               Login here
             </a>
           </div>
 
-          <div className="mt-4 border-1 border-white  text-black text-sm rounded-lg p-3 flex gap-2">
-            <i className="fas fa-shield-alt mt-0.5" />
-            <span>
-              Your personal information is encrypted and secure. Student IDs are
-              hashed for privacy protection.
-            </span>
+          <div className="mt-3 text-gray-400 text-xs rounded-lg p-2 border border-white/10 bg-white/5">
+            🔐 Your information is securely encrypted.
           </div>
         </div>
       </div>
