@@ -12,6 +12,7 @@ import MagicBento from './components/MagicBento'
 import ChatHistory from './components/ChatHistory'
 import TasksManager from './components/TasksManager'
 import Consultant from './components/Consultant'
+import SignIn from './components/SignIn'
 //children routes
 function App() {
   const router = createBrowserRouter([
@@ -24,9 +25,14 @@ function App() {
         </div>
     },
     {
+      path: "/signin",
+      element: <SignIn />
+    },
+    {
       path: "/register",
       element: <Register />
     },
+    
     {
       path: "/start-journey",
       element: <Onboarding />

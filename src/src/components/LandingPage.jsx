@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
-
+import Register from './Register';
+import SignIn from './SignIn';
 const LandingPage = () => {
   const [scrollY, setScrollY] = useState(0);
   const [isVisible, setIsVisible] = useState({});
@@ -123,13 +124,13 @@ const LandingPage = () => {
           {/* Auth buttons */}
           <div className="flex items-center space-x-4">
             <Link
-              to="/onboarding"
+              to="/register"
               className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#c495e6] to-[#9b6fc7] text-white font-semibold hover:shadow-lg hover:shadow-purple-500/50 transition-all duration-300 transform hover:scale-105"
             >
               Register
             </Link>
             <Link
-              to="/login"
+              to="/signin"
               className="px-6 py-2.5 rounded-xl border-2 border-[#c495e6] text-[#c495e6] font-semibold hover:bg-[#c495e6] hover:text-white transition-all duration-300 transform hover:scale-105"
             >
               Sign In
@@ -607,11 +608,11 @@ const LandingPage = () => {
                 className="px-8 py-3.5 text-base rounded-xl bg-gradient-to-r from-[#c495e6] to-[#9b6fc7] text-white font-semibold hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 transform hover:scale-105">
                 Register Now
               </a>
-              <a href="#contact"
+                <a href="/signin"
                 className="px-8 py-3.5 text-base rounded-xl border-2 border-[#c495e6] text-[#c495e6] font-semibold hover:bg-[#c495e6] hover:text-white transition-all duration-300 transform hover:scale-105">
                 Contact Support
               </a>
-            </div>
+            </div>  
           </div>
         </div>
       </section>
