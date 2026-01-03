@@ -95,6 +95,10 @@ class ChatSession(db.Model):
     crisis_flag = db.Column(db.Boolean, default=False)
     keywords_detected = db.Column(db.Text)  # JSON string of detected keywords
     
+    # Emotional Vector Dynamics (VD) State
+    emotional_vectors = db.Column(db.Text)  # JSON string of current vectors (valence, arousal, etc.)
+    emotional_history = db.Column(db.Text)  # JSON string of historical snapshots for trend analysis
+
     # Relationship
     messages = db.relationship('ChatMessage', backref='session', lazy=True, cascade='all, delete-orphan')
 

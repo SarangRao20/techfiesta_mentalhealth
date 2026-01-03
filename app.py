@@ -12,6 +12,7 @@ from flask_restx import Api
 from flask_cors import CORS
 ## Removed inkblot import; will define inkblot routes in routes.py
 from database import db
+from flask_migrate import Migrate
 
 # Load environment variables
 load_dotenv()
@@ -68,6 +69,8 @@ def get_locale():
     return request.accept_languages.best_match(app.config['LANGUAGES'].keys()) or app.config['BABEL_DEFAULT_LOCALE']
 
 babel.init_app(app, locale_selector=get_locale)
+
+migrate = Migrate(app, db)
 
 login_manager = LoginManager()
 login_manager.init_app(app)

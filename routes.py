@@ -2,7 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, jsonify, s
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
 from models import User, ChatSession, ChatMessage, Assessment, MeditationSession, VentingPost, VentingResponse, ConsultationRequest, AvailabilitySlot, SoundVentingSession
-from gemini_service import chat_with_ai, analyze_assessment_results, suggest_assessment
+from gemini_service import chat_with_ai, analyze_assessment_results, suggest_assessment, analyze_projective_input
 from voice_service import voice_service
 from utils import (hash_student_id, calculate_phq9_score, calculate_gad7_score, 
                   calculate_ghq_score, get_assessment_questions, get_assessment_options,
@@ -292,6 +292,103 @@ def dashboard():
                          tasks_progress=tasks_progress,
                          login_streak=current_user.login_streak or 0)
 
+@app.route('/nivana', methods=['GET', 'POST'])
+@login_required
+def nivana():
+    # Initialize session state if not present or newly entering (GET request without form submission usually implies start, 
+    # but we check if step is missing to avoid resetting on refresh if we want persistence, 
+    # though for a flow usually GET resets or resumes. Let's reset on fresh GET from dashboard).
+    if request.method == 'GET' and 'nivana_step' not in session:
+        session['nivana_step'] = 1
+        session['nivana_data'] = {}
+    elif request.method == 'GET' and request.args.get('reset'):
+        session['nivana_step'] = 1
+        session['nivana_data'] = {}
+        
+    step = session.get('nivana_step', 1)
+    
+    if request.method == 'POST':
+        # Retrieve data from form
+        action = request.form.get('action')
+        value = request.form.get('value')
+        text_input = request.form.get('text_input')
+        projective_desc = request.form.get('projective_desc')
+        
+        # Helper to update session data safely
+        data = session.get('nivana_data', {})
+        
+        if step == 2:
+            data['safety'] = value
+        elif step == 3:
+            data['preference'] = value
+            # Branching logic could go here (e.g., if 'talk' -> chat)
+            # For now, keep linear flow
+        elif step == 4:
+            data['expression'] = text_input
+        elif step == 5:
+            data['projection'] = projective_desc
+        
+        session['nivana_data'] = data
+        
+        # Move to next step
+        if step < 7:
+            step += 1
+            session['nivana_step'] = step
+        else:
+            # End of flow
+            # Retrieve final data to possibly save to DB or Log
+            # For now, just clear and redirect
+            # Could save a 'CompassionSession' here
+            session.pop('nivana_step', None)
+            session.pop('nivana_data', None)
+            flash("You've taken a great step for yourself today.", "success")
+            return redirect(url_for('dashboard'))
+            
+    # Prepare context for the template
+    context = {'step': step}
+    
+    if step == 1:
+        context['text'] = "I'm here with you.<br>Let's take a moment to just be."
+        context['cta'] = "I'm ready"
+        
+    elif step == 2:
+        context['text'] = "Do you feel safe right now?"
+        context['options'] = [
+            {'label': 'Yes, safe', 'value': 'yes', 'class': 'btn-outline-success'},
+            {'label': 'No, anxious', 'value': 'no', 'class': 'btn-outline-secondary'}
+        ]
+        
+    elif step == 3:
+        context['text'] = "Do you want to talk about it,<br>or just sit together?"
+        context['options'] = [
+            {'label': 'Let\'s Talk', 'value': 'talk'},
+            {'label': 'Just Sit', 'value': 'sit'}
+        ]
+        
+    elif step == 4:
+        context['text'] = "What is one thing weighing on your mind?"
+        # Input provided in template for step 4
+        
+    elif step == 5:
+        context['text'] = "Take a deep breath.<br>What comes to mind when you see this?"
+        # Using a simple placeholder color/shape if no image, or a static asset
+        # Let's use a nice gradient div in template if image_url is missing, or a place holder
+        context['image_url'] = "https://ui-avatars.com/api/?name=Shape&background=0D8ABC&color=fff&size=256&length=0" 
+        # Or better yet, just generic abstract
+        
+    elif step == 6:
+        context['text'] = "Let's breathe together."
+        context['timer'] = 30 # seconds
+        
+    elif step == 7:
+        context['text'] = "Do you feel a little lighter?"
+        context['options'] = [
+            {'label': 'Yes, a bit', 'value': 'yes', 'class': 'btn-outline-success'},
+            {'label': 'Not really', 'value': 'no', 'class': 'btn-outline-light'}
+        ]
+
+    return render_template('nivana.html', **context)
+
 @app.route('/chatbot')
 @login_required
 def chatbot():
@@ -325,6 +422,8 @@ def chat():
     message = request.form['message']
     session_id = request.form['session_id']
     
+    app.logger.warning(f"CHAT ROUTE: Processing message '{message}' for Session ID: {session_id} (User: {current_user.id})")
+
     chat_session = ChatSession.query.get(session_id)
     if not chat_session or chat_session.user_id != current_user.id:
         return jsonify({'error': 'Invalid session'}), 400
@@ -336,10 +435,34 @@ def chat():
     # Get chat history for context
     chat_history = ChatMessage.query.filter_by(session_id=session_id).order_by(ChatMessage.timestamp).all()
     history_context = [{"role": "user" if msg.message_type == "user" else "assistant", "content": msg.content} for msg in chat_history[-10:]]
-    
+        
+    # --- EMOTIONAL VD UPDATE ---
+    from emotional_core import emotional_core
+    try:
+        # Update internal state based on user message
+        current_emotional_state = emotional_core.update_state(chat_session, message)
+        
+        # KEY FIX: Commit the VD state immediately so debug route sees it
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(chat_session, "emotional_vectors")
+        flag_modified(chat_session, "emotional_history")
+        db.session.commit()
+        
+        # Get constraints for AI (Pass history for trend analysis)
+        history = emotional_core._load_history(chat_session)
+        constraints = emotional_core.get_constraints(current_emotional_state, history)
+        
+        # Log for debugging (optional)
+        app.logger.info(f"VD State: {current_emotional_state.to_dict()} | Constraints: {constraints}")
+        
+    except Exception as e:
+        app.logger.error(f"Emotional Core Error: {e}")
+        constraints = None
+    # ---------------------------
+
     # Get AI response with fallback
     try:
-        ai_result = chat_with_ai(message, user_context=current_user.username, chat_history=history_context)
+        ai_result = chat_with_ai(message, user_context=current_user.username, chat_history=history_context, emotional_constraints=constraints)
     except Exception as e:
         app.logger.error(f"AI chat error: {e}")
         # Hardcoded fallback responses based on message content
@@ -370,6 +493,35 @@ def chat():
     }
     
     return jsonify(response)
+
+@app.route('/debug_vd')
+@login_required
+def debug_vd():
+    """Debug route to view current Emotional VD state"""
+    session_id = session.get('chat_session_id')
+    if not session_id:
+        return jsonify({"error": "No active chat session", "instructions": "Start a chat first!"})
+    
+    # Refresh logic to ensure we see DB updates from /chat route
+    chat_session = ChatSession.query.get(session_id)
+    if chat_session:
+        db.session.refresh(chat_session)
+    else:
+        return jsonify({"error": f"Session object {session_id} not found in DB"})
+        
+    from emotional_core import emotional_core
+    state = emotional_core.get_state(chat_session)
+    history = emotional_core._load_history(chat_session)
+    
+    trend_direction = emotional_core.calculate_trend(history)
+    
+    return jsonify({
+        "debug_session_id": session_id,
+        "current_vector": state.to_dict(),
+        "history_count": len(history),
+        "recent_history": history[-3:],
+        "guardian_angel_active": emotional_core._check_safety_escalation(state, trend_direction)
+    })
 
 @app.route('/save_venting_session', methods=['POST'])
 @login_required
