@@ -54,7 +54,7 @@ class Assessments(Resource):
             assessment_type=a_type,
             score=score,
             severity_level=analysis.get('severity_category', severity),
-            recommendations=json.dumps(analysis)
+            recommendations=analysis
         )
         db.session.add(assessment)
         db.session.commit()
@@ -92,7 +92,7 @@ class AssessmentResult(Resource):
         if assessment.user_id != current_user.id and current_user.role != 'counsellor':
             return {'message': 'Unauthorized'}, 403
             
-        analysis = json.loads(assessment.recommendations) if assessment.recommendations else generate_analysis(assessment.assessment_type, assessment.score)
+        analysis = assessment.recommendations if assessment.recommendations else generate_analysis(assessment.assessment_type, assessment.score)
         
         return {
             'id': assessment.id,

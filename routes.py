@@ -476,9 +476,9 @@ def chat():
     )
     
     if ai_result.get('crisis_detected', False):
-        bot_msg.crisis_keywords = json.dumps(ai_result.get('crisis_keywords', []))
+        bot_msg.crisis_keywords = ai_result.get('crisis_keywords', [])
         chat_session.crisis_flag = True
-        chat_session.keywords_detected = json.dumps(ai_result.get('crisis_keywords', []))
+        chat_session.keywords_detected = ai_result.get('crisis_keywords', [])
     
     db.session.add(bot_msg)
     db.session.commit()
@@ -738,7 +738,7 @@ def assessment_results(assessment_id):
         return redirect(url_for('assessments'))  
     if assessment.recommendations:
         try:
-            analysis = json.loads(assessment.recommendations)
+            analysis = assessment.recommendations
         except Exception:
             analysis = generate_analysis(assessment.assessment_type, assessment.score)
     else:
