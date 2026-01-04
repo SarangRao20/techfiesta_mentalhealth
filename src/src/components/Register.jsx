@@ -18,7 +18,7 @@ export default function Register() {
 
     if (send.ok) {
       alert("Registration successful! Please log in.");
-      navigate("/login");
+      navigate("/signin");
     } else {
       alert("Registration failed. Please try again.");
     }
@@ -138,7 +138,7 @@ export default function Register() {
           {/* Footer */}
           <div className="text-center text-gray-300 mt-4 text-xs">
             Already have an account?{" "}
-            <a href="/login" className="text-purple-400 hover:underline">
+            <a href="/signin" className="text-purple-400 hover:underline">
               Login here
             </a>
           </div>
