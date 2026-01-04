@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Brain, Music, Play, Pause, RotateCcw, X, Volume2, VolumeX, Settings, Award, TrendingUp } from 'lucide-react';
+import { API_URL } from '../config';
 
 const Meditation = () => {
   const [selectedCard, setSelectedCard] = useState(null);
@@ -135,7 +136,7 @@ const Meditation = () => {
   // Text-to-speech function
   const speak = (text) => {
     if (isMuted || !('speechSynthesis' in window)) return;
-    
+
     if (synthRef.current) {
       window.speechSynthesis.cancel();
     }
@@ -151,7 +152,7 @@ const Meditation = () => {
   // Play ambient sound
   const playSound = (frequency) => {
     if (isMuted) return;
-    
+
     if (audioRef.current) {
       audioRef.current.stop();
     }
@@ -165,7 +166,7 @@ const Meditation = () => {
 
     oscillator.frequency.value = frequency;
     oscillator.type = 'sine';
-    
+
     gainNode.gain.value = 0.08;
     gainNode.gain.exponentialRampToValueAtTime(0.04, audioContext.currentTime + 1);
 
@@ -178,7 +179,7 @@ const Meditation = () => {
         try {
           oscillator.stop();
           audioContext.close();
-        } catch (e) {}
+        } catch (e) { }
       }
     };
   };
@@ -198,7 +199,7 @@ const Meditation = () => {
     const cycle = () => {
       setBreathPhase('Breathe In');
       speak('Breathe in');
-      
+
       setTimeout(() => {
         setBreathPhase('Hold');
         speak('Hold');
@@ -230,7 +231,7 @@ const Meditation = () => {
     setTimeElapsed(0);
     setBreathCount(0);
     setBreathPhase('');
-    
+
     playSound(option.soundFreq);
 
     // Start appropriate guidance
@@ -248,19 +249,19 @@ const Meditation = () => {
     intervalRef.current = setInterval(() => {
       setTimeElapsed(prev => {
         const newTime = prev + 1;
-        
+
         // Body scan guidance
         if (option.id === 2) {
           const guide = bodyScanGuides.find(g => g.time === newTime);
           if (guide) speak(guide.text);
         }
-        
+
         // Mindfulness guidance
         if (option.id === 3) {
           const guide = mindfulnessGuides.find(g => g.time === newTime);
           if (guide) speak(guide.text);
         }
-        
+
         if (newTime >= option.duration) {
           handleEndSession();
           return option.duration;
@@ -275,7 +276,7 @@ const Meditation = () => {
       setIsPaused(false);
       const option = meditationOptions.find(opt => opt.id === selectedCard);
       playSound(option.soundFreq);
-      
+
       intervalRef.current = setInterval(() => {
         setTimeElapsed(prev => {
           const newTime = prev + 1;
@@ -286,7 +287,7 @@ const Meditation = () => {
           return newTime;
         });
       }, 1000);
-      
+
       if (option.id === 1 && !breathIntervalRef.current) {
         startBreathingGuide();
       }
@@ -301,13 +302,48 @@ const Meditation = () => {
     }
   };
 
-  const handleEndSession = () => {
+  // Fetch stats on load
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/meditation/stats`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setSessionCompleted(data.total_sessions);
+          setTotalMinutes(data.total_minutes);
+          setCurrentStreak(data.streak);
+        }
+      } catch (e) {
+        console.error("Failed to fetch meditation stats", e);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const handleEndSession = async () => {
     const minutes = Math.floor(timeElapsed / 60);
+    // Optimistic update
     setSessionCompleted(prev => prev + 1);
     setTotalMinutes(prev => prev + minutes);
-    
+
     speak('Great job! Session complete.');
-    
+
+    // Save to backend
+    try {
+      const option = meditationOptions.find(opt => opt.id === selectedCard);
+      await fetch(`${API_URL}/api/meditation/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          duration: timeElapsed, // Send seconds
+          session_type: option ? option.category : 'meditation'
+        })
+      });
+    } catch (e) {
+      console.error("Failed to save session", e);
+    }
+
     setIsSessionActive(false);
     setIsPaused(false);
     setTimeElapsed(0);
@@ -386,10 +422,10 @@ const Meditation = () => {
             {selectedOption.bgPattern}
           </div>
         </div>
-        
+
         <div className="max-w-2xl w-full relative z-10">
           <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl rounded-3xl p-6 md:p-10 border-2 border-indigo-500/30 shadow-2xl shadow-indigo-500/20 relative overflow-hidden">
-            
+
             {/* Ambient Background Animation */}
             <div className="absolute inset-0 opacity-10">
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 animate-pulse" />
@@ -444,7 +480,7 @@ const Meditation = () => {
             {/* Progress Bar */}
             <div className="mb-6 relative z-10">
               <div className="w-full h-2.5 bg-slate-700 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-1000 ease-linear rounded-full relative"
                   style={{ width: `${progress}%` }}
                 >
@@ -512,7 +548,7 @@ const Meditation = () => {
             </h1>
           </div>
           <p className="text-xl text-gray-400 mb-4">Choose your meditation journey</p>
-          
+
           {/* Streak Badge */}
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-full px-4 py-2">
             <Award className="w-5 h-5 text-orange-400" />
@@ -533,7 +569,7 @@ const Meditation = () => {
               {sessionCompleted}
             </p>
           </div>
-          
+
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700 hover:border-cyan-500/50 transition-all">
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-gray-400 text-sm uppercase tracking-wider">
@@ -563,7 +599,7 @@ const Meditation = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {meditationOptions.map((option) => {
             const IconComponent = option.icon;
-            
+
             return (
               <div
                 key={option.id}
@@ -571,11 +607,10 @@ const Meditation = () => {
               >
                 {/* Difficulty Badge */}
                 <div className="absolute top-4 right-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    option.difficulty === 'Beginner' 
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                      : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                  }`}>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${option.difficulty === 'Beginner'
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                    }`}>
                     {option.difficulty}
                   </span>
                 </div>

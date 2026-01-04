@@ -13,6 +13,8 @@ task_stats_model = ns.model('TaskStats', {
 })
 
 dashboard_model = ns.model('Dashboard', {
+    'username': fields.String(),
+    'full_name': fields.String(),
     'login_streak': fields.Integer(),
     'meditation_streak': fields.Integer(),
     'weekly_sessions': fields.Integer(),
@@ -52,6 +54,8 @@ class Dashboard(Resource):
         ).limit(5).all()
         
         return {
+            'username': current_user.username,
+            'full_name': current_user.full_name,
             'login_streak': current_user.login_streak or 0,
             'meditation_streak': 0, # Placeholder
             'weekly_sessions': len(weekly_meditation),
