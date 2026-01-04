@@ -3,7 +3,7 @@ from flask_restx import Namespace, Resource, fields
 from flask_login import login_user, logout_user, login_required, current_user
 from models import User
 from app import db
-from datetime import datetime
+from datetime import datetime, timedelta
 
 ns = Namespace('auth', description='Authentication operations')
 
@@ -44,9 +44,9 @@ class Login(Resource):
             # Update streak
             today = datetime.utcnow().date()
             if user.last_streak_date:
-                if user.last_streak_date == today - datetime.timedelta(days=1):
+                if user.last_streak_date == today - timedelta(days=1):
                     user.login_streak += 1
-                elif user.last_streak_date < today - datetime.timedelta(days=1):
+                elif user.last_streak_date < today - timedelta(days=1):
                     user.login_streak = 1
             else:
                 user.login_streak = 1
@@ -69,15 +69,18 @@ class Register(Resource):
         data = ns.payload
         if User.query.filter_by(username=data['username']).first():
             return {'message': 'Username already exists'}, 400
+        if User.query.filter_by(email=data['email']).first():
+            return {'message': 'Email already exists'}, 400
         
         user = User(
             username=data['username'],
             email=data['email'],
             full_name=data['full_name'],
             role=data.get('role', 'student'),
-            student_id=data.get('student_id'),
             accommodation_type=data.get('accommodation_type')
         )
+        if data.get('student_id'):
+            user.set_student_id(data['student_id'])
         user.set_password(data['password'])
         db.session.add(user)
         db.session.commit()

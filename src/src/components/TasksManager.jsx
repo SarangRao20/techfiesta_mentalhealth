@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { PieChart, Pie, Cell } from "recharts";
+import { API_URL } from "../config";
 
 const COLORS = ["#F19340", "#2a2f3a"];
 
@@ -10,7 +11,7 @@ function TasksManager() {
   const [end, setEnd] = useState("");
   const [notes, setNotes] = useState("");
 
-  /* -------------------- DERIVED DATA -------------------- */
+
   const completed = tasks.filter(t => t.done).length;
   const percent = tasks.length
     ? Math.round((completed / tasks.length) * 100)
@@ -24,14 +25,14 @@ function TasksManager() {
     [tasks]
   );
 
-  /* -------------------- FETCH TASKS -------------------- */
+
   useEffect(() => {
     fetchTasks();
   }, []);
 
   const fetchTasks = async () => {
     try {
-      const res = await fetch("/api/tasks");
+      const res = await fetch(`${API_URL}/api/routine`, { credentials: 'include' });
       const data = await res.json();
       setTasks(data);
     } catch (err) {
@@ -39,30 +40,35 @@ function TasksManager() {
     }
   };
 
-  /* -------------------- ADD TASK (FormData) -------------------- */
+  /* -------------------- ADD TASK (JSON) -------------------- */
   const addTask = async () => {
     if (!title) return;
 
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("start", start);
-    formData.append("end", end);
-    formData.append("notes", notes);
+    const payload = {
+      title,
+      start_time: start,
+      end_time: end,
+      notes
+    };
 
     try {
-      const res = await fetch("/api/tasks", {
+      const res = await fetch(`${API_URL}/api/routine`, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: 'include'
       });
 
-      const createdTask = await res.json();
-
-      setTasks(prev => [...prev, createdTask]);
-
-      setTitle("");
-      setStart("");
-      setEnd("");
-      setNotes("");
+      if (res.ok) {
+        const createdTask = await res.json();
+        setTasks(prev => [...prev, createdTask]);
+        setTitle("");
+        setStart("");
+        setEnd("");
+        setNotes("");
+      } else {
+        console.error("Failed to add task: ", await res.text());
+      }
     } catch (err) {
       console.error("Failed to add task", err);
     }
@@ -71,8 +77,9 @@ function TasksManager() {
   /* -------------------- TOGGLE TASK -------------------- */
   const toggle = async (id) => {
     try {
-      const res = await fetch(`/api/tasks/${id}/toggle`, {
+      const res = await fetch(`${API_URL}/api/routine/${id}/toggle`, {
         method: "PATCH",
+        credentials: 'include'
       });
 
       const updatedTask = await res.json();
@@ -86,8 +93,9 @@ function TasksManager() {
   /* -------------------- DELETE TASK -------------------- */
   const remove = async (id) => {
     try {
-      await fetch(`/api/tasks/${id}`, {
+      await fetch(`${API_URL}/api/routine/${id}`, {
         method: "DELETE",
+        credentials: 'include'
       });
 
       setTasks(tasks.filter(t => t.id !== id));
@@ -205,14 +213,14 @@ function TasksManager() {
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
-                    checked={t.done}
+                    checked={t.status === 'completed'}
                     onChange={() => toggle(t.id)}
                   />
                   <div>
-                    <p className={t.done ? "line-through text-white" : "text-white"}>
+                    <p className={t.status === 'completed' ? "line-through text-white" : "text-white"}>
                       {t.title}
                       <p className="mt-1 text-xs text-white/80">
-                        {t.start} - {t.end}
+                        {t.start_time} - {t.end_time}
                       </p>
                     </p>
 
