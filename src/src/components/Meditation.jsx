@@ -302,21 +302,23 @@ const Meditation = () => {
     }
   };
 
+  // Fetch stats function
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/meditation/stats`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setSessionCompleted(data.total_sessions);
+        setTotalMinutes(data.total_minutes);
+        setCurrentStreak(data.streak);
+      }
+    } catch (e) {
+      console.error("Failed to fetch meditation stats", e);
+    }
+  };
+
   // Fetch stats on load
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/meditation/stats`, { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          setSessionCompleted(data.total_sessions);
-          setTotalMinutes(data.total_minutes);
-          setCurrentStreak(data.streak);
-        }
-      } catch (e) {
-        console.error("Failed to fetch meditation stats", e);
-      }
-    };
     fetchStats();
   }, []);
 
@@ -340,6 +342,7 @@ const Meditation = () => {
           session_type: option ? option.category : 'meditation'
         })
       });
+      await fetchStats();
     } catch (e) {
       console.error("Failed to save session", e);
     }

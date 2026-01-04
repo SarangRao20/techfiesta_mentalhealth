@@ -4,24 +4,26 @@ import { Eye, Send, RotateCcw, BookOpen } from 'lucide-react';
 
 const Inkblot = () => {
     const [started, setStarted] = useState(false);
-    const [currentSlide, setCurrentSlide] = useState(1);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [sequence, setSequence] = useState([]);
     const [response, setResponse] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showTransition, setShowTransition] = useState(false);
 
-    // Mock Inkblot SVGs or Placeholders
-    // In a real app, these would be actual Rorschach plate images
-    const blots = [
-        { id: 1, color: '#1a1a1a', path: 'M100,250 Q150,150 200,250 T300,250 T400,250' }, // Simplified abstraction
-        { id: 2, color: '#2a1a1a', path: 'M150,200 Q250,50 350,200 T150,200' },
-        { id: 3, color: '#1a1a2a', path: 'M200,100 Q300,300 100,300 T200,100' },
-        { id: 4, color: '#1a2a1a', path: 'M100,100 Q400,100 250,400 T100,100' },
-        { id: 5, color: '#3a1a1a', path: 'M50,250 Q250,50 450,250 T50,250' },
-    ];
-
-    const currentBlot = blots[currentSlide - 1];
+    // Total plates available in assets
+    const TOTAL_ASSETS = 10;
+    const SESSION_LENGTH = 5;
 
     const handleStart = async () => {
+        // Generate random sequence of 5 unique plates
+        const numbers = Array.from({ length: TOTAL_ASSETS }, (_, i) => i + 1);
+        const shuffled = numbers.sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, SESSION_LENGTH);
+
+        setSequence(selected);
+        setCurrentIndex(0);
+        setResponse('');
+
         try {
             await fetch(`${API_URL}/api/inkblot/init`, {
                 method: 'POST',
@@ -38,40 +40,43 @@ const Inkblot = () => {
         if (!response.trim()) return;
         setIsSubmitting(true);
 
+        const currentBlotId = sequence[currentIndex];
+
         try {
             await fetch(`${API_URL}/api/inkblot/submit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({
-                    blot_num: currentSlide,
+                    blot_num: currentBlotId,
                     response: response
                 })
             });
 
-            // Transition
+            // Transition logic
             setShowTransition(true);
             setTimeout(() => {
-                if (currentSlide < blots.length) {
-                    setCurrentSlide(prev => prev + 1);
+                if (currentIndex < SESSION_LENGTH - 1) {
+                    setCurrentIndex(prev => prev + 1);
                     setResponse('');
                     setShowTransition(false);
                 } else {
                     alert("Test Complete. Thank you for your participation.");
-                    // Reset or Redirect
                     setStarted(false);
-                    setCurrentSlide(1);
+                    setCurrentIndex(0);
                     setResponse('');
                     setShowTransition(false);
                 }
                 setIsSubmitting(false);
-            }, 1000);
+            }, 800);
 
         } catch (e) {
             console.error("Failed to submit", e);
             setIsSubmitting(false);
         }
     };
+
+    const currentBlotNum = sequence[currentIndex];
 
     return (
         <div className="min-h-screen bg-[#0f0f10] text-gray-100 flex items-center justify-center p-6">
@@ -105,16 +110,16 @@ const Inkblot = () => {
                         ${showTransition ? 'opacity-0 scale-90 blur-sm' : 'opacity-100 scale-100 blur-0'}
                     `}>
                         <img
-                            src={`/assets/inkblots/blot${currentSlide}.jpg`}
-                            alt={`Rorschach Plate ${currentSlide}`}
+                            src={`/assets/inkblots/blot${currentBlotNum}.jpg`}
+                            alt={`Rorschach Plate ${currentBlotNum}`}
                             className="w-full h-full object-contain mix-blend-multiply opacity-90"
-                            onError={(e) => { e.target.style.display = 'none'; alert('Image missing: blot' + currentSlide + '.jpg'); }}
+                            onError={(e) => { e.target.style.display = 'none'; alert('Image missing: blot' + currentBlotNum + '.jpg'); }}
                         />
                         {/* Grain/Texture Overlay */}
                         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] opacity-20 mix-blend-overlay pointer-events-none" />
 
                         <div className="absolute top-4 right-4 text-xs font-mono text-gray-400">
-                            Plate {currentSlide} / 10
+                            Plate {currentIndex + 1} / {SESSION_LENGTH}
                         </div>
                     </div>
 
@@ -128,6 +133,12 @@ const Inkblot = () => {
                         <textarea
                             value={response}
                             onChange={(e) => setResponse(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSubmit();
+                                }
+                            }}
                             className="w-full h-40 bg-[#1a1a1a] border border-white/10 rounded-lg p-4 text-white placeholder-neutral-600 focus:outline-none focus:border-white/30 transition-colors resize-none font-serif"
                             placeholder="I see..."
                             autoFocus

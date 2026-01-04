@@ -1,4 +1,4 @@
-from flask import session
+from flask import session, request
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required
 

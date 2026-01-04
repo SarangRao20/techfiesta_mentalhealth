@@ -230,12 +230,12 @@ function TasksManager() {
                     onChange={() => toggle(t.id)}
                   />
                   <div>
-                    <p className={t.status === 'completed' ? "line-through text-white" : "text-white"}>
+                    <div className={t.status === 'completed' ? "line-through text-white" : "text-white"}>
                       {t.title}
                       <p className="mt-1 text-xs text-white/80">
                         {t.start_time} - {t.end_time}
                       </p>
-                    </p>
+                    </div>
 
                     <p className="text-xs mt-1 text-white">
                       {t.notes}
