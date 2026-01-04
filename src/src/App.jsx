@@ -11,10 +11,13 @@ import MagicBento from './components/MagicBento'
 import ChatHistory from './components/ChatHistory'
 import TasksManager from './components/TasksManager'
 import Consultant from './components/Consultant'
+import Ar_breathing from './components/Ar_breathing'
 import SignIn from './components/SignIn'
 import Meditation from './components/Meditation'
 import Resources from './components/Resources'
 import Community from './components/Community'
+import CounselorDashboard from './components/CounselorDashboard'
+
 //children routes
 function App() {
 
@@ -68,7 +71,7 @@ function App() {
         },
         {
           path: "consultation",
-          element: <Ar_breathing/>
+          element:<Consultant/>
         },
         {
           path: "community",
