@@ -17,7 +17,14 @@ from flask_migrate import Migrate
 # Load environment variables
 load_dotenv()
 
-logging.basicConfig(level=logging.DEBUG)
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+# Suppress verbose comtypes DEBUG logs (Windows Speech API)
+logging.getLogger('comtypes').setLevel(logging.WARNING)
+logging.getLogger('comtypes.client').setLevel(logging.WARNING)
+logging.getLogger('comtypes._post_coinit').setLevel(logging.WARNING)
+logging.getLogger('comtypes._comobject').setLevel(logging.WARNING)
 
 class Base(DeclarativeBase):
     pass
