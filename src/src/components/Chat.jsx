@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
-import { useState} from 'react'
+import { useState } from 'react'
 import { useParams } from 'react-router-dom';
+import { API_URL } from '../config';
 
 const Chat = () => {
 
@@ -19,7 +20,7 @@ const Chat = () => {
             "trend": "positive"
         }
     ]);
-    const {sessionId} = useParams()
+    const { sessionId } = useParams()
     // sessionId = crypto.randomUUID()
     // localStorage={
     //     chat:{
@@ -27,18 +28,18 @@ const Chat = () => {
     //     }
     // }
 
-    const[feature,setFeature] = useState()
+    const [feature, setFeature] = useState()
 
-    useEffect(()=>{
-        fetch(`http://localhost:5000/api/chat/${sessionId}`)
-        .then(res=>res.json())
-        .then(data=>setMessages(data.messages),[sessionId])
+    useEffect(() => {
+        fetch(`${API_URL}/api/chatbot/${sessionId}`)
+            .then(res => res.json())
+            .then(data => setMessages(data.messages), [sessionId])
     })
     // const[FeatureInsight,setFeatureInsight] = useState() - currently not in use
 
     return (
-        <div className='bg-black'> 
-chat
+        <div className='bg-black'>
+            chat
         </div>
     )
 }

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
+import { API_URL } from "../config";
 import {
   Menu,
   LayoutDashboard,
@@ -8,10 +9,45 @@ import {
   UserCog,
   Users,
   Clock,
+  Brain,
+  BookOpen
 } from "lucide-react";
 
 function SideBar() {
   const [open, setOpen] = useState(true);
+  const [username, setUsername] = useState("User");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Fetch user profile
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          // Prefer full_name, fallback to username
+          setUsername(data.full_name || data.username || "User");
+        }
+      } catch (e) {
+        console.error("Failed to fetch profile", e);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_URL}/api/auth/logout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include'
+      });
+      navigate("/signin");
+    } catch (error) {
+      console.error("Logout failed", error);
+      navigate("/signin");
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-[#0f131c] text-white">
@@ -42,6 +78,8 @@ function SideBar() {
             <NavItem icon={CheckSquare} label="Tasks Manager" href="tasks-manager" />
             <NavItem icon={UserCog} label="Consultation" href="consultation" />
             <NavItem icon={Users} label="Community" href="community" />
+            <NavItem icon={Brain} label="Meditation" href="meditation" />
+            <NavItem icon={BookOpen} label="Resources" href="resources" />
           </nav>
 
           {/* Divider */}
@@ -62,37 +100,34 @@ function SideBar() {
           </div>
 
           {/* User Section (BOTTOM) */}
-<div className="mt-auto pt-4 border-t border-white/10">
-  <div className="flex items-center gap-3 mb-3">
-    {/* Avatar */}
-    <div className="w-10 h-10 rounded-full bg-purple-300/30 flex items-center justify-center">
-      <span className="text-lg">👤</span>
-    </div>
+          <div className="mt-auto pt-4 border-t border-white/10">
+            <div className="flex items-center gap-3 mb-3">
+              {/* Avatar */}
+              <div className="w-10 h-10 rounded-full bg-purple-300/30 flex items-center justify-center">
+                <span className="text-lg">👤</span>
+              </div>
 
-    {/* Username */}
-    <span className="text-sm font-medium text-white">
-      Username
-    </span>
-  </div>
+              {/* Username */}
+              <span className="text-sm font-medium text-white">
+                {username}
+              </span>
+            </div>
 
-  {/* Logout */}
-  <button
-    onClick={() => {
-      // TODO: logout logic
-      console.log("logout");
-    }}
-    className="w-full flex items-center justify-center gap-2
+            {/* Logout */}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2
                bg-red-600 hover:bg-red-700
                text-white text-sm
                py-2 rounded-lg transition"
-  >
-    Logout
-  </button>
-</div>
+            >
+              Logout
+            </button>
+          </div>
 
         </div>
 
-        
+
       </aside>
 
       {/* MAIN CONTENT */}

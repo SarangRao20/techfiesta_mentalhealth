@@ -1,3 +1,4 @@
+import { API_URL } from "../config";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 
@@ -10,17 +11,17 @@ export default function Register() {
   const role = watch("role");
 
   const onSubmit = async (data) => {
-    const send = await fetch("/api/register", {
+    const send = await fetch(`${API_URL}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
 
     if (send.ok) {
-      alert("Registration successful! Please log in.");
       navigate("/signin");
     } else {
-      alert("Registration failed. Please try again.");
+      const errorData = await send.json();
+      alert(errorData.message || "Registration failed. Please try again.");
     }
   };
 

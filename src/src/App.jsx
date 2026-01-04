@@ -37,13 +37,6 @@ function App() {
       element: <Register />
     },
     {
-      path: "/meditation",
-      element: <Meditation />
-    },{
-      path: "/resources",
-      element: <Resources />
-    },
-    {
       path: "/start-journey",
       element: <Onboarding />
     },
@@ -75,6 +68,14 @@ function App() {
         {
           path: "community",
           element: <Community />
+        },
+        {
+          path: "meditation",
+          element: <Meditation />
+        },
+        {
+          path: "resources",
+          element: <Resources />
         }
       ]
     }

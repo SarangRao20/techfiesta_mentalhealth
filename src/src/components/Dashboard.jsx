@@ -1,9 +1,18 @@
 import { useEffect, useState } from "react";
+import { API_URL } from "../config";
 
 export default function Dashboard() {
-  const [streak, setStreak] = useState(7);
+  const [stats, setStats] = useState({
+    login_streak: 0,
+    username: "",
+    full_name: "",
+    meditation_streak: 0,
+    tasks: { completed: 0, total: 0, progress: 0 },
+    meditation_minutes: 0
+  });
   const [ignite, setIgnite] = useState(false);
   const [moodIndex, setMoodIndex] = useState(1);
+  const [loading, setLoading] = useState(true);
 
   const moods = ["😔", "🙂", "😄", "🤩"];
   const moodLabels = ["Low", "Okay", "Happy", "Great"];
@@ -11,6 +20,49 @@ export default function Dashboard() {
   useEffect(() => {
     // Fire ignites on page refresh
     setTimeout(() => setIgnite(true), 300);
+
+    // Fetch dashboard data
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/dashboard`, {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          let username = data.username || "";
+          let full_name = data.full_name || "";
+
+          // Fallback: If username/name is missing, fetch from /auth/me
+          if (!username || !full_name) {
+            try {
+              const meRes = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
+              if (meRes.ok) {
+                const meData = await meRes.json();
+                username = meData.username || username;
+                full_name = meData.full_name || full_name;
+              }
+            } catch (e) {
+              console.error("Failed to fetch user profile fallback", e);
+            }
+          }
+
+          setStats({
+            login_streak: data.login_streak || 0,
+            username: username,
+            full_name: full_name,
+            meditation_streak: data.meditation_streak || 0,
+            tasks: data.tasks || { completed: 0, total: 0, progress: 0 },
+            meditation_minutes: data.total_minutes_meditated || 0
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
   }, []);
 
   return (
@@ -56,16 +108,15 @@ export default function Dashboard() {
 
           <div className="relative flex items-center justify-center mt-6">
             <div
-              className={`text-6xl transition-all duration-700 ${
-                ignite ? "animate-flame" : "opacity-0 scale-50"
-              }`}
+              className={`text-6xl transition-all duration-700 ${ignite ? "animate-flame" : "opacity-0 scale-50"
+                }`}
             >
               🔥
             </div>
           </div>
 
           <p className="text-center text-xl font-semibold mt-3">
-            {streak} days
+            {stats.login_streak} days
           </p>
 
           <p className="text-xs text-white/50 text-center mt-1">
@@ -93,9 +144,7 @@ export default function Dashboard() {
           <h3 className="card-title">Meditation Minutes</h3>
 
           <div className="space-y-2 text-sm mt-4 text-white/80">
-            <Row label="Today" value="15 min" />
-            <Row label="Yesterday" value="10 min" />
-            <Row label="2 days ago" value="20 min" />
+            <Row label="Total Minutes" value={`${stats.meditation_minutes} min`} />
           </div>
         </Card>
 
@@ -107,13 +156,16 @@ export default function Dashboard() {
             <div className="relative w-24 h-24 rounded-full border-4 border-indigo-500/30">
               <div
                 className="absolute inset-2 rounded-full border-4 border-indigo-500"
-                style={{ clipPath: "polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%)" }}
+                style={{ clipPath: `polygon(50% 0%, 100% 0%, 100% ${stats.tasks.progress}%, 50% 100%)` }}
               />
+              <div className="absolute inset-0 flex items-center justify-center text-sm font-semibold">
+                {Math.round(stats.tasks.progress)}%
+              </div>
             </div>
           </div>
 
           <p className="text-center text-sm text-white/70 mt-4">
-            50% completed
+            {stats.tasks.completed}/{stats.tasks.total} completed
           </p>
         </Card>
 
@@ -127,7 +179,7 @@ export default function Dashboard() {
             </div>
 
             <div className="text-sm">
-              <p>Name: X</p>
+              <p>Name: {stats.full_name || stats.username || "User"}</p>
               <p className="text-white/60">Role</p>
               <p className="text-white/60 text-xs mt-1">
                 Scheduled at: 15:30
@@ -168,11 +220,10 @@ function Row({ label, value }) {
 function ActionBtn({ children, danger }) {
   return (
     <button
-      className={`flex-1 py-2 rounded-lg text-sm transition ${
-        danger
-          ? "bg-red-500/80 hover:bg-red-500"
-          : "bg-indigo-500/80 hover:bg-indigo-500"
-      }`}
+      className={`flex-1 py-2 rounded-lg text-sm transition ${danger
+        ? "bg-red-500/80 hover:bg-red-500"
+        : "bg-indigo-500/80 hover:bg-indigo-500"
+        }`}
     >
       {children}
     </button>
