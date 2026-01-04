@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { API_URL } from "../config";
 
 export default function Consultant() {
   const [requests, setRequests] = useState([]);
@@ -6,7 +7,7 @@ export default function Consultant() {
   const [openSlots, setOpenSlots] = useState([]);
   const [openModal, setOpenModal] = useState(false);
   const [selectedSlotCounsellor, setSelectedSlotCounsellor] = useState("");
-  
+
   // Form state
   const [formData, setFormData] = useState({
     counsellor_id: "",
@@ -17,8 +18,8 @@ export default function Consultant() {
   });
 
   useEffect(() => {
-    // TODO: fetch requests
-    // TODO: fetch counsellors
+    loadRequests();
+    // TODO: fetch counsellors endpoint not implemented in backend yet
     loadSlots();
   }, []);
 
@@ -26,10 +27,22 @@ export default function Consultant() {
     loadSlots();
   }, [selectedSlotCounsellor]);
 
+  const loadRequests = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/consultation/my_requests`);
+      if (res.ok) {
+        const data = await res.json();
+        setRequests(data);
+      }
+    } catch (e) {
+      console.error("Failed to load requests", e);
+    }
+  };
+
   const loadSlots = async () => {
     try {
-      const params = selectedSlotCounsellor ? `?counsellor_id=${selectedSlotCounsellor}` : '';
-      const res = await fetch(`/api/open_slots${params}`);
+      // Backend doesn't support filtering by counsellor_id yet in /slots, but keeping logic for future
+      const res = await fetch(`${API_URL}/api/consultation/slots`);
       const data = await res.json();
       setOpenSlots(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -40,7 +53,7 @@ export default function Consultant() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Submit form data
+    // TODO: Submit form data logic need manual request endpoint if not booking slot
     console.log("Submitting:", formData);
     setOpenModal(false);
   };
@@ -54,9 +67,18 @@ export default function Consultant() {
 
   const bookSlot = async (slotId) => {
     try {
-      await fetch(`/book_slot/${slotId}`, { method: "POST" });
-      alert("Slot booked successfully!");
-      loadSlots();
+      const res = await fetch(`${API_URL}/api/consultation/slots/${slotId}/book`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" } // Good practice even if body is empty
+      });
+      if (res.ok) {
+        alert("Slot booked successfully!");
+        loadSlots();
+        loadRequests();
+      } else {
+        const err = await res.json();
+        alert(err.message || "Failed to book slot");
+      }
     } catch (e) {
       console.error("Failed to book slot", e);
     }
@@ -189,11 +211,10 @@ export default function Consultant() {
                   <tr key={r.id} className="border-b border-white/5">
                     <td className="py-3">{r.createdAt}</td>
                     <td>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        r.urgency === 'high' ? 'bg-red-500/20 text-red-300' :
+                      <span className={`px-2 py-1 rounded text-xs ${r.urgency === 'high' ? 'bg-red-500/20 text-red-300' :
                         r.urgency === 'medium' ? 'bg-yellow-500/20 text-yellow-300' :
-                        'bg-green-500/20 text-green-300'
-                      }`}>
+                          'bg-green-500/20 text-green-300'
+                        }`}>
                         {r.urgency}
                       </span>
                     </td>
@@ -205,12 +226,11 @@ export default function Consultant() {
                       {' '}{r.contactPreference}
                     </td>
                     <td>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        r.status === 'pending' ? 'bg-yellow-200 text-gray-800' :
+                      <span className={`px-2 py-1 rounded-full text-xs ${r.status === 'pending' ? 'bg-yellow-200 text-gray-800' :
                         r.status === 'booked' ? 'bg-green-200 text-gray-800' :
-                        r.status === 'rejected' ? 'bg-red-200 text-gray-800' :
-                        'bg-gray-200 text-gray-800'
-                      }`}>
+                          r.status === 'rejected' ? 'bg-red-200 text-gray-800' :
+                            'bg-gray-200 text-gray-800'
+                        }`}>
                         {r.status}
                       </span>
                     </td>
