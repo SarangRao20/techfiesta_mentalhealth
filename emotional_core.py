@@ -47,8 +47,8 @@ class EmotionalCore:
         try:
             vectors_json = session_obj.emotional_vectors
             if vectors_json:
-                res = json.loads(vectors_json)
-                return EmotionalVector.from_dict(res)
+                # res = json.loads(vectors_json) # JSONB is already dict
+                return EmotionalVector.from_dict(vectors_json)
         except Exception as e:
             logger.error(f"Error loading emotional state: {e}")
         return EmotionalVector()
@@ -151,9 +151,9 @@ class EmotionalCore:
         try:
             hist_json = session_obj.emotional_history
             if hist_json:
-                h = json.loads(hist_json)
-                logger.warning(f"HISTORY LOADED: Found {len(h)} entries.")
-                return h
+                # h = json.loads(hist_json)
+                logger.warning(f"HISTORY LOADED: Found {len(hist_json)} entries.")
+                return hist_json
         except Exception as e:
             logger.error(f"HISTORY LOAD ERROR: {e}")
         return []
@@ -169,8 +169,8 @@ class EmotionalCore:
         
         logger.warning(f"SAVING STATE: Vector={state.to_dict()} | HistoryCount={len(history)}")
 
-        session_obj.emotional_vectors = json.dumps(state.to_dict())
-        session_obj.emotional_history = json.dumps(history)
+        session_obj.emotional_vectors = state.to_dict()
+        session_obj.emotional_history = history
 
     def _check_safety_escalation(self, state, trend):
         """
