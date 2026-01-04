@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const questions = [
   {
@@ -22,6 +22,7 @@ const questions = [
     ],
   },
 ];
+let username;
 
 export default function Onboarding() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -37,15 +38,14 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0B1220] to-[#050914] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0B1220] to-[#7244b7] flex items-center justify-center px-4">
       <div className="w-full max-w-2xl">
-        
+
         {/* Header */}
-        <div className="text-center mb-10">
-          <p className="text-gray-400 text-sm">Welcome to,</p>
-          <h1 className="text-3xl font-semibold text-white tracking-wide">
-            NirVana
-          </h1>
+        <div className="text-left mb-4">
+          <h1 className="text-4xl text-left text-white font-bold mb-2">Welcome Krishna,</h1>
+          <p className="text-white">We would like to answer following questions to help you further</p>
+
         </div>
 
         {/* Question */}
@@ -68,44 +68,60 @@ export default function Onboarding() {
                   }))
                 }
                 className={`
-                  w-full flex items-center justify-between
-                  rounded-xl px-4 py-4 text-left
-                  transition-all duration-200
-                  bg-[#111827]
-                  border
-                  ${
-                    selected
-                      ? "border-indigo-500 shadow-[0_0_0_1px_rgba(99,102,241,0.8)]"
-                      : "border-white/10 hover:border-white/20"
+          w-full flex items-center justify-between
+          rounded-xl px-4 py-4 text-left
+          transition-all duration-200
+          bg-[#111827]
+          border
+          ${selected
+                    ? "border-indigo-500 shadow-[0_0_0_1px_rgba(99,102,241,0.8)]"
+                    : "border-white/10 hover:border-white/20"
                   }
-                `}
+        `}
               >
-                <div>
-                  <p className="text-white font-medium">{option}</p>
-                </div>
 
-                {selected && (
-                  <span className="text-indigo-400 text-sm font-medium">
-                    Selected
-                  </span>
-                )}
+                {/* Radio */}
+                <div
+                  className={`
+            w-4 h-4 rounded-full
+            border flex items-center justify-center
+            ${selected
+                      ? "border-indigo-500"
+                      : "border-white/40"
+                    }
+          `}
+                >
+                  <div
+                    className={`
+              w-2 h-2 rounded-full bg-indigo-500
+              transition-transform
+              ${selected ? "scale-100" : "scale-0"}
+            `}
+                  />
+                </div>
+                {/* Text */}
+                <p className="text-white text-center font-medium">{option}</p>
+
               </button>
             );
           })}
         </div>
 
+
         {/* Action button */}
         <div className="mt-8 flex justify-end">
           <button
             disabled={!answers[currentQuestion.id]}
+
+
+
             onClick={handleNext}
             className={`
-              px-8 py-3 rounded-lg font-medium
+              px-3 py-2 rounded-lg font-medium
               transition
-              ${
-                answers[currentQuestion.id]
-                  ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                  : "bg-gray-600 text-gray-300 cursor-not-allowed"
+              ${answers[currentQuestion.id]
+                ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                : "bg-gray-600 text-gray-300 cursor-not-allowed"
               }
             `}
           >
