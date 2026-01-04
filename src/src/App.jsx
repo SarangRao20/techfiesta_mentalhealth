@@ -1,5 +1,3 @@
-import { useState } from 'react'
-import './App.css'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import LandingPage from './components/LandingPage'
 import Kalpvriksha from './components/Kalpvriksha'
@@ -12,26 +10,39 @@ import MagicBento from './components/MagicBento'
 import ChatHistory from './components/ChatHistory'
 import TasksManager from './components/TasksManager'
 import Consultant from './components/Consultant'
+import SignIn from './components/SignIn'
+import Meditation from './components/Meditation'
+import Resources from './components/Resources'
+import Community from './components/Community'
 //children routes
 function App() {
+
   const router = createBrowserRouter([
     {
       path: "/",
       element:
         <div>
           <LandingPage />
-          <TasksManager/>
+          <TasksManager />
         </div>
     },
+
     {
       path: "/signin",
       element: <SignIn />
     },
+
     {
       path: "/register",
       element: <Register />
     },
-    
+    {
+      path: "/meditation",
+      element: <Meditation />
+    },{
+      path: "/resources",
+      element: <Resources />
+    },
     {
       path: "/start-journey",
       element: <Onboarding />
@@ -39,9 +50,7 @@ function App() {
 
     {
       path: "/app",
-      element:
-        <SideBar />
-      ,
+      element: <SideBar />,
       children: [
         {
           path: "chat",
@@ -49,8 +58,7 @@ function App() {
           children: [{
             path: ":id",
             element: <ChatHistory />
-          }
-          ]
+          }]
         },
         {
           path: "dashboard",
@@ -61,23 +69,19 @@ function App() {
           element: <TasksManager />
         },
         {
-          path:"consultation",
-          element:<Consultant/>
+          path: "consultation",
+          element: <Consultant />
         },
         {
-          path:"community",
-          element:<Community/>
-        },
-        {
+          path: "community",
+          element: <Community />
         }
       ]
     }
   ])
-  return (
-    <div>
-      <RouterProvider router={router} />
-    </div>
 
+  return (
+    <RouterProvider router={router} />
   )
 }
 
