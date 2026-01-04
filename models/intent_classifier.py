@@ -168,7 +168,6 @@ JSON:
 
 SO NOTE: ALWAYS RESPOND WITH WHAT YOU ARE ASKED, YOUR JOB IS TO CLASSIFY USER MESSAGE, NOT TO PROVIDE ANY THEORTICAL ANSWERS OR EXPLANATIONS. JUST RETURN THE JSON AS REQUESTED.
 
-
 """
 res = speakUp(context, "Can you help me calm down right now? I'm feeling really overwhelmed with everything going on.")
 print(res)
