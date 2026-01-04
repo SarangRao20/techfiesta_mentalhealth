@@ -2,20 +2,25 @@ from ollama import Client
 # Initialize the client to connect to the Ollama server running on localhost
 client = Client(host='http://localhost:11434')
 model_name = 'llama3.2'  
-
+intent_messages = []
 def speakUp(context,message):
-    messages = [
-        {
-            'role':'system',
-            'content':context
-        },
-        {
-            'role': 'user',
-            'content': message,
-        },
-    ]
-    response = client.chat(model=model_name, messages=messages)
-    return response['message']['content']
+    intent_messages.append({
+        'role':'system',
+        'content':context
+    })
+    intent_messages.append({
+        'role': 'user',
+        'content': message,
+    })
+
+    response = client.chat(model=model_name, messages=intent_messages)
+    assistant_reply = response['message']['content']
+
+    intent_messages.append({
+        'role': 'assistant',
+        'content': assistant_reply,
+    })
+    return assistant_reply
 
 context = """
 You are an intent classification engine for a mental health application.\n
@@ -89,7 +94,13 @@ Notes:\n
 1. Standalone = message is self-contained\n
 2. Session_dependent = needs past context\n
 
-RETURN A VALID JSON WITHOUT ANY MARKUPS OF THE FOLLOWING FORMAT:\n
+8. Self-Harm or Crisis Indicators:\n
+Purpose: Detect immediate risk.\n
+Parameter: self_harm_crisis\n
+Values:[true,false]\n
+Notes:\n
+1. Triggers escalation protocols\n
+RETURN A VALID JSON AND A SUMMARY WITHOUT ANY MARKUPS OF THE FOLLOWING FORMAT:\n
 
 {
   "emotional_state": "<calm|neutral|low|sad|anxious|stressed|overwhelmed|frustrated|angry|numb>",
@@ -98,7 +109,8 @@ RETURN A VALID JSON WITHOUT ANY MARKUPS OF THE FOLLOWING FORMAT:\n
   "emotional_intensity": "<mild|moderate|high|critical>",
   "help_receptivity": "<resistant|passive|open|seeking>",
   "time_focus": "<past|present|future|mixed>",
-  "context_dependency": "<standalone|session_dependent>"
+  "context_dependency": "<standalone|session_dependent>",
+  "self_harm_crisis": "<true|false>"
 }
 \n
 
@@ -111,7 +123,8 @@ User: "I don’t want advice, I just need to get this off my chest."
   "emotional_intensity": "moderate",
   "help_receptivity": "resistant",
   "time_focus": "present",
-  "context_dependency": "standalone"
+  "context_dependency": "standalone",
+  "self_harm_crisis": "false"
 }\n
 
 User: "I feel like I keep messing things up and it’s really getting to me."
@@ -122,10 +135,11 @@ User: "I feel like I keep messing things up and it’s really getting to me."
   "emotional_intensity": "moderate",
   "help_receptivity": "open",
   "time_focus": "past",
-  "context_dependency": "session_dependent"
+  "context_dependency": "session_dependent",
+  "self_harm_crisis": "false"
 }\n
 
-User: "My heart is racing and I can’t stop worrying about what’s going to happen tomorrow."
+User: "My heart is racing and I can't stop worrying about what's going to happen tomorrow."
 JSON:
 {
   "emotional_state": "anxious",
@@ -135,6 +149,20 @@ JSON:
   "help_receptivity": "seeking",
   "time_focus": "future",
   "context_dependency": "standalone"
+  "self_harm_crisis": "false"
+}
+\n
+User: "I feel completely hopeless. I don’t see a reason to keep going anymore."
+JSON:
+{
+  "emotional_state": "despair",
+  "intent_type": "crisis",
+  "cognitive_load": "overwhelmed",
+  "emotional_intensity": "high",
+  "help_receptivity": "ambivalent",
+  "time_focus": "present",
+  "context_dependency": "standalone",
+  "self_harm_crisis": "true"
 }
 \n
 
@@ -142,7 +170,7 @@ SO NOTE: ALWAYS RESPOND WITH WHAT YOU ARE ASKED, YOUR JOB IS TO CLASSIFY USER ME
 
 
 """
-res = speakUp(context, "Can you help me calm down right now? I’m feeling really overwhelmed with everything going on.")
+res = speakUp(context, "Can you help me calm down right now? I'm feeling really overwhelmed with everything going on.")
 print(res)
 # res = speakUp("YOU ARE A QUALITY JSON PROVIDER, STRICTLY PROVIDE THE JSON ONLY, NO DECORATION","PROVIDE A JSON SHOWING A=5 and B=4")
 
