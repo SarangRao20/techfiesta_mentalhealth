@@ -14,6 +14,7 @@ import SignIn from './components/SignIn'
 import Meditation from './components/Meditation'
 import Resources from './components/Resources'
 import Community from './components/Community'
+import Ar_breathing from './components/Ar_breathing'
 //children routes
 function App() {
 
@@ -70,7 +71,7 @@ function App() {
         },
         {
           path: "consultation",
-          element: <Consultant />
+          element: <Ar_breathing/>
         },
         {
           path: "community",
