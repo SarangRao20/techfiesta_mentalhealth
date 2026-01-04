@@ -41,7 +41,7 @@ export default function Register() {
             Create Your Account
           </h3>
           <p className="text-gray-400 text-xs mt-1">
-            Join NirVana and begin your journey
+            Join NiVana and begin your journey
           </p>
         </div>
 

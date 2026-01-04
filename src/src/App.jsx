@@ -23,7 +23,7 @@ function App() {
       element:
         <div>
           <LandingPage />
-          <TasksManager />
+         
         </div>
     },
 
