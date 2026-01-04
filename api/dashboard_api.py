@@ -1,6 +1,6 @@
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from models import User, RoutineTask, Assessment, MeditationSession, ChatSession
+from models import User, RoutineTask, Assessment, MeditationSession, ChatSession, ConsultationRequest
 from sqlalchemy import func
 from datetime import datetime, timedelta
 
@@ -57,7 +57,7 @@ class Dashboard(Resource):
             'username': current_user.username,
             'full_name': current_user.full_name,
             'login_streak': current_user.login_streak or 0,
-            'meditation_streak': 0, # Placeholder
+            'meditation_streak': current_user.login_streak or 0, # Placeholder until better logic
             'weekly_sessions': len(weekly_meditation),
             'total_minutes_meditated': total_seconds // 60,
             'crisis_sessions': crisis_count,
@@ -73,5 +73,21 @@ class Dashboard(Resource):
                     'severity': a.severity_level,
                     'date': a.completed_at.isoformat()
                 } for a in recent_assessments
+            ],
+            'consultations': [
+                {
+                    'id': c.id,
+                    'counsellor_name': c.counsellor.username if c.counsellor else 'Assigned Counselor',
+                    'time_slot': c.time_slot,
+                    'date': c.session_datetime.isoformat() if c.session_datetime else None,
+                    'status': c.status
+                } for c in ConsultationRequest.query.filter_by(user_id=current_user.id, status='booked').filter(ConsultationRequest.session_datetime >= datetime.utcnow()).order_by(ConsultationRequest.session_datetime.asc()).limit(3).all()
+            ],
+            'recent_meditation_logs': [
+                {
+                    'type': m.session_type,
+                    'duration': m.duration,  # in seconds
+                    'date': m.date.isoformat()
+                } for m in MeditationSession.query.filter_by(user_id=current_user.id).order_by(MeditationSession.id.desc()).limit(5).all()
             ]
         }
