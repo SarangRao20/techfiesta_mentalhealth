@@ -33,10 +33,21 @@ function TasksManager() {
   const fetchTasks = async () => {
     try {
       const res = await fetch(`${API_URL}/api/routine`, { credentials: 'include' });
-      const data = await res.json();
-      setTasks(data);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setTasks(data);
+        } else {
+          console.error("Tasks data is not an array:", data);
+          setTasks([]);
+        }
+      } else {
+        console.error("Failed to fetch tasks, status:", res.status);
+        setTasks([]);
+      }
     } catch (err) {
       console.error("Failed to fetch tasks", err);
+      setTasks([]);
     }
   };
 
@@ -46,9 +57,9 @@ function TasksManager() {
 
     const payload = {
       title,
-      start_time: start,
-      end_time: end,
-      notes
+      start_time: start || "09:00",
+      end_time: end || "10:00",
+      notes: notes || ""
     };
 
     try {
@@ -78,7 +89,7 @@ function TasksManager() {
   const toggle = async (id) => {
     try {
       const res = await fetch(`${API_URL}/api/routine/${id}/toggle`, {
-        method: "PATCH",
+        method: "POST",
         credentials: 'include'
       });
 
@@ -169,6 +180,7 @@ function TasksManager() {
                 value={start}
                 onChange={e => setStart(e.target.value)}
                 className="w-full bg-transparent text-white border border-white/40 rounded-lg px-2 py-1"
+                style={{ colorScheme: "dark" }}
               />
             </div>
 
@@ -179,6 +191,7 @@ function TasksManager() {
                 value={end}
                 onChange={e => setEnd(e.target.value)}
                 className="w-full bg-transparent border text-white border-white/40 rounded-lg px-2 py-1"
+                style={{ colorScheme: "dark" }}
               />
             </div>
           </div>

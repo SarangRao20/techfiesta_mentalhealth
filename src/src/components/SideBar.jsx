@@ -25,8 +25,14 @@ function SideBar() {
         const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
-          // Prefer full_name, fallback to username
-          setUsername(data.full_name || data.username || "User");
+          console.log("Profile data:", data); // Debugging
+          // Prefer username, fallback to full_name (User Request)
+          if (data.username || data.full_name) {
+            const name = data.username || data.full_name;
+            setUsername(name.trim());
+          }
+        } else {
+          console.error("Profile fetch failed:", res.status);
         }
       } catch (e) {
         console.error("Failed to fetch profile", e);

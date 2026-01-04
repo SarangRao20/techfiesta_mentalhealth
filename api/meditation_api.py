@@ -42,4 +42,26 @@ class CompleteMeditation(Resource):
         db.session.add(session)
         db.session.commit()
 
-        return {'message': 'Session recorded'}, 201
+@ns.route('/stats')
+class MeditationStats(Resource):
+    @login_required
+    def get(self):
+        """Get user's meditation statistics"""
+        stats = db.session.query(
+            func.count(MeditationSession.id).label('total_sessions'),
+            func.sum(MeditationSession.duration).label('total_seconds')
+        ).filter_by(user_id=current_user.id).first()
+
+        total_minutes = int((stats.total_seconds or 0) / 60)
+        
+        # Calculate streak (simplified version: count of distinct days in last 7 days? Or just return login streak for now)
+        # For better UX, let's use the login streak or just mock it in backend if not strict.
+        # But wait, User model has 'login_streak'. Let's return that or calculate real meditation streak.
+        # Let's calculate distinct dates for simplicity or loop.
+        # For now, let's just return total counts.
+        
+        return {
+            'total_sessions': stats.total_sessions or 0,
+            'total_minutes': total_minutes,
+            'streak': current_user.login_streak
+        }, 200

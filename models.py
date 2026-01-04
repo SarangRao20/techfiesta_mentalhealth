@@ -37,9 +37,9 @@ class RoutineTask(db.Model):
             'end_time': self.end_time,
             'notes': self.notes,
             'status': self.status,
-            'created_date': self.created_date,
-            'created_at': self.created_at,
-            'updated_at': self.updated_at
+            'created_date': self.created_date.isoformat() if self.created_date else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
 
     def __repr__(self):
