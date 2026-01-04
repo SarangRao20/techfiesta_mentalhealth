@@ -40,7 +40,9 @@ class Posts(Resource):
                 'author': 'Anonymous' if p.anonymous else User.query.get(p.user_id).username,
                 'created_at': p.created_at.isoformat(),
                 'likes': p.likes,
-                'responses_count': len(p.responses) if p.responses else 0
+                'responses_count': len(p.responses) if p.responses else 0,
+                'is_owner': p.user_id == current_user.id,
+                'user_id': p.user_id
             } for p in posts
         ], 200
 

@@ -3,6 +3,7 @@ import LandingPage from './components/LandingPage'
 import Kalpvriksha from './components/Kalpvriksha'
 import Chat from './components/Chat'
 import Register from './components/Register'
+import PrivateVentingRoom from './components/PrivateVentingRoom'
 import Dashboard from './components/Dashboard'
 import Onboarding from './components/Onboarding'
 import SideBar from './components/SideBar'
@@ -14,7 +15,6 @@ import SignIn from './components/SignIn'
 import Meditation from './components/Meditation'
 import Resources from './components/Resources'
 import Community from './components/Community'
-import Ar_breathing from './components/Ar_breathing'
 //children routes
 function App() {
 
@@ -24,7 +24,7 @@ function App() {
       element:
         <div>
           <LandingPage />
-          <TasksManager />
+
         </div>
     },
 
@@ -59,6 +59,10 @@ function App() {
           element: <Dashboard />
         },
         {
+          path: "private-venting",
+          element: <PrivateVentingRoom />
+        },
+        {
           path: "tasks-manager",
           element: <TasksManager />
         },
@@ -77,6 +81,10 @@ function App() {
         {
           path: "resources",
           element: <Resources />
+        },
+        {
+          path: "counselor-dashboard",
+          element: <CounselorDashboard />
         }
       ]
     }

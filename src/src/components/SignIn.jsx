@@ -52,7 +52,7 @@ const SignIn = () => {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold">Welcome Back</h1>
           <p className="text-gray-400 text-sm mt-1">
-            Sign in to continue your NirVana journey
+            Sign in to continue your NiVana journey
           </p>
         </div>
 

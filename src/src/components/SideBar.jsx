@@ -10,12 +10,14 @@ import {
   Users,
   Clock,
   Brain,
-  BookOpen
+  BookOpen,
+  Wind
 } from "lucide-react";
 
 function SideBar() {
   const [open, setOpen] = useState(true);
   const [username, setUsername] = useState("User");
+  const [role, setRole] = useState("student");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,6 +32,9 @@ function SideBar() {
           if (data.username || data.full_name) {
             const name = data.username || data.full_name;
             setUsername(name.trim());
+          }
+          if (data.role) {
+            setRole(data.role);
           }
         } else {
           console.error("Profile fetch failed:", res.status);
@@ -84,8 +89,13 @@ function SideBar() {
             <NavItem icon={CheckSquare} label="Tasks Manager" href="tasks-manager" />
             <NavItem icon={UserCog} label="Consultation" href="consultation" />
             <NavItem icon={Users} label="Community" href="community" />
+            <NavItem icon={Wind} label="Private Venting" href="private-venting" />
             <NavItem icon={Brain} label="Meditation" href="meditation" />
             <NavItem icon={BookOpen} label="Resources" href="resources" />
+            {role === 'counsellor' && (
+              <NavItem icon={UserCog} label="Counselor Dashboard" href="counselor-dashboard" />
+            )}
+
           </nav>
 
           {/* Divider */}
