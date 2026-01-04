@@ -8,7 +8,9 @@ export default function Dashboard() {
     full_name: "",
     meditation_streak: 0,
     tasks: { completed: 0, total: 0, progress: 0 },
-    meditation_minutes: 0
+    meditation_minutes: 0,
+    consultations: [],
+    recent_meditation_logs: []
   });
   const [ignite, setIgnite] = useState(false);
   const [moodIndex, setMoodIndex] = useState(1);
@@ -52,7 +54,9 @@ export default function Dashboard() {
             full_name: full_name,
             meditation_streak: data.meditation_streak || 0,
             tasks: data.tasks || { completed: 0, total: 0, progress: 0 },
-            meditation_minutes: data.total_minutes_meditated || 0
+            meditation_minutes: data.total_minutes_meditated || 0,
+            consultations: data.consultations || [],
+            recent_meditation_logs: data.recent_meditation_logs || []
           });
         }
       } catch (error) {
@@ -139,12 +143,27 @@ export default function Dashboard() {
           </p>
         </Card>
 
-        {/* MEDITATION */}
+        {/* RECENT MEDITATION LOGS */}
         <Card>
-          <h3 className="card-title">Meditation Minutes</h3>
-
-          <div className="space-y-2 text-sm mt-4 text-white/80">
-            <Row label="Total Minutes" value={`${stats.meditation_minutes} min`} />
+          <h3 className="card-title">Recent Mindfulness</h3>
+          <div className="mt-4 space-y-3">
+            {stats.recent_meditation_logs && stats.recent_meditation_logs.length > 0 ? (
+              stats.recent_meditation_logs.map((log, i) => (
+                <div key={i} className="flex justify-between text-sm border-b border-white/5 pb-2">
+                  <div>
+                    <p className="text-white/90 capitalize">{log.type.replace('_', ' ')}</p>
+                    <p className="text-xs text-white/50">{log.date}</p>
+                  </div>
+                  <span className="text-indigo-300">{Math.floor(log.duration / 60)}m {log.duration % 60}s</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-white/40 italic">No recent sessions.</p>
+            )}
+          </div>
+          <div className="mt-4 pt-2 border-t border-white/10 flex justify-between text-xs text-white/60">
+            <span>Total Time</span>
+            <span>{stats.meditation_minutes} min</span>
           </div>
         </Card>
 
@@ -169,28 +188,37 @@ export default function Dashboard() {
           </p>
         </Card>
 
-        {/* UPCOMING SCHEDULE */}
+        {/* UPCOMING SCHEDULE (Consultations) */}
         <Card>
           <h3 className="card-title">Upcoming Schedule</h3>
 
-          <div className="flex items-center gap-4 mt-4">
-            <div className="w-12 h-12 rounded-full bg-purple-300/30 flex items-center justify-center">
-              👤
-            </div>
-
-            <div className="text-sm">
-              <p>Name: {stats.full_name || stats.username || "User"}</p>
-              <p className="text-white/60">Role</p>
-              <p className="text-white/60 text-xs mt-1">
-                Scheduled at: 15:30
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-2 mt-4">
-            <ActionBtn>Join</ActionBtn>
-            <ActionBtn>Reschedule</ActionBtn>
-            <ActionBtn danger>Delete</ActionBtn>
+          <div className="mt-4 space-y-4">
+            {stats.consultations && stats.consultations.length > 0 ? (
+              stats.consultations.map((consult, i) => (
+                <div key={i} className="bg-white/5 rounded-lg p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-purple-300/30 flex items-center justify-center text-xs">
+                      🩺
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-medium">{consult.counsellor_name}</p>
+                      <p className="text-white/60 text-xs">
+                        {new Date(consult.date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <ActionBtn>Join</ActionBtn>
+                    <ActionBtn danger>Reschedule</ActionBtn>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-white/50 text-sm">No upcoming sessions.</p>
+                <button className="mt-2 text-xs text-indigo-400 hover:text-indigo-300 underline">Book a session</button>
+              </div>
+            )}
           </div>
         </Card>
       </div>

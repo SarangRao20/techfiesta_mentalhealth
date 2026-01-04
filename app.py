@@ -26,7 +26,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}}, supports_credentials=True)
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://127.0.0.1:3000"]}}, supports_credentials=True)
 
 api = Api(app, 
           title='Mental Health Support API',

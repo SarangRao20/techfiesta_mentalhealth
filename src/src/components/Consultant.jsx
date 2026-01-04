@@ -19,7 +19,7 @@ export default function Consultant() {
 
   useEffect(() => {
     loadRequests();
-    // TODO: fetch counsellors endpoint not implemented in backend yet
+    loadCounsellors();
     loadSlots();
   }, []);
 
@@ -29,7 +29,7 @@ export default function Consultant() {
 
   const loadRequests = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/consultation/my_requests`);
+      const res = await fetch(`${API_URL}/api/consultation/my_requests`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setRequests(data);
@@ -39,10 +39,22 @@ export default function Consultant() {
     }
   };
 
+  const loadCounsellors = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/consultation/counsellors`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setCounsellors(data);
+      }
+    } catch (e) {
+      console.error("Failed to load counsellors", e);
+    }
+  };
+
   const loadSlots = async () => {
     try {
       // Backend doesn't support filtering by counsellor_id yet in /slots, but keeping logic for future
-      const res = await fetch(`${API_URL}/api/consultation/slots`);
+      const res = await fetch(`${API_URL}/api/consultation/slots`, { credentials: 'include' });
       const data = await res.json();
       setOpenSlots(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -53,9 +65,31 @@ export default function Consultant() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Submit form data logic need manual request endpoint if not booking slot
-    console.log("Submitting:", formData);
-    setOpenModal(false);
+    try {
+      const res = await fetch(`${API_URL}/api/consultation/request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) {
+        alert("Request submitted successfully!");
+        setOpenModal(false);
+        loadRequests();
+        setFormData({
+          counsellor_id: "",
+          urgency: "",
+          contact_preference: "",
+          preferred_time: "",
+          notes: ""
+        });
+      } else {
+        const err = await res.json();
+        alert(err.message || "Failed to submit request");
+      }
+    } catch (e) {
+      console.error("Submit error", e);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -69,7 +103,8 @@ export default function Consultant() {
     try {
       const res = await fetch(`${API_URL}/api/consultation/slots/${slotId}/book`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" } // Good practice even if body is empty
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include'
       });
       if (res.ok) {
         alert("Slot booked successfully!");
