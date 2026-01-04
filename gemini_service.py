@@ -4,6 +4,7 @@ load_dotenv()
 import json
 import os
 import logging
+import time
 from google import genai
 from google.genai import types
 
@@ -95,8 +96,12 @@ def chat_with_ai(message, user_context=None, chat_history=None, emotional_constr
 
 def analyze_assessment_results(assessment_type, responses, score):
     """Analyze assessment results and provide recommendations using Gemini"""
-    try:
-        prompt = f"""Analyze the following mental health assessment results and provide personalized recommendations:
+    max_retries = 3
+    retry_delay = 2  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            prompt = f"""Analyze the following mental health assessment results and provide personalized recommendations:
 
 Assessment Type: {assessment_type}
 Score: {score}
@@ -115,35 +120,46 @@ Respond in JSON format with these fields:
 - professional_help_recommended: boolean
 - urgency_level: string (low/medium/high)
 """
-        response = client.models.generate_content(
-            model="gemini-2.5-flash", 
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                 response_mime_type="application/json"
+            response = client.models.generate_content(
+                model="gemini-2.0-flash-exp", 
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                     response_mime_type="application/json"
+                )
             )
-        )
         
-        try:
-            return json.loads(response.text)
-        except json.JSONDecodeError as jde:
-            logging.error(f"JSON decode error in analyze_assessment_results: {jde}\nRaw response: {response.text}")
+            try:
+                return json.loads(response.text)
+            except json.JSONDecodeError as jde:
+                logging.error(f"JSON decode error in analyze_assessment_results: {jde}\nRaw response: {response.text}")
+                return {
+                    "interpretation": response.text[:200] + "..." if len(response.text) > 200 else response.text,
+                    "recommendations": ["Please consult with a mental health professional for proper evaluation."],
+                    "coping_strategies": ["Practice deep breathing", "Maintain regular sleep schedule", "Stay connected with friends and family"],
+                    "professional_help_recommended": True,
+                    "urgency_level": "medium"
+                }
+        
+        except Exception as e:
+            # Check if it's a rate limit error
+            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                if attempt < max_retries - 1:
+                    wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                    logging.warning(f"Rate limit hit. Retrying in {wait_time} seconds... (Attempt {attempt + 1}/{max_retries})")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logging.error(f"Rate limit exceeded after {max_retries} attempts")
+            else:
+                logging.error(f"Error analyzing assessment: {e}", exc_info=True)
+            
             return {
-                "interpretation": response.text[:200] + "..." if len(response.text) > 200 else response.text,
+                "interpretation": f"Unable to analyze results at this time. Error: {e}",
                 "recommendations": ["Please consult with a mental health professional for proper evaluation."],
                 "coping_strategies": ["Practice deep breathing", "Maintain regular sleep schedule", "Stay connected with friends and family"],
                 "professional_help_recommended": True,
                 "urgency_level": "medium"
             }
-        
-    except Exception as e:
-        logging.error(f"Error analyzing assessment: {e}", exc_info=True)
-        return {
-            "interpretation": f"Unable to analyze results at this time. Error: {e}",
-            "recommendations": ["Please consult with a mental health professional for proper evaluation."],
-            "coping_strategies": ["Practice deep breathing", "Maintain regular sleep schedule", "Stay connected with friends and family"],
-            "professional_help_recommended": True,
-            "urgency_level": "medium"
-        }
 
 def suggest_assessment(user_message, chat_history=None):
     """Suggest appropriate assessment based on conversation using Gemini"""

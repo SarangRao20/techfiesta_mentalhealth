@@ -17,6 +17,9 @@ import Meditation from './components/Meditation'
 import Resources from './components/Resources'
 import Community from './components/Community'
 import CounselorDashboard from './components/CounselorDashboard'
+import Assessments from "./components/Assessments";
+import Inkblot from "./components/Inkblot";
+import VrMeditation from "./components/VrMeditation";
 
 //children routes
 function App() {
@@ -71,7 +74,7 @@ function App() {
         },
         {
           path: "consultation",
-          element:<Consultant/>
+          element: <Consultant />
         },
         {
           path: "community",
@@ -80,6 +83,22 @@ function App() {
         {
           path: "meditation",
           element: <Meditation />
+        },
+        {
+          path: "ar-breathing",
+          element: <Ar_breathing />
+        },
+        {
+          path: "vr-meditation",
+          element: <VrMeditation />
+        },
+        {
+          path: "assessments",
+          element: <Assessments />
+        },
+        {
+          path: "inkblot",
+          element: <Inkblot />
         },
         {
           path: "resources",
