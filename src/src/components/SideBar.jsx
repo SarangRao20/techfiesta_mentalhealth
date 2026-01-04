@@ -89,7 +89,7 @@ function SideBar() {
 
             {/* Group 1: General */}
             <div className="space-y-1">
-              <div className="text-xs uppercase text-white/40 font-semibold tracking-wider px-2 mb-2">General</div>
+              <div className="text-xs uppercase text-white/60 font-semibold tracking-wider px-2 mb-2">General</div>
               <NavItem icon={LayoutDashboard} label="Dashboard" href="dashboard" />
               <NavItem icon={MessageSquare} label="AI Companion" href="chat" />
               <NavItem icon={CheckSquare} label="Tasks & Goals" href="tasks-manager" />
@@ -97,7 +97,7 @@ function SideBar() {
 
             {/* Group 2: Immersion & Therapy */}
             <div className="space-y-1">
-              <div className="text-xs uppercase text-white/40 font-semibold tracking-wider px-2 mb-2">Immersive Therapy</div>
+              <div className="text-xs uppercase text-white/60 font-semibold tracking-wider px-2 mb-2">Immersive Therapy</div>
               <NavItem icon={Wind} label="Private Venting" href="private-venting" />
               <NavItem icon={Brain} label="Meditation" href="meditation" />
               <NavItem icon={Glasses} label="VR Space" href="vr-meditation" />
@@ -106,7 +106,7 @@ function SideBar() {
 
             {/* Group 3: Clinical & Support */}
             <div className="space-y-1">
-              <div className="text-xs uppercase text-white/40 font-semibold tracking-wider px-2 mb-2">Clinical</div>
+              <div className="text-xs uppercase text-white/60 font-semibold tracking-wider px-2 mb-2">Clinical</div>
               <NavItem icon={ClipboardList} label="Assessments" href="assessments" />
               <NavItem icon={Eye} label="Inkblot Test" href="inkblot" />
               <NavItem icon={UserCog} label="Consultation" href="consultation" />
@@ -114,14 +114,14 @@ function SideBar() {
 
             {/* Group 4: Community */}
             <div className="space-y-1">
-              <div className="text-xs uppercase text-white/40 font-semibold tracking-wider px-2 mb-2">Community</div>
+              <div className="text-xs uppercase text-white/60 font-semibold tracking-wider px-2 mb-2">Community</div>
               <NavItem icon={Users} label="Community Hall" href="community" />
               <NavItem icon={BookOpen} label="Resources Library" href="resources" />
             </div>
 
             {role === 'counsellor' && (
               <div className="space-y-1">
-                <div className="text-xs uppercase text-white/40 font-semibold tracking-wider px-2 mb-2">Professional</div>
+                <div className="text-xs uppercase text-white/60 font-semibold tracking-wider px-2 mb-2">Professional</div>
                 <NavItem icon={UserCog} label="Counselor Dashboard" href="counselor-dashboard" />
               </div>
             )}
