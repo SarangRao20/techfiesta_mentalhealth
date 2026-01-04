@@ -11,6 +11,9 @@ import ChatHistory from './components/ChatHistory'
 import TasksManager from './components/TasksManager'
 import Consultant from './components/Consultant'
 import SignIn from './components/SignIn'
+import Meditation from './components/Meditation'
+import Resources from './components/Resources'
+import Community from './components/Community'
 //children routes
 function App() {
 
@@ -70,6 +73,8 @@ function App() {
           element: <Consultant />
         },
         {
+          path: "community",
+          element: <Community />
         }
       ]
     }
