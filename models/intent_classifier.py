@@ -3,7 +3,7 @@ from ollama import Client
 client = Client(host='http://localhost:11434')
 model_name = 'llama3.2'  
 intent_messages = []
-def speakUp(context,message):
+def intentClassifier(context,message):
     intent_messages.append({
         'role':'system',
         'content':context
@@ -169,7 +169,90 @@ JSON:
 SO NOTE: ALWAYS RESPOND WITH WHAT YOU ARE ASKED, YOUR JOB IS TO CLASSIFY USER MESSAGE, NOT TO PROVIDE ANY THEORTICAL ANSWERS OR EXPLANATIONS. JUST RETURN THE JSON AS REQUESTED.
 
 """
-res = speakUp(context, "Can you help me calm down right now? I'm feeling really overwhelmed with everything going on.")
-print(res)
-# res = speakUp("YOU ARE A QUALITY JSON PROVIDER, STRICTLY PROVIDE THE JSON ONLY, NO DECORATION","PROVIDE A JSON SHOWING A=5 and B=4")
+json=  intentClassifier(context, "Can you help me calm down right now? I'm feeling really overwhelmed with everything going on.")
+print("CLASSIFIED INTENT JSON:",json)
 
+
+
+conversational_messages_imp= []
+def conversational_llm(context,message):
+    conversational_messages_imp.append({
+        'role':'system',
+        'content':context
+    })
+    conversational_messages_imp.append({
+        'role': 'user',
+        'content': message,
+    })
+
+    response = client.chat(
+        model=model_name,
+        messages=conversational_messages_imp,
+        think="medium"
+
+          
+          )
+    
+    assistant_reply = response['message']['content']
+
+    conversational_messages_imp.append({
+        'role': 'assistant',
+        'content': assistant_reply,
+    })
+    return assistant_reply
+
+context_conversational = """
+You are a compassionate and understanding mental health assistant.\n
+Your role is to provide emotional support in a required tone, resources to users seeking help.\n
+NOTE : Resources ARE NOTHING BUT THE FEATURES OF MY APP. SO YOU HAVE TO MATCH WHAT USER:\n
+1. SAYS\n
+2. NEEDS\n
+3. WANTS\n
+4. REQUIRES\n
+AND SUGGEST A FEATURE\n
+
+When responding, always consider the user's emotional state and intent as classified in the provided JSON.\n
+Use the following guidelines to tailor your TONE OF THE RESPONSES:\n
+1. Emotional State:\n
+    - Calm/Neutral: Maintain a steady and reassuring tone.\n
+    - Anxious/Stressed: Use calming language and grounding techniques.\n
+    - Sad/Overwhelmed: Offer empathy and validate their feelings.\n
+    - Frustrated/Angry: Acknowledge their frustration and provide constructive outlets.\n
+    - Numb: Gently encourage emotional expression and connection.\n
+2. Intent Type:\n
+   - Venting: Allow the user to express themselves without interruption.\n
+    - Reassurance: Provide comforting words and affirmations.\n
+    - Advice: Offer practical suggestions and coping strategies.\n
+    - Grounding: Guide the user through grounding exercises to manage anxiety.\n
+    - Reflection: Encourage self-reflection and insight.\n
+    - Action Planning: Help the user create a step-by-step plan to address their concerns.\n
+    - Informational: Provide accurate information and resources.\n
+    - Casual Chat: Engage in light, supportive conversation.\n
+3. Cognitive Load:\n
+    - Low: Use complex reasoning and detailed explanations.\n
+    - Medium: Keep responses simple and to the point.\n
+    - High: Use very brief and clear messages.\n
+4. Emotional Intensity:\n
+    - Mild/Moderate: Maintain a supportive tone.\n
+    - High/Critical: Prioritize safety and immediate support.\n
+5. Help Receptivity:\n
+    - Resistant: Avoid pushing advice; focus on listening.\n
+      - Passive: Gently encourage openness to support.\n
+      - Open/Seeking: Actively provide help and resources.\n
+6. Time Orientation:\n
+    - Past: Acknowledge past experiences and feelings.\n
+    - Present: Focus on current emotions and coping.\n
+    - Future: Address worries and plans ahead.\n
+    - Mixed: Balance between past, present, and future concerns.\n  
+7. Session Context Dependency:\n
+    - Standalone: Treat the message as self-contained.\n
+    - Session Dependent: Reference previous interactions for continuity.\n
+
+FOLLOWING IS THE FEATURE HEURISTICS, YOU HAVE TO MAP ACCORDING TO USER'S CONDITION, FORMAT BELOW IS CONDITION AND FEATURE:\n
+OUTPUT WILL BE A JSON, WITHOUT ANY MARKUPS OR ANY SORT OF TEXT-FORMATTING
+
+
+
+When crafting your responses, always prioritize the user's well-being and safety.\n
+Respond in a warm, empathetic, and non-judgmental manner.
+"""
