@@ -11,7 +11,12 @@ import {
   Clock,
   Brain,
   BookOpen,
-  Wind
+  Wind,
+  Eye,
+  ClipboardList,
+  Glasses,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 
 function SideBar() {
@@ -27,8 +32,6 @@ function SideBar() {
         const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
-          console.log("Profile data:", data); // Debugging
-          // Prefer username, fallback to full_name (User Request)
           if (data.username || data.full_name) {
             const name = data.username || data.full_name;
             setUsername(name.trim());
@@ -36,8 +39,6 @@ function SideBar() {
           if (data.role) {
             setRole(data.role);
           }
-        } else {
-          console.error("Profile fetch failed:", res.status);
         }
       } catch (e) {
         console.error("Failed to fetch profile", e);
@@ -81,69 +82,76 @@ function SideBar() {
           border-r border-white/10
         `}
       >
-        <div className="flex flex-col h-full px-4 py-12">
+        <div className="flex flex-col h-full px-4 py-12 custom-scrollbar overflow-y-auto">
+
           {/* Main Nav */}
-          <nav className="mt-6 space-y-2 text-sm">
-            <NavItem icon={LayoutDashboard} label="Dashboard" href="dashboard" />
-            <NavItem icon={MessageSquare} label="Chat" href="chat" />
-            <NavItem icon={CheckSquare} label="Tasks Manager" href="tasks-manager" />
-            <NavItem icon={UserCog} label="Consultation" href="consultation" />
-            <NavItem icon={Users} label="Community" href="community" />
-            <NavItem icon={Wind} label="Private Venting" href="private-venting" />
-            <NavItem icon={Brain} label="Meditation" href="meditation" />
-            <NavItem icon={BookOpen} label="Resources" href="resources" />
+          <nav className="mt-6 space-y-6 text-sm">
+
+            {/* Group 1: General */}
+            <div className="space-y-1">
+              <div className="text-xs uppercase text-white/40 font-semibold tracking-wider px-2 mb-2">General</div>
+              <NavItem icon={LayoutDashboard} label="Dashboard" href="dashboard" />
+              <NavItem icon={MessageSquare} label="AI Companion" href="chat" />
+              <NavItem icon={CheckSquare} label="Tasks & Goals" href="tasks-manager" />
+            </div>
+
+            {/* Group 2: Immersion & Therapy */}
+            <div className="space-y-1">
+              <div className="text-xs uppercase text-white/40 font-semibold tracking-wider px-2 mb-2">Immersive Therapy</div>
+              <NavItem icon={Wind} label="Private Venting" href="private-venting" />
+              <NavItem icon={Brain} label="Meditation" href="meditation" />
+              <NavItem icon={Glasses} label="VR Space" href="vr-meditation" />
+              <NavItem icon={Wind} label="AR Breathing" href="ar-breathing" />
+            </div>
+
+            {/* Group 3: Clinical & Support */}
+            <div className="space-y-1">
+              <div className="text-xs uppercase text-white/40 font-semibold tracking-wider px-2 mb-2">Clinical</div>
+              <NavItem icon={ClipboardList} label="Assessments" href="assessments" />
+              <NavItem icon={Eye} label="Inkblot Test" href="inkblot" />
+              <NavItem icon={UserCog} label="Consultation" href="consultation" />
+            </div>
+
+            {/* Group 4: Community */}
+            <div className="space-y-1">
+              <div className="text-xs uppercase text-white/40 font-semibold tracking-wider px-2 mb-2">Community</div>
+              <NavItem icon={Users} label="Community Hall" href="community" />
+              <NavItem icon={BookOpen} label="Resources Library" href="resources" />
+            </div>
+
             {role === 'counsellor' && (
-              <NavItem icon={UserCog} label="Counselor Dashboard" href="counselor-dashboard" />
+              <div className="space-y-1">
+                <div className="text-xs uppercase text-white/40 font-semibold tracking-wider px-2 mb-2">Professional</div>
+                <NavItem icon={UserCog} label="Counselor Dashboard" href="counselor-dashboard" />
+              </div>
             )}
 
           </nav>
 
-          {/* Divider */}
-          <div className="mt-6 border-t border-white/10" />
-
-          {/* Chat History */}
-          <div className="mt-4 flex items-center gap-2 text-white/60 text-sm">
-            <Clock size={16} />
-            <span>Recent Chats</span>
-          </div>
-
-          <div className="mt-2 space-y-1 text-sm text-white/70 overflow-y-auto">
-            <ChatItem sessionId={10} label="Chat interface with file upload" />
-            <ChatItem sessionId={11} label="Compliance automation tool" />
-            <ChatItem sessionId={12} label="Login page design" />
-            <ChatItem sessionId={13} label="React personalization config" />
-            <ChatItem sessionId={14} label="Dynamic UI Chat" />
-          </div>
-
-          {/* User Section (BOTTOM) */}
-          <div className="mt-auto pt-4 border-t border-white/10">
-            <div className="flex items-center gap-3 mb-3">
-              {/* Avatar */}
-              <div className="w-10 h-10 rounded-full bg-purple-300/30 flex items-center justify-center">
-                <span className="text-lg">👤</span>
+          {/* User Section */}
+          <div className="mt-auto pt-8 border-t border-white/10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center">
+                <span className="text-sm font-bold">{username.charAt(0).toUpperCase()}</span>
               </div>
-
-              {/* Username */}
-              <span className="text-sm font-medium text-white">
-                {username}
-              </span>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-white">{username}</span>
+                <span className="text-xs text-white/50 capitalize">{role}</span>
+              </div>
             </div>
 
-            {/* Logout */}
             <button
               onClick={handleLogout}
               className="w-full flex items-center justify-center gap-2
-               bg-red-600 hover:bg-red-700
-               text-white text-sm
-               py-2 rounded-lg transition"
+               bg-white/5 hover:bg-red-900/40 hover:text-red-400
+               text-white/70 text-sm
+               py-2.5 rounded-lg transition border border-white/5"
             >
-              Logout
+              Log Out
             </button>
           </div>
 
         </div>
-
-
       </aside>
 
       {/* MAIN CONTENT */}
@@ -160,29 +168,16 @@ function SideBar() {
   );
 }
 
-/* -------------------- */
-
 function NavItem({ icon: Icon, label, href }) {
   const navigate = useNavigate();
   return (
     <button
       onClick={() => navigate(`/app/${href}`)}
-      className="flex items-center gap-3 w-full px-2 py-2 rounded-md hover:bg-white/5 transition"
+      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg hover:bg-white/10 transition-all group"
     >
-      <Icon size={18} className="text-white/70" />
-      <span>{label}</span>
-    </button>
-  );
-}
-
-function ChatItem({ label, sessionId }) {
-  const navigate = useNavigate();
-  return (
-    <button
-      onClick={() => navigate(`/app/chat/${sessionId}`)}
-      className="w-full text-left px-2 py-1 rounded-md hover:bg-white/5 truncate"
-    >
-      {label}
+      <Icon size={18} className="text-white/50 group-hover:text-white transition-colors" />
+      <span className="text-white/80 group-hover:text-white font-light group-hover:font-normal transition-all">{label}</span>
+      <ChevronRight size={14} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-white/30" />
     </button>
   );
 }
