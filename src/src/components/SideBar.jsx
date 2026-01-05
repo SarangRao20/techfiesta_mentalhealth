@@ -119,7 +119,11 @@ function SideBar() {
 
           {/* User Section - Compressed */}
           <div className="mt-auto px-4 pb-6 pt-3 border-t border-white/5 bg-[#0e1116]">
-            <div className="flex items-center gap-3 mb-4 px-2">
+            <div 
+            onClick={() => navigate("/app/profile")}
+            className="flex items-center gap-3 mb-4 px-2"
+            >
+
               <div className="w-10 h-10 rounded-full bg-[#8e74ff] flex items-center justify-center text-white text-sm font-bold shadow-lg border border-white/10">
                 {username.charAt(0).toUpperCase()}
               </div>

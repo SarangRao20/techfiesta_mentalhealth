@@ -20,6 +20,7 @@ import CounselorDashboard from './components/CounselorDashboard'
 import Assessments from "./components/Assessments";
 import Inkblot from "./components/Inkblot";
 import VrMeditation from "./components/VrMeditation";
+import Profile from './components/Profile'
 
 //children routes
 function App() {
@@ -47,7 +48,10 @@ function App() {
       path: "/start-journey",
       element: <Onboarding />
     },
-
+    {
+      path: "/app/profile",
+      element: <Profile />
+    },
     {
       path: "/app",
       element: <SideBar />,
@@ -64,6 +68,7 @@ function App() {
           path: "dashboard",
           element: <Dashboard />
         },
+        
         {
           path: "private-venting",
           element: <PrivateVentingRoom />
