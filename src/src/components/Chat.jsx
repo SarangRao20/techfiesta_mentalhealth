@@ -68,7 +68,8 @@ const Chat = () => {
 
     // Voice Mode State
     const [isVoiceMode, setIsVoiceMode] = useState(false);
-    const [voiceStatus, setVoiceStatus] = useState('listening');
+    const [voiceStatus, setVoiceStatus] = useState('listening'); // listening, processing, speaking
+
     const messagesEndRef = useRef(null);
     const sosTimerRef = useRef(null);
     const sosCountdownRef = useRef(null);
@@ -76,6 +77,13 @@ const Chat = () => {
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
+
+    // Keep ref in sync with state
+    useEffect(() => {
+        isVoiceModeRef.current = isVoiceMode;
+    }, [isVoiceMode]);
+
+
 
     useEffect(() => {
         if (messagesEndRef.current) {
@@ -116,10 +124,7 @@ const Chat = () => {
     const handleSend = async () => {
         if (!input.trim()) return;
 
-        // IMMEDIATE HEURISTIC CHECK
-        const isCrisisDetected = detectCrisisHeuristic(input);
-
-        const userMsg = { role: 'user', content: input };
+        const userMsg = { role: 'user', content: text };
         setMessages(prev => [...prev, userMsg]);
         
         // If crisis detected, immediately show crisis response
@@ -146,7 +151,8 @@ const Chat = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    user_message: input
+                    message: input,
+                    session_id: sessionId
                 })
             });
 
@@ -181,62 +187,12 @@ const Chat = () => {
             };
 
             setMessages(prev => [...prev, botMsg]);
-            
-            // Start SOS timer if API also detected crisis
-            if (isCrisis) {
-                startSosTimer();
-            }
         } catch (error) {
-            console.error('Error:', error);
-            setMessages(prev => [...prev, {
-                role: 'bot',
-                content: "I'm having trouble connecting right now."
-            }]);
+            console.error(error);
+            setMessages(prev => [...prev, { role: 'bot', content: "I'm having trouble connecting right now." }]);
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const startSosTimer = () => {
-        setSosCountdown(10);
-        
-        // Clear any existing timers
-        if (sosTimerRef.current) {
-            clearTimeout(sosTimerRef.current);
-        }
-        if (sosCountdownRef.current) {
-            clearInterval(sosCountdownRef.current);
-        }
-
-        // Countdown interval
-        let count = 5;
-        sosCountdownRef.current = setInterval(() => {
-            count -= 1;
-            setSosCountdown(count);
-            if (count <= 0) {
-                clearInterval(sosCountdownRef.current);
-            }
-        }, 1000);
-
-        // Navigate after 5 seconds
-        sosTimerRef.current = setTimeout(() => {
-            // navigate('/app/ar_breathing');
-            console.log("ok")
-        }, 10000);
-    };
-
-    const handleSosClick = () => {
-        // Clear timers when user clicks SOS
-        if (sosTimerRef.current) {
-            clearTimeout(sosTimerRef.current);
-        }
-        if (sosCountdownRef.current) {
-            clearInterval(sosCountdownRef.current);
-        }
-        setSosCountdown(5);
-        
-        // Handle SOS action (e.g., open tel: link or show emergency contacts)
-        window.location.href = 'tel:988'; // Example: US suicide prevention hotline
     };
 
     const handleKeyPress = (e) => {
@@ -246,14 +202,19 @@ const Chat = () => {
         }
     };
 
+    // Voice Mode Simulation
     const toggleVoiceMode = () => {
         if (isVoiceMode) {
             setIsVoiceMode(false);
         } else {
             setIsVoiceMode(true);
             setVoiceStatus('listening');
+            // Mock interaction flow
             setTimeout(() => setVoiceStatus('processing'), 3000);
-            setTimeout(() => setVoiceStatus('speaking'), 5000);
+            setTimeout(() => {
+                setVoiceStatus('speaking');
+                // Could acturally trigger TTS here
+            }, 5000);
             setTimeout(() => setVoiceStatus('listening'), 8000);
         }
     };
@@ -440,17 +401,18 @@ const Chat = () => {
                                 {voiceStatus === 'processing' && "Thinking..."}
                                 {voiceStatus === 'speaking' && "Speaking..."}
                             </h2>
-                            <p className="text-white/40 text-sm">
+                            <p className="text-neutral-400 font-light">
                                 Speak naturally. I'm here to listen.
                             </p>
                         </div>
 
-                        <div className="flex gap-4">
-                            <button className="w-12 h-12 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors flex items-center justify-center">
-                                <StopCircle className="w-5 h-5" />
+                        {/* Controls */}
+                        <div className="flex gap-6">
+                            <button className="p-4 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors">
+                                <StopCircle className="w-6 h-6" />
                             </button>
-                            <button className="w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 text-white/70 transition-colors flex items-center justify-center">
-                                <Volume2 className="w-5 h-5" />
+                            <button className="p-4 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
+                                <Volume2 className="w-6 h-6" />
                             </button>
                         </div>
                     </div>

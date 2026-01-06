@@ -184,3 +184,102 @@ def get_meditation_content():
 ]
 
     }
+
+def generate_analysis(assessment_type, score):
+    full_data = {}
+    
+    if assessment_type == 'PHQ-9':
+        if score <= 4:
+            primary_interpretation = "minimal or no depression symptoms"
+            clinical_severity = "Minimal Depression"
+            urgency = "low"
+            help_rec = False
+        elif score <= 9:
+            primary_interpretation = "mild depression symptoms"
+            clinical_severity = "Mild Depression"
+            urgency = "low"
+            help_rec = True
+        elif score <= 14:
+            primary_interpretation = "moderate depression symptoms"
+            clinical_severity = "Moderate Depression"
+            urgency = "medium"
+            help_rec = True
+        elif score <= 19:
+            primary_interpretation = "moderately severe depression"
+            clinical_severity = "Moderately Severe Depression"
+            urgency = "high"
+            help_rec = True
+        else:
+            primary_interpretation = "severe depression"
+            clinical_severity = "Severe Depression"
+            urgency = "high"
+            help_rec = True
+
+        full_data = {
+            "user_safe": {
+                "interpretation": f"Your PHQ-9 score of {score} indicates {primary_interpretation}. It's important to keep monitoring your mood and practicing self-care.",
+                "recommendations": [
+                    "Maintain a consistent sleep schedule",
+                    "Engage in light physical activity daily",
+                    "Practice mindfulness or deep breathing"
+                ],
+                "coping_strategies": [
+                    "Break large tasks into smaller steps",
+                    "Reach out to a trusted friend or family member",
+                    "Limit time spent on social media"
+                ]
+            },
+            "counsellor_detailed": {
+                "score_range": "0-27 points",
+                "severity_category": clinical_severity,
+                "urgency_level": urgency,
+                "professional_help_recommended": help_rec,
+                "key_insights": [
+                    f"Structural score: {score}",
+                    "Suggests potential impact on cognitive functioning" if score > 10 else "Suggests stable functioning"
+                ]
+            }
+        }
+    elif assessment_type == 'GAD-7':
+        if score < 5:
+            severity = "Minimal Anxiety"
+            urgency = "low"
+        elif score < 10:
+            severity = "Mild Anxiety"
+            urgency = "low"
+        elif score < 15:
+            severity = "Moderate Anxiety"
+            urgency = "medium"
+        else:
+            severity = "Severe Anxiety"
+            urgency = "high"
+            
+        full_data = {
+            "user_safe": {
+                "interpretation": f"Your GAD-7 score of {score} suggests {severity.lower()}.",
+                "recommendations": ["Deep breathing exercises", "Routine tracking"],
+                "coping_strategies": ["5-4-3-2-1 technique", "Avoid excess caffeine"]
+            },
+            "counsellor_detailed": {
+                "severity": severity,
+                "urgency_level": urgency,
+                "professional_help_recommended": score >= 5
+            }
+        }
+    elif assessment_type == 'GHQ':
+        severity = "Good" if score < 4 else "Distressed" if score < 12 else "Significantly Distressed"
+        full_data = {
+            "user_safe": {
+                "interpretation": f"Your GHQ score of {score} suggests {severity.lower()} well-being.",
+                "recommendations": ["Positive affirmations", "Social interaction"],
+                "coping_strategies": ["Journaling", "Nature walks"]
+            },
+            "counsellor_detailed": {
+                "severity": severity,
+                "urgency_level": "low" if score < 4 else "medium" if score < 12 else "high",
+                "professional_help_recommended": score >= 4
+            }
+        }
+    
+    return full_data
+

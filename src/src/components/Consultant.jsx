@@ -14,14 +14,32 @@ export default function Consultant() {
     urgency: "",
     contact_preference: "",
     preferred_time: "",
-    notes: ""
+    notes: "",
+    attachment_type: "",
+    attachment_id: ""
   });
+
+  const [assessmentHistory, setAssessmentHistory] = useState([]);
+  const [inkblotHistory, setInkblotHistory] = useState([]);
 
   useEffect(() => {
     loadRequests();
     loadCounsellors();
     loadSlots();
+    loadReportHistory();
   }, []);
+
+  const loadReportHistory = async () => {
+    try {
+      const aRes = await fetch(`${API_URL}/api/assessments`, { credentials: 'include' });
+      if (aRes.ok) setAssessmentHistory(await aRes.json());
+
+      const iRes = await fetch(`${API_URL}/api/inkblot/results`, { credentials: 'include' });
+      if (iRes.ok) setInkblotHistory(await iRes.json());
+    } catch (e) {
+      console.error("Failed to load report history", e);
+    }
+  };
 
   useEffect(() => {
     loadSlots();
@@ -417,17 +435,49 @@ export default function Consultant() {
                 {/* Preferred Time */}
                 <div>
                   <label className="   text-xs font-medium mb-1.5 flex items-center gap-1.5">
-                    🕐 Preferred Time <span className="text-white/40">(Optional)</span>
+                    🕐 Preferred Time <span className="text-red-400">*</span>
                   </label>
                   <input
-                    type="text"
+                    type="datetime-local"
                     name="preferred_time"
                     value={formData.preferred_time}
                     onChange={handleInputChange}
                     className="w-full bg-[#0f131c] border border-white/30 rounded-lg px-3 py-1.5 text-sm text-white"
-                    placeholder="e.g., Weekday mornings, Any time"
+                    required
                   />
-                  <p className="text-xs text-white/40 mt-1">Help us schedule at a convenient time for you</p>
+                  <p className="text-xs text-white/40 mt-1">Select a date and time for your talk</p>
+                </div>
+
+                {/* Report Attachment */}
+                <div className="md:col-span-2">
+                  <label className="   text-xs font-medium mb-1.5 flex items-center gap-1.5">
+                    📎 Attach Clinical Report <span className="text-white/40">(Optional)</span>
+                  </label>
+                  <select
+                    name="attachment"
+                    onChange={(e) => {
+                      const [type, id] = e.target.value.split(':');
+                      setFormData(prev => ({ ...prev, attachment_type: type || "", attachment_id: id || "" }));
+                    }}
+                    className="w-full bg-[#0f131c] border border-white/30 rounded-lg px-3 py-1.5 text-sm text-white"
+                  >
+                    <option value="">None</option>
+                    <optgroup label="Clinical Assessments">
+                      {assessmentHistory.map(a => (
+                        <option key={a.id} value={`assessment:${a.id}`}>
+                          Assessment ({a.date}) - Risk: {a.clinical_analysis?.severity_level || 'N/A'}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Inkblot Tests">
+                      {inkblotHistory.map(i => (
+                        <option key={i.id} value={`inkblot:${i.id}`}>
+                          Inkblot Test ({new Date(i.date).toLocaleDateString()}) - {i.blot_count} plates
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
+                  <p className="text-xs text-white/40 mt-1">Sharing your recent results helps the counsellor prepare for your session.</p>
                 </div>
               </div>
 

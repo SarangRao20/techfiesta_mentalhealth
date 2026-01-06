@@ -137,6 +137,8 @@ from api.resources_api import ns as resources_ns
 from api.inkblot_api import ns as inkblot_ns
 from api.perenall_api import ns as perenall_ns
 from api.analytics_api import ns as analytics_ns
+from api.activity_api import ns as activity_ns
+from api.mentor_api import ns as mentor_ns
 
 api.add_namespace(auth_ns, path='/auth')
 api.add_namespace(dashboard_ns, path='/dashboard')
@@ -151,6 +153,8 @@ api.add_namespace(resources_ns, path='/resources')
 api.add_namespace(inkblot_ns, path='/inkblot')
 api.add_namespace(perenall_ns, path='/perenall')
 api.add_namespace(analytics_ns, path='/analytics')
+api.add_namespace(activity_ns, path='/activity')
+api.add_namespace(mentor_ns, path='/mentor')
 
 ## Removed inkblot_bp blueprint registration; now using direct route in routes.py
 

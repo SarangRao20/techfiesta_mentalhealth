@@ -101,6 +101,7 @@ function SideBar() {
               <NavItem icon={Wind} label="Venting" href="private-venting" />
               <NavItem icon={Brain} label="Meditation" href="meditation" />
               <NavItem icon={Glasses} label="VR Space" href="vr-meditation" />
+              <NavItem icon={Wind} label="AR Breathing" href="ar-breathing" />
             </div>
 
             <div className="space-y-0.5">
@@ -115,6 +116,20 @@ function SideBar() {
               <NavItem icon={Users} label="Hall" href="community" />
               <NavItem icon={BookOpen} label="Library" href="resources" />
             </div>
+
+            {(['counsellor', 'counselor', 'mentor', 'admin'].includes(role.toLowerCase())) && (
+              <div className="space-y-0.5 pt-4">
+                <div className="text-[10px] uppercase text-white/20 font-bold tracking-[0.2em] px-3 mb-1">Professional</div>
+                {(role.toLowerCase() === 'counsellor' || role.toLowerCase() === 'counselor') && <NavItem icon={UserCog} label="Counsellor Panel" href="counselor-dashboard" />}
+                {role.toLowerCase() === 'mentor' && <NavItem icon={Users} label="Mentor Panel" href="mentor" />}
+                {role.toLowerCase() === 'admin' && (
+                  <>
+                    <NavItem icon={UserCog} label="Counsellor Panel" href="counselor-dashboard" />
+                    <NavItem icon={Users} label="Mentor Panel" href="mentor" />
+                  </>
+                )}
+              </div>
+            )}
           </nav>
 
           {/* User Section - Compressed */}
@@ -154,7 +169,9 @@ function SideBar() {
     min-h-screen
   `}
       >
-        <Outlet />
+        <div className="p-8 pt-20 md:p-12 md:pt-20 max-w-7xl mx-auto">
+            <Outlet />
+        </div>
       </main>
 
       {/* Logout Confirmation Modal */}

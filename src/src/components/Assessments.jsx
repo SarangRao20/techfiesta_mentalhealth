@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL } from '../config';
-import { ClipboardCheck, Activity, Brain, CheckCircle, ChevronRight, AlertCircle } from 'lucide-react';
+import { ClipboardCheck, Activity, Brain, CheckCircle, ChevronRight, AlertCircle, Download, Share2 } from 'lucide-react';
 
 const Assessments = () => {
     const [activeTab, setActiveTab] = useState('PHQ-9'); // PHQ-9, GAD-7, GHQ
@@ -14,6 +14,23 @@ const Assessments = () => {
     useEffect(() => {
         fetchHistory();
     }, []);
+
+    const logActivity = async (action, metadata = {}) => {
+        try {
+            await fetch(`${API_URL}/api/activity/log`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    activity_type: 'assessment',
+                    action: action,
+                    extra_data: metadata
+                })
+            });
+        } catch (e) {
+            console.error("Logging failed", e);
+        }
+    };
 
     useEffect(() => {
         setResponses({});
@@ -75,6 +92,11 @@ const Assessments = () => {
                 const data = await res.json();
                 setResult(data);
                 fetchHistory(); // refresh history
+                logActivity('complete', {
+                    assessment_type: activeTab,
+                    score: data.score,
+                    severity: data.analysis?.severity_level
+                });
             }
         } catch (e) {
             console.error("Submission failed", e);
@@ -127,7 +149,7 @@ const Assessments = () => {
                                 <p className="text-neutral-500 text-sm">No assessments taken yet.</p>
                             ) : (
                                 history.map(h => (
-                                    <div key={h.id} className="p-3 bg-white/5 rounded-lg border border-white/5 text-sm">
+                                    <div key={h.id} className="p-4 bg-white/5 rounded-lg border border-white/5 text-sm group relative">
                                         <div className="flex justify-between mb-1">
                                             <span className="font-semibold text-white">{h.type}</span>
                                             <span className={`px-2 py-0.5 rounded text-xs ${h.severity === 'Normal' || h.severity === 'Minimal' ? 'bg-green-500/20 text-green-400' :
@@ -136,9 +158,23 @@ const Assessments = () => {
                                                 {h.score} pts
                                             </span>
                                         </div>
-                                        <div className="text-neutral-500 text-xs flex justify-between">
+                                        <div className="text-neutral-500 text-xs flex justify-between items-center">
                                             <span>{h.severity}</span>
                                             <span>{new Date(h.date).toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="mt-3 pt-3 border-t border-white/5 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => window.open(`${API_URL}/api/assessments/export/${h.id}`, '_blank')}
+                                                className="flex-1 py-1.5 bg-white/10 hover:bg-white/20 rounded text-[10px] uppercase tracking-wider font-bold transition-all"
+                                            >
+                                                Report
+                                            </button>
+                                            <button
+                                                onClick={() => window.location.href = '/app/consultation'}
+                                                className="px-2 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded transition-all"
+                                            >
+                                                <Share2 size={12} />
+                                            </button>
                                         </div>
                                     </div>
                                 ))

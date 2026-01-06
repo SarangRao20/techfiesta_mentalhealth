@@ -101,3 +101,51 @@ class CurrentUser(Resource):
     def get(self):
         """Get current user info"""
         return current_user
+
+@ns.route('/profile')
+class Profile(Resource):
+    @login_required
+    def get(self):
+        """Get full profile details"""
+        user = current_user
+        return {
+            'username': user.username,
+            'email': user.email,
+            'full_name': user.full_name,
+            'role': user.role,
+            'student_id': user.student_id,
+            'accommodation_type': user.accommodation_type,
+            'bio': user.bio,
+            'profile_picture': user.profile_picture
+        }, 200
+
+    @login_required
+    def put(self):
+        """Update profile details"""
+        data = request.get_json()
+        user = current_user
+        
+        if 'full_name' in data:
+            user.full_name = data['full_name']
+        if 'bio' in data:
+            user.bio = data['bio']
+        if 'profile_picture' in data:
+            user.profile_picture = data['profile_picture']
+        if 'student_id' in data:
+            user.student_id = data['student_id']
+        if 'accommodation_type' in data:
+            user.accommodation_type = data['accommodation_type']
+            
+        db.session.commit()
+        
+        return {
+            'message': 'Profile updated successfully',
+            'username': user.username,
+            'email': user.email,
+            'full_name': user.full_name,
+            'role': user.role,
+            'student_id': user.student_id,
+            'accommodation_type': user.accommodation_type,
+            'bio': user.bio,
+            'profile_picture': user.profile_picture
+        }, 200
