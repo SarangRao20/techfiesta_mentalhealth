@@ -1,29 +1,78 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import { API_URL } from '../config';
-import { Send, Mic, X, MessageSquare, Sparkles, Volume2, StopCircle } from 'lucide-react';
+import { Send, Mic, X, Sparkles, Volume2, StopCircle, Phone } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import BreathingExercise from './Features/BreathingExercise.jsx';
+import BodyScanMeditation from './Features/BodyScanMeditation.jsx';
+import MindfulnessMeditation from './Features/MindfulnessMeditation.jsx';
+import NatureSounds from './Features/NatureSounds.jsx';
+import OceanWaves from './Features/OceanWaves.jsx';
+import PianoRelaxation from './Features/PianoRelaxation.jsx';
+import SplitText from './animation/SplitText.jsx';
+
+const FeatureRenderer = ({ feature, onClose }) => {
+    switch (feature) {
+        case "1/2-Minute Breathing Exercise":
+            return (
+                <BreathingExercise onClose={onClose} />
+            );
+        case "Body Scan Meditation":
+            return (
+                <BodyScanMeditation onClose={onClose} />
+            );
+        case "Mindfulness Meditation":
+            return (
+                <MindfulnessMeditation onClose={onClose} />
+            );
+        case "Nature Sounds":
+            return (
+                <NatureSounds onClose={onClose} />
+            );
+        case "Ocean Waves":
+            return (
+                <OceanWaves onClose={onClose} />
+            );
+        case "Piano Relaxation":
+            return (
+                <PianoRelaxation onClose={onClose} />
+            )
+
+        default:
+            return (
+                <div className="p-6 text-white h-full">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-2xl font-semibold">{feature}</h2>
+                        <button
+                            onClick={onClose}
+                            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                    <p className="text-white/60">Feature content will appear here...</p>
+                </div>
+            );
+    }
+};
 
 const Chat = () => {
-    const { sessionId } = useParams();
+    const navigate = useNavigate();
     const [messages, setMessages] = useState([
         { role: 'bot', content: "Hello! I'm here to listen. How are you feeling today?" }
     ]);
+    const[disableInput, setDisableInput] = useState(false);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [activeFeature, setActiveFeature] = useState(null);
+    const [sosTimer, setSosTimer] = useState(null);
+    const [sosCountdown, setSosCountdown] = useState(5);
 
     // Voice Mode State
     const [isVoiceMode, setIsVoiceMode] = useState(false);
-    const [voiceStatus, setVoiceStatus] = useState('idle'); // idle, listening, processing, speaking
-    const [transcript, setTranscript] = useState('');
-    
-    // Voice Refs
-    const recognitionRef = useRef(null);
-    const synthesisRef = useRef(window.speechSynthesis);
-    const silenceTimerRef = useRef(null);
-    const isSpeakingRef = useRef(false);
-    const isVoiceModeRef = useRef(false); // Ref to track voice mode for event handlers
+    const [voiceStatus, setVoiceStatus] = useState('listening'); // listening, processing, speaking
 
     const messagesEndRef = useRef(null);
+    const sosTimerRef = useRef(null);
+    const sosCountdownRef = useRef(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -42,49 +91,108 @@ const Chat = () => {
         }
     }, [messages]);
 
+    // Cleanup timers on unmount
     useEffect(() => {
-        if (sessionId) {
-            // Load history if needed
-            // fetch(`${API_URL}/api/chatbot/${sessionId}`)...
-        }
-    }, [sessionId]);
+        return () => {
+            if (sosTimerRef.current) {
+                clearTimeout(sosTimerRef.current);
+            }
+            if (sosCountdownRef.current) {
+                clearInterval(sosCountdownRef.current);
+            }
+        };
+    }, []);
 
-    const sendMessage = async (text) => {
-        if (!text.trim()) return;
+    // Heuristic crisis detection - immediate response
+    const detectCrisisHeuristic = (message) => {
+        const lowerMsg = message.toLowerCase().trim();
+        
+        const crisisKeywords = [
+            'kill myself', 'end my life', 'want to die', 'wanna die', 
+            'suicide', 'suicidal', 'end it all', 'better off dead',
+            'no reason to live', 'cant go on', "can't go on",
+            'im dying', "i'm dying", 'leave this world', 'dont want to live',
+            "don't want to live", 'harm myself', 'hurt myself',
+            'not worth living', 'end the pain', 'give up on life',
+            'life is meaningless', 'no point in living', 'want it to end',
+            'planning to die', 'take my life', 'commit suicide'
+        ];
+        
+        return crisisKeywords.some(keyword => lowerMsg.includes(keyword));
+    };
+
+    const handleSend = async () => {
+        if (!input.trim()) return;
 
         const userMsg = { role: 'user', content: text };
         setMessages(prev => [...prev, userMsg]);
+        
+        // If crisis detected, immediately show crisis response
+        if (isCrisisDetected) {
+            const crisisMsg = {
+                role: 'bot',
+                content: "I'm really concerned about what you're sharing. Your safety is the most important thing right now. Please reach out to someone who can help immediately.",
+                suggestedFeature: "CALL",
+                isCrisis: true
+            };
+            setMessages(prev => [...prev, crisisMsg]);
+            startSosTimer(); // Start immediate timer
+            setInput('');
+            setIsLoading(false);
+            setDisableInput(true);
+            return; // Don't wait for API
+        }
+
         setInput('');
         setIsLoading(true);
 
         try {
-            const res = await fetch(`${API_URL}/api/chatbot/chat`, {
+            const res = await fetch('http://localhost:8000/send-message', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
                 body: JSON.stringify({
-                    message: text,
+                    message: input,
                     session_id: sessionId
                 })
             });
 
             const data = await res.json();
 
-            const botMsg = { role: 'bot', content: data.bot_message };
+            // Parse the reply - it could be plain text or JSON
+            let replyContent = data.reply;
+            let suggestedFeature = null;
+
+            // Try to parse as JSON first
+            try {
+                const parsedReply = JSON.parse(data.reply);
+                replyContent = parsedReply.response || data.reply;
+                suggestedFeature = parsedReply.suggested_feature || null;
+            } catch (e) {
+                // If it's not JSON, treat it as plain text
+                replyContent = data.reply;
+            }
+
+            const isCrisis = data.self_harm_crisis === "true";
+
+            // If crisis detected by API, override suggested feature
+            if (isCrisis) {
+                suggestedFeature = "CALL";
+            }
+
+            const botMsg = {
+                role: 'bot',
+                content: replyContent,
+                suggestedFeature: suggestedFeature,
+                isCrisis: isCrisis
+            };
+
             setMessages(prev => [...prev, botMsg]);
-            return data.bot_message;
         } catch (error) {
             console.error(error);
-            const errorMsg = "I'm having trouble connecting right now.";
-            setMessages(prev => [...prev, { role: 'bot', content: errorMsg }]);
-            return errorMsg;
+            setMessages(prev => [...prev, { role: 'bot', content: "I'm having trouble connecting right now." }]);
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const handleSend = () => {
-        sendMessage(input);
     };
 
     const handleKeyPress = (e) => {
@@ -94,352 +202,217 @@ const Chat = () => {
         }
     };
 
-    // --- Voice Logic ---
-
-    // Initialize Speech Recognition
-    const setupSpeechRecognition = () => {
-        if (!('webkitSpeechRecognition' in window)) {
-            alert('Speech recognition is not supported in this browser. Please use Chrome or Edge.');
-            return null;
-        }
-
-        const recognition = new window.webkitSpeechRecognition();
-        recognition.continuous = true; // Keep listening
-        recognition.interimResults = true;
-        recognition.lang = 'en-IN'; // Hinglish support
-        recognition.maxAlternatives = 1;
-
-        recognition.onstart = () => {
-            console.log('Voice recognition started');
-            setVoiceStatus('listening');
-        };
-
-        recognition.onresult = (event) => {
-            // STRICT GUARD: If bot is speaking or about to speak, ignore EVERYTHING.
-            if (isSpeakingRef.current) {
-                console.log('Ignored input while speaking');
-                return;
-            }
-
-            let interimTranscript = '';
-            let finalTranscript = '';
-
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                } else {
-                    interimTranscript += event.results[i][0].transcript;
-                }
-            }
-
-            if (finalTranscript) {
-                setTranscript(finalTranscript);
-                handleVoiceInput(finalTranscript);
-            } else if (interimTranscript) {
-                setTranscript(interimTranscript);
-                // Only reset timer if we are actually listening properly
-                if (!isSpeakingRef.current) resetSilenceTimer();
-            }
-        };
-
-        recognition.onerror = (event) => {
-            console.error('Speech recognition error', event.error);
-            if (event.error === 'no-speech') {
-                return; // Ignore no-speech errors
-            }
-            if (event.error === 'aborted') {
-                return; // Ignore manual aborts
-            }
-            // Attempt restart if active
-            if (isVoiceModeRef.current && !isSpeakingRef.current) {
-                 // Short delay before restart
-                 setTimeout(() => {
-                     try { recognition.start(); } catch (e) {}
-                 }, 1000);
-            }
-        };
-
-        recognition.onend = () => {
-            console.log('Voice recognition ended');
-            // Auto-restart if still in voice mode and not speaking
-            if (isVoiceModeRef.current && !isSpeakingRef.current) {
-                console.log('Restarting recognition...');
-                try {
-                    recognition.start();
-                } catch (e) {
-                    console.error('Failed to restart recognition', e);
-                }
-            } else {
-                 setVoiceStatus('idle');
-            }
-        };
-
-        return recognition;
-    };
-
-    const handleVoiceInput = async (text) => {
-        // Prevent processing if we are already handling something or speaking
-        if (isSpeakingRef.current) return;
-        
-        setVoiceStatus('processing');
-        // Stop recognition temporarily while processing/speaking
-        if (recognitionRef.current) {
-            recognitionRef.current.stop();
-        }
-
-        const responseText = await sendMessage(text);
-        // sendMessage updates messages state, which triggers useEffect to speak
-    };
-
-    const speakResponse = (text) => {
-        if (!text || !isVoiceMode) return;
-
-        // CRITICAL FIX: Abort recognition IMMEDIATELY. 
-        // stop() is too slow and might return a result. abort() kills it.
-        if (recognitionRef.current) {
-            recognitionRef.current.abort();
-        }
-        isSpeakingRef.current = true; // Set flag immediately
-        setVoiceStatus('speaking');
-
-        // Clean text (remove markdown etc - basic cleanup)
-        const cleanText = text.replace(/[*#`]/g, '');
-
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.lang = 'en-IN';
-        utterance.rate = 0.9;
-        utterance.pitch = 1;
-
-        // Find a female voice or Hindi voice if available
-        const voices = window.speechSynthesis.getVoices();
-        const preferredVoice = voices.find(v => v.lang.includes('hi') || v.name.includes('India') || v.name.includes('Female'));
-        if (preferredVoice) utterance.voice = preferredVoice;
-
-        utterance.onstart = () => {
-            // Redundant safety check
-            if (recognitionRef.current) recognitionRef.current.abort();
-            setVoiceStatus('speaking');
-            isSpeakingRef.current = true;
-        };
-
-        utterance.onend = () => {
-             // Add a small delay before listening again to avoid "echo" of the last word
-            setTimeout(() => {
-                isSpeakingRef.current = false;
-                setVoiceStatus('listening');
-                setTranscript(''); // Clear transcript
-                
-                // Restart recognition
-                if (isVoiceModeRef.current && recognitionRef.current) {
-                    try {
-                        recognitionRef.current.start();
-                    } catch(e) {
-                         // Might be already started
-                    }
-                }
-            }, 300); // 300ms delay helps clear the audio buffer
-        };
-
-        utterance.onerror = () => {
-            isSpeakingRef.current = false;
-            setVoiceStatus('listening');
-        };
-        
-        // Cancel any current speaking
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(utterance);
-    };
-
-    // Effect to toggle Voice Mode
-    useEffect(() => {
-        if (isVoiceMode) {
-            // Start
-            if (!recognitionRef.current) {
-                recognitionRef.current = setupSpeechRecognition();
-            }
-            try {
-                recognitionRef.current?.start();
-            } catch (e) { console.log('Already started'); }
-            
-        } else {
-            // Stop
-            if (recognitionRef.current) {
-                recognitionRef.current.abort(); // Uses abort instead of stop for immediate effect
-            }
-            window.speechSynthesis.cancel();
-            setVoiceStatus('idle');
-            setTranscript('');
-        }
-        
-        return () => {
-            // Cleanup on unmount or mode switch
-            if (recognitionRef.current) recognitionRef.current.abort();
-            window.speechSynthesis.cancel();
-        };
-    }, [isVoiceMode]);
-
-    // Effect to auto-speak bot messages in Voice Mode
-    useEffect(() => {
-        if (isVoiceMode && messages.length > 0) {
-            const lastMsg = messages[messages.length - 1];
-            if (lastMsg.role === 'bot') {
-                speakResponse(lastMsg.content);
-            }
-        }
-    }, [messages, isVoiceMode]);
-
-    const resetSilenceTimer = () => {
-        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-        silenceTimerRef.current = setTimeout(() => {
-            // Silence timeout logic - maybe stop listening or prompt?
-            // For now, let's just let it stay listening as 'continuous' handles a lot.
-            // But if we want to force stop on long silence:
-            // setIsVoiceMode(false); 
-        }, 8000);
-    };
-
+    // Voice Mode Simulation
     const toggleVoiceMode = () => {
-        setIsVoiceMode(prev => !prev);
+        if (isVoiceMode) {
+            setIsVoiceMode(false);
+        } else {
+            setIsVoiceMode(true);
+            setVoiceStatus('listening');
+            // Mock interaction flow
+            setTimeout(() => setVoiceStatus('processing'), 3000);
+            setTimeout(() => {
+                setVoiceStatus('speaking');
+                // Could acturally trigger TTS here
+            }, 5000);
+            setTimeout(() => setVoiceStatus('listening'), 8000);
+        }
+    };
+
+    const handleFeatureClick = (feature) => {
+        console.log('Feature clicked:', feature);
+        setActiveFeature(feature);
     };
 
     return (
-        <div className="flex flex-col h-screen bg-[#050505] text-white relative overflow-hidden">
-            {/* Background Gradients */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-                <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[100px]" />
-                <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-900/10 rounded-full blur-[100px]" />
-            </div>
-
-            {/* Header */}
-            <div className="p-4 border-b border-white/10 flex items-center justify-between z-10 bg-black/50 backdrop-blur-md">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg shadow-blue-500/20">
-                        <Sparkles className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                        <h1 className="font-semibold text-lg">AI Companion</h1>
-                        <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                            <span className="text-xs text-neutral-400">Online</span>
+        <div className="flex h-screen bg-[#0f131c] text-white relative overflow-hidden">
+            {/* Main Chat Section */}
+            <div className={`flex flex-col transition-all duration-500 ${activeFeature ? 'w-[45%]' : 'w-full'}`}>
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-[#0f131c]">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-[#8e74ff] rounded-xl flex items-center justify-center">
+                            <Sparkles className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="font-semibold text-base">AI Companion</h1>
+                            <div className="flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+                                <span className="text-xs text-white/40">Online</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <button
-                    onClick={toggleVoiceMode}
-                    className="p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors border border-white/5"
-                    title="Voice Mode"
-                >
-                    <Mic className="w-5 h-5 text-blue-400" />
-                </button>
-            </div>
-
-            {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 z-10 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                {messages.map((msg, idx) => (
-                    <div
-                        key={idx}
-                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                        <div className={`
-                            max-w-[80%] p-4 rounded-2xl shadow-lg backdrop-blur-sm border
-                            ${msg.role === 'user'
-                                ? 'bg-gradient-to-br from-blue-600 to-blue-700 border-blue-500/50 rounded-tr-sm'
-                                : 'bg-[#1a1a1a] border-white/5 rounded-tl-sm text-neutral-200'}
-                        `}>
-                            {msg.content}
-                        </div>
-                    </div>
-                ))}
-                {isLoading && (
-                    <div className="flex justify-start">
-                        <div className="bg-[#1a1a1a] p-4 rounded-2xl rounded-tl-sm border border-white/5 flex gap-1">
-                            <span className="w-2 h-2 bg-neutral-500 rounded-full animate-bounce" />
-                            <span className="w-2 h-2 bg-neutral-500 rounded-full animate-bounce [animation-delay:0.2s]" />
-                            <span className="w-2 h-2 bg-neutral-500 rounded-full animate-bounce [animation-delay:0.4s]" />
-                        </div>
-                    </div>
-                )}
-                <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <div className="p-4 border-t border-white/10 bg-black/50 backdrop-blur-md z-10">
-                <div className="max-w-4xl mx-auto relative flex items-center gap-2">
-                    <input
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={handleKeyPress}
-                        placeholder="Type a message..."
-                        className="flex-1 bg-[#1a1a1a] border border-white/10 rounded-full px-6 py-4 focus:outline-none focus:border-blue-500/50 transition-colors text-white placeholder:text-neutral-600 shadow-inner"
-                    />
                     <button
-                        onClick={handleSend}
-                        disabled={!input.trim()}
-                        className="p-4 rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:shadow-none transition-all hover:scale-105 active:scale-95"
+                        onClick={toggleVoiceMode}
+                        className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center border border-white/5"
+                        title="Voice Mode"
                     >
-                        <Send className="w-5 h-5" />
+                        <Mic className="w-4 h-4 text-white/70" />
                     </button>
                 </div>
+
+                {/* Chat Area */}
+                <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+                    {messages.map((msg, idx) => (
+                        <div key={idx}>
+                            <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`
+                                    max-w-[75%] px-4 py-3 rounded-2xl
+                                    ${msg.role === 'user'
+                                        ? 'bg-[#8e74ff] text-white rounded-tr-md'
+                                        : ' text-white/70 '}
+                                `}>
+                                    {msg.role === 'user' ? (
+                                        <SplitText
+                                            text={msg.content}
+                                            className="text-md font-medium"
+                                            delay={35}
+                                            duration={0.6}
+                                            ease="power3.out"
+                                            splitType="words"
+                                            from={{ opacity: 0, y: 40 }}
+                                            to={{ opacity: 1, y: 0 }}
+                                            threshold={0.1}
+                                            rootMargin="-100px"
+                                            textAlign="left"
+                                        />
+                                    ) : (
+                                        <p className="text-md font-medium">{msg.content}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {msg.role === 'bot' && msg.isCrisis && (
+                                <div className="flex justify-start mt-3">
+                                    <button
+                                        onClick={handleSosClick}
+                                        className="group relative ml-4 px-6 py-3 rounded-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-bold text-lg transition-all duration-300 shadow-[0_0_30px_rgba(239,68,68,0.5)] hover:shadow-[0_0_40px_rgba(239,68,68,0.7)] animate-pulse-urgent flex items-center gap-3"
+                                    >
+                                        <Phone className="w-6 h-6 animate-bounce" />
+                                        <span>Call SOS ({sosCountdown}s)</span>
+                                        <div className="absolute inset-0 rounded-full bg-white/20 blur-xl group-hover:bg-white/30 transition-all" />
+                                    </button>
+                                </div>
+                            )}
+
+                            {msg.role === 'bot' && msg.suggestedFeature && msg.suggestedFeature !== 'CALL' && (
+                                <div className="flex justify-start mt-2">
+                                    <button
+                                        onClick={() => handleFeatureClick(msg.suggestedFeature)}
+                                        className="px-4 py-3 ml-4 rounded-xl bg-[#8D2EF2] hover:bg-[#9d3fff] text-white text-md transition-colors"
+                                    >
+                                        {msg.suggestedFeature}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                    {isLoading && (
+                        <div className="flex justify-start">
+                            <div className="bg-[#1a1f2e] px-4 py-3 rounded-2xl rounded-tl-md border border-white/5 flex gap-1">
+                                <span className="w-2 h-2 bg-white/40 rounded-full animate-bounce" />
+                                <span className="w-2 h-2 bg-white/40 rounded-full animate-bounce [animation-delay:0.2s]" />
+                                <span className="w-2 h-2 bg-white/40 rounded-full animate-bounce [animation-delay:0.4s]" />
+                            </div>
+                        </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                </div>
+
+                {/* Input Area */}
+                <div className="px-6 py-4 border-t border-white/5 bg-[#0f131c]">
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            disabled={disableInput}
+                            onKeyDown={handleKeyPress}
+                            placeholder="Type a message..."
+                            className="flex-1 bg-[#1a1f2e] border border-white/5 rounded-2xl px-5 py-3 focus:outline-none focus:border-[#8e74ff]/30 transition-colors text-white placeholder:text-white/30"
+                        />
+                        <button
+                            onClick={handleSend}
+                            disabled={!input.trim()}
+                            className="w-11 h-11 rounded-2xl bg-[#8e74ff] hover:bg-[#9d84ff] text-white disabled:opacity-40 disabled:hover:bg-[#8e74ff] transition-all flex items-center justify-center"
+                        >
+                            <Send className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Feature Panel */}
+            <div className={`
+                transition-all duration-500 ease-in-out
+                ${activeFeature ? 'w-[55%] opacity-100' : 'w-0 opacity-0'}
+                border-l border-white/10
+                bg-[#0b0f1a]
+                overflow-hidden
+            `}>
+                {activeFeature && (
+                    <FeatureRenderer
+                        feature={activeFeature}
+                        onClose={() => setActiveFeature(null)}
+                    />
+                )}
             </div>
 
             {/* VOICE MODE OVERLAY */}
             {isVoiceMode && (
-                <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center animate-fade-in">
+                <div className="fixed inset-0 z-50 bg-[#0a0d14]/95 backdrop-blur-xl flex flex-col items-center justify-center">
                     <button
                         onClick={toggleVoiceMode}
-                        className="absolute top-6 right-6 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                        className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center"
                     >
-                        <X className="w-6 h-6 text-white" />
+                        <X className="w-5 h-5 text-white/70" />
                     </button>
 
                     <div className="flex flex-col items-center gap-12">
-                        {/* Gemini-style Orb */}
                         <div className="relative">
                             <div className={`
-                                w-32 h-32 rounded-full blur-xl absolute top-0 left-0
-                                bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500
-                                animate-pulse-slow opacity-60
+                                w-32 h-32 rounded-full blur-2xl absolute top-0 left-0
+                                bg-[#8e74ff]
+                                animate-pulse-slow opacity-50
                             `} />
 
                             <div className={`
                                 relative w-32 h-32 rounded-full 
-                                bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-600
-                                shadow-[0_0_80px_rgba(79,70,229,0.6)]
+                                bg-gradient-to-br from-[#9d84ff] to-[#7d5fff]
+                                shadow-[0_0_60px_rgba(142,116,255,0.4)]
                                 flex items-center justify-center
                                 transition-all duration-500
                                 ${voiceStatus === 'listening' ? 'scale-100 animate-breathing' : ''}
                                 ${voiceStatus === 'processing' ? 'scale-90 animate-spin-slow' : ''}
-                                ${voiceStatus === 'speaking' ? 'scale-110 shadow-[0_0_100px_rgba(236,72,153,0.8)]' : ''}
+                                ${voiceStatus === 'speaking' ? 'scale-110 shadow-[0_0_80px_rgba(142,116,255,0.6)]' : ''}
                             `}>
-                                <div className="absolute inset-0 bg-white/20 rounded-full blur-md" />
+                                <div className="absolute inset-0 bg-white/10 rounded-full blur-md" />
                             </div>
 
-                            {/* Waveforms (Visible when speaking/listening) */}
                             {voiceStatus === 'speaking' && (
                                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] border border-white/10 rounded-full animate-ripple" />
                             )}
                         </div>
 
                         <div className="text-center space-y-2">
-                            <h2 className="text-3xl font-light text-white tracking-wide">
+                            <h2 className="text-2xl font-medium text-white">
                                 {voiceStatus === 'listening' && "Listening..."}
                                 {voiceStatus === 'processing' && "Thinking..."}
                                 {voiceStatus === 'speaking' && "Speaking..."}
                             </h2>
-                            <p className="text-neutral-400 font-light max-w-md text-center">
-                                {transcript || "Speak naturally. I'm here to listen."}
+                            <p className="text-neutral-400 font-light">
+                                Speak naturally. I'm here to listen.
                             </p>
                         </div>
 
                         {/* Controls */}
                         <div className="flex gap-6">
-                            <button 
-                                onClick={toggleVoiceMode}
-                                className="p-4 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors"
-                            >
+                            <button className="p-4 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors">
                                 <StopCircle className="w-6 h-6" />
+                            </button>
+                            <button className="p-4 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
+                                <Volume2 className="w-6 h-6" />
                             </button>
                         </div>
                     </div>
@@ -467,12 +440,12 @@ const Chat = () => {
                 .animate-ripple {
                     animation: ripple 1.5s linear infinite;
                 }
-                @keyframes fade-in {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
+                @keyframes pulse-urgent {
+                    0%, 100% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.05); opacity: 0.9; }
                 }
-                .animate-fade-in {
-                    animation: fade-in 0.3s ease-out;
+                .animate-pulse-urgent {
+                    animation: pulse-urgent 1.5s ease-in-out infinite;
                 }
             `}</style>
         </div>

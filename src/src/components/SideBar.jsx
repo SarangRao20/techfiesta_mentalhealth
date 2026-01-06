@@ -164,13 +164,13 @@ function SideBar() {
       {/* Main Content Area */}
       <main
         className={`
-          flex-1 transition-[margin] duration-500 ease-in-out
-          ${open ? "ml-64" : "ml-0"}
-          min-h-screen
-        `}
+    flex-1 transition-[margin] duration-500 ease-in-out
+    ${open ? "ml-64" : "ml-0"}
+    min-h-screen
+  `}
       >
         <div className="p-8 pt-20 md:p-12 md:pt-20 max-w-7xl mx-auto">
-          <Outlet />
+            <Outlet />
         </div>
       </main>
 
