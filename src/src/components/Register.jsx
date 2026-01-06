@@ -18,7 +18,7 @@ export default function Register() {
     });
 
     if (send.ok) {
-      navigate("/signin");
+      navigate("/start-journey");
     } else {
       const errorData = await send.json();
       alert(errorData.message || "Registration failed. Please try again.");

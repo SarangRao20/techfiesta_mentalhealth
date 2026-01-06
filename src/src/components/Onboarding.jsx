@@ -91,7 +91,7 @@ export default function Onboarding() {
       }
       
       setTimeout(() => {
-        navigate("/app/dashboard");
+        navigate("/app/chat");
       }, 1000);
     }
   };
