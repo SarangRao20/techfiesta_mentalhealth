@@ -1,0 +1,17 @@
+requests==2.31.0
+flask==2.3.3
+pandas==2.0.3
+numpy==1.24.3
+python-dotenv==1.0.0
+SQLAlchemy==2.0.20
+Werkzeug==2.3.7
+Jinja2==3.1.2
+click==8.1.7
+streamlit==1.28.1
+sounddevice==0.4.6
+wavio==0.0.7
+sarvamai==0.1.0
+rich==13.5.2
+audio-recorder-streamlit==0.0.8
+piper-tts==1.2.0
+beautifulsoup4==4.12.2

@@ -221,3 +221,25 @@ class SarvamVoiceService:
 
 # Global instance
 sarvam_voice_service = SarvamVoiceService()
+
+if __name__ == "__main__":
+    print("\n--- Testing SarvamVoiceService ---")
+    
+    # Test 1: Language Detection
+    test_text_en = "Hello, how are you feeling today?"
+    test_text_hi = "Namaste amigo, kya haal hai?"
+    
+    print(f"\nTesting Language Detection:")
+    print(f"Input: '{test_text_en}' -> {sarvam_voice_service.detect_language_and_context(test_text_en)}")
+    print(f"Input: '{test_text_hi}' -> {sarvam_voice_service.detect_language_and_context(test_text_hi)}")
+    
+    # Test 2: Text to Speech
+    print(f"\nTesting TTS:")
+    try:
+        audio_path = sarvam_voice_service.text_to_speech("Namaste, main aapki dost hoon. Kaise madad kar sakti hoon?", language_code="hi-IN")
+        if audio_path:
+            print(f"✅ TTS successful! Audio file created at: {audio_path}")
+        else:
+            print("❌ TTS failed.")
+    except Exception as e:
+        print(f"❌ TTS Exception: {e}")
