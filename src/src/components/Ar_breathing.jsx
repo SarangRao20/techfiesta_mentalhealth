@@ -327,9 +327,9 @@ const Ar_breathing = () => {
         </div>
 
         {/* AR Container */}
-        <div className="relative bg-black rounded-3xl overflow-hidden shadow-2xl mb-8 border border-white/5" style={{ height: '60vh' }}>
-          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur-md text-white px-8 py-4 rounded-full z-10 border border-white/10">
-            <div className="text-2xl font-light tracking-wider text-center">{phaseText}</div>
+        <div className="relative bg-black rounded-3xl overflow-hidden shadow-2xl my-12 border border-white/5" style={{ height: '60vh' }}>
+          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur-md text-white px-8 py-4 rounded-full z-10 border border-white/10 pointer-events-none transition-all duration-300">
+            <div className="text-2xl font-light tracking-wider text-center whitespace-nowrap">{phaseText}</div>
             <div className="text-xs text-blue-300 text-center mt-1 uppercase tracking-[0.2em]">{currentPattern.name}</div>
           </div>
 
@@ -394,14 +394,6 @@ const Ar_breathing = () => {
                   rotation="90 0 0"
                 />
               </a-sphere>
-
-              <a-text
-                value="Follow the Sphere"
-                position="0 1.5 0"
-                align="center"
-                color="#ffffff"
-                scale="1.5 1.5 1.5"
-              />
             </a-entity>
 
             <a-entity camera look-controls-enabled="false" wasd-controls-enabled="false" />

@@ -4,3 +4,4 @@ integrate/
 __pycache__/
 *.pycinstance/mental_health.db
 instance/mental_health.db
+.env
