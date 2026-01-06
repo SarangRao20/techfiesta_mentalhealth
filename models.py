@@ -54,6 +54,9 @@ class User(UserMixin, db.Model):
     full_name = db.Column(db.String(100), nullable=False)
     student_id_hash = db.Column(db.String(64))  # Hashed student ID for privacy
     accommodation_type = db.Column(db.String(20))  # hostel, local
+    bio = db.Column(db.Text)  # User bio
+    profile_picture = db.Column(db.Text)  # Base64 string or URL
+    student_id = db.Column(db.String(50))  # Plain student ID for display
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
     login_streak = db.Column(db.Integer, default=0)
