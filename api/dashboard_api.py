@@ -21,7 +21,9 @@ dashboard_model = ns.model('Dashboard', {
     'total_minutes_meditated': fields.Integer(),
     'crisis_sessions': fields.Integer(),
     'tasks': fields.Nested(task_stats_model),
-    'recent_assessments': fields.List(fields.Raw())
+    'recent_assessments': fields.List(fields.Raw()),
+    'consultations': fields.List(fields.Raw()),
+    'recent_meditation_logs': fields.List(fields.Raw())
 })
 
 @ns.route('')

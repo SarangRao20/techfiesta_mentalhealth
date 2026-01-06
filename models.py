@@ -58,8 +58,10 @@ class User(UserMixin, db.Model):
     last_login = db.Column(db.DateTime)
     login_streak = db.Column(db.Integer, default=0)
     last_streak_date = db.Column(db.Date)
+    mentor_id = db.Column(db.Integer, db.ForeignKey('user.id')) # Student's connected mentor
     
     # Relationships
+    mentor = db.relationship('User', remote_side=[id], backref='students')
     chat_sessions = db.relationship('ChatSession', backref='user', lazy=True, cascade='all, delete-orphan')
     assessments = db.relationship('Assessment', backref='user', lazy=True, cascade='all, delete-orphan')
     meditation_sessions = db.relationship('MeditationSession', backref='user', lazy=True, cascade='all, delete-orphan')
@@ -121,7 +123,7 @@ class Assessment(db.Model):
     responses = db.Column(JSONB, nullable=False)  # JSON string of responses
     score = db.Column(db.Integer, nullable=False)
     severity_level = db.Column(db.String(20), nullable=False)
-    recommendations = db.Column(db.Text)
+    recommendations = db.Column(JSONB)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -167,6 +169,31 @@ class SoundVentingSession(db.Model):
     
     user = db.relationship('User', backref='sound_venting_sessions')
 
+class InkblotResult(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    responses = db.Column(JSONB, nullable=False) # Blot index -> short response
+    story_elaborations = db.Column(JSONB) # Blot index -> detailed story
+    sharing_status = db.Column(db.Boolean, default=False)
+    pdf_path = db.Column(db.String(256))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='inkblot_results')
+
+class UserActivityLog(db.Model):
+    __tablename__ = 'user_activity_logs'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    activity_type = db.Column(db.String(50), nullable=False) # assessment, venting, meditation, chat, ar_vr
+    action = db.Column(db.String(50)) # start, complete, submit, result_generated
+    duration = db.Column(db.Integer) # in seconds
+    result_value = db.Column(db.Float) # e.g., assessment score, max decibel
+    extra_data = db.Column(JSONB) # Any additional context
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    date = db.Column(db.Date, default=datetime.utcnow().date)
+
+    user = db.relationship('User', backref='activity_logs')
+
 class ConsultationRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -182,6 +209,11 @@ class ConsultationRequest(db.Model):
     feedback_text = db.Column(db.Text)  # User feedback
     chat_video_link = db.Column(db.String(256))  # Secure chat/video link
     follow_up_datetime = db.Column(db.DateTime)  # Next follow-up session
+    
+    # Attachment for shared reports
+    attachment_type = db.Column(db.String(20)) # 'assessment', 'inkblot'
+    attachment_id = db.Column(db.Integer)     # ID of the report in its table
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', foreign_keys=[user_id], backref='consultation_requests')

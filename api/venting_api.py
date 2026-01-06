@@ -57,6 +57,18 @@ class Posts(Resource):
             anonymous=data.get('anonymous', True)
         )
         db.session.add(post)
+        
+        # Universal Activity Log
+        from models import UserActivityLog
+        log = UserActivityLog(
+            user_id=current_user.id,
+            activity_type='venting',
+            action='post_created',
+            extra_data={'anonymous': data.get('anonymous', True)},
+            timestamp=datetime.utcnow()
+        )
+        db.session.add(log)
+        
         db.session.commit()
         return {'message': 'Post created', 'id': post.id}, 201
 
@@ -103,5 +115,19 @@ class SoundSession(Resource):
             session_type=data.get('session_type', 'sound_venting')
         )
         db.session.add(session)
+        
+        # Universal Activity Log
+        from models import UserActivityLog
+        log = UserActivityLog(
+            user_id=current_user.id,
+            activity_type='venting',
+            action='sound_session_complete',
+            duration=data.get('duration'),
+            result_value=data.get('max_decibel'),
+            extra_data={'avg_decibel': data.get('avg_decibel'), 'scream_count': data.get('scream_count')},
+            timestamp=datetime.utcnow()
+        )
+        db.session.add(log)
+        
         db.session.commit()
         return {'message': 'Sound session saved'}, 201

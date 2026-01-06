@@ -40,7 +40,7 @@ class Chat(Resource):
             chat_session = ChatSession.query.get_or_404(session_id)
 
         # Save user message
-        user_msg = ChatMessage(session_id=session_id, role='user', content=user_message)
+        user_msg = ChatMessage(session_id=session_id, message_type='user', content=user_message)
         db.session.add(user_msg)
         
         # Get AI Response
@@ -59,7 +59,7 @@ class Chat(Resource):
             assessment_suggestion = None
 
         # Save bot message
-        bot_msg = ChatMessage(session_id=session_id, role='bot', content=bot_message)
+        bot_msg = ChatMessage(session_id=session_id, message_type='bot', content=bot_message)
         db.session.add(bot_msg)
         
         if crisis_detected:
@@ -86,6 +86,6 @@ class ChatHistory(Resource):
             history.append({
                 'session_id': s.id,
                 'start_time': s.session_start.isoformat(),
-                'messages': [{'role': m.role, 'content': m.content, 'time': m.timestamp.isoformat()} for m in messages]
+                'messages': [{'role': m.message_type, 'content': m.content, 'time': m.timestamp.isoformat()} for m in messages]
             })
         return history

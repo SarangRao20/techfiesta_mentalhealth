@@ -16,11 +16,12 @@ import SignIn from './components/SignIn'
 import Meditation from './components/Meditation'
 import Resources from './components/Resources'
 import Community from './components/Community'
-import CounselorDashboard from './components/CounselorDashboard'
-import Assessments from "./components/Assessments";
-import Inkblot from "./components/Inkblot";
-import VrMeditation from "./components/VrMeditation";
 import Profile from './components/Profile'
+import MentorDashboard from './components/MentorDashboard'
+import CounselorDashboard from './components/CounselorDashboard'
+import VrMeditation from './components/VrMeditation'
+import Assessments from './components/Assessments'
+import Inkblot from './components/Inkblot'
 
 //children routes
 function App() {
@@ -68,7 +69,7 @@ function App() {
           path: "dashboard",
           element: <Dashboard />
         },
-        
+
         {
           path: "private-venting",
           element: <PrivateVentingRoom />
@@ -112,6 +113,10 @@ function App() {
         {
           path: "counselor-dashboard",
           element: <CounselorDashboard />
+        },
+        {
+          path: "mentor",
+          element: <MentorDashboard />
         }
       ]
     }
