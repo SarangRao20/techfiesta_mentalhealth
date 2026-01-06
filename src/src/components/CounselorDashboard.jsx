@@ -148,6 +148,23 @@ export default function CounselorDashboard() {
                                                         'text-yellow-400'
                                                     }`}>{req.status.toUpperCase()}</span>
                                             </div>
+                                            {req.attachment_id && (
+                                                <div className="col-span-2 mt-2 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-indigo-400 text-lg">📄</span>
+                                                        <div className="text-xs">
+                                                            <p className="font-semibold text-indigo-300">Shared {req.attachment_type === 'assessment' ? 'Clinical Assessment' : 'Inkblot Test'}</p>
+                                                            <p className="text-white/40">Student shared this report for review</p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => window.open(`${API_URL}/api/${req.attachment_type === 'assessment' ? 'assessments' : 'inkblot'}/export/${req.attachment_id}`, '_blank')}
+                                                        className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-[10px] font-bold transition-all shadow-lg"
+                                                    >
+                                                        Download PDF
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {req.status === 'pending' && (

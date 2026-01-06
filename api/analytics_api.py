@@ -3,8 +3,44 @@ from flask_login import login_required, current_user
 from models import User, ChatSession
 from sqlalchemy import and_
 from datetime import datetime, timedelta
+from database import db
 
 ns = Namespace('analytics', description='Platform analytics')
+
+@ns.route('/trends')
+class UserTrends(Resource):
+    @login_required
+    def get(self):
+        """Get mood and activity trends for the current user"""
+        from models import UserActivityLog, Assessment
+        from sqlalchemy import func
+        
+        # Last 7 days activity counts
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        activity_counts = db.session.query(
+            UserActivityLog.activity_type, 
+            func.count(UserActivityLog.id)
+        ).filter(
+            UserActivityLog.user_id == current_user.id,
+            UserActivityLog.timestamp >= seven_days_ago
+        ).group_by(UserActivityLog.activity_type).all()
+        
+        # Severity trends from assessments
+        assessments = Assessment.query.filter(
+            Assessment.user_id == current_user.id
+        ).order_by(Assessment.completed_at.asc()).limit(10).all()
+        
+        return {
+            'activity_distribution': {k: v for k, v in activity_counts},
+            'severity_history': [
+                {
+                    'date': a.completed_at.strftime('%Y-%m-%d'),
+                    'score': a.score,
+                    'type': a.assessment_type,
+                    'severity': a.severity_level
+                } for a in assessments
+            ]
+        }, 200
 
 @ns.route('/overview')
 class PlatformOverview(Resource):
@@ -15,12 +51,6 @@ class PlatformOverview(Resource):
             return {'message': 'Access denied'}, 403
             
         total_students = User.query.filter_by(role='student').count()
-        crisis_count = ChatSession.query.filter(
-            and_(ChatSession.crisis_flag == True,
-                 ChatSession.session_start >= datetime.utcnow() - timedelta(days=30))
-        ).count()
-        
         return {
-            'total_students': total_students,
-            'crisis_trends_30d': crisis_count
+            'total_students': total_students
         }, 200

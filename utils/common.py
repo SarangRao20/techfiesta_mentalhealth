@@ -186,279 +186,100 @@ def get_meditation_content():
     }
 
 def generate_analysis(assessment_type, score):
+    full_data = {}
+    
     if assessment_type == 'PHQ-9':
         if score <= 4:
-            return {
-                "interpretation": "Your PHQ-9 score of {} indicates minimal or no depression symptoms, which is excellent news! This suggests you're currently managing your mental health well and experiencing few or no significant depressive symptoms. This low score reflects good emotional regulation and psychological well-being.".format(score),
-                "recommendations": [
-                    "Continue maintaining your current healthy lifestyle and mental health practices",
-                    "Keep up with regular self-care activities that bring you joy and relaxation",
-                    "Maintain strong social connections and support networks",
-                    "Practice preventive mental health care through regular check-ins with yourself",
-                    "Consider sharing your successful coping strategies with others who might benefit",
-                    "Stay aware of any changes in your mood or stress levels for early intervention"
-                ],
-                "coping_strategies": [
-                    "Continue regular physical exercise - aim for at least 30 minutes of activity most days",
-                    "Maintain a consistent sleep schedule with 7-9 hours of quality sleep nightly",
-                    "Practice daily mindfulness, meditation, or deep breathing exercises",
-                    "Engage in hobbies and activities that bring you fulfillment and purpose",
-                    "Keep a gratitude journal to reinforce positive thinking patterns",
-                    "Stay connected with friends and family through regular communication",
-                    "Practice stress management techniques before challenging situations arise",
-                    "Maintain a balanced diet rich in nutrients that support brain health"
-                ],
-                "detailed_breakdown": {
-                    "score_range": "0-4 points",
-                    "severity_category": "Minimal Depression",
-                    "key_insights": [
-                        "You demonstrate strong emotional resilience and coping abilities",
-                        "Your current mental health practices are serving you well",
-                        "You're likely experiencing good quality of life and functioning",
-                        "This score suggests protective factors are working effectively"
-                    ],
-                    "warning_signs": [
-                        "Sudden changes in sleep patterns or appetite",
-                        "Increased irritability or mood swings",
-                        "Loss of interest in previously enjoyable activities",
-                        "Persistent feelings of sadness lasting more than two weeks"
-                    ]
-                },
-                "professional_help_recommended": False,
-                "urgency_level": "low"
-            }
+            primary_interpretation = "minimal or no depression symptoms"
+            clinical_severity = "Minimal Depression"
+            urgency = "low"
+            help_rec = False
         elif score <= 9:
-            return {
-                "interpretation": "Your PHQ-9 score of {} indicates mild depression symptoms. While this suggests some challenges with mood, it's encouraging that you're seeking support and taking steps to understand your mental health. Mild depression is very treatable, and with the right strategies and support, you can feel significantly better.".format(score),
-                "recommendations": [
-                    "Track your mood daily using a journal or mood tracking app to identify patterns",
-                    "Consider scheduling a consultation with a licensed mental health counselor or therapist",
-                    "Engage in regular physical activity - even 20-30 minutes of walking can make a difference",
-                    "Establish a consistent daily routine to provide structure and stability",
-                    "Prioritize activities that previously brought you joy, even if they don't feel appealing right now",
-                    "Practice good sleep hygiene and aim for consistent sleep/wake times",
-                    "Consider joining a support group or online community for peer support",
-                    "Limit alcohol consumption and avoid substances that can worsen depression"
-                ],
-                "coping_strategies": [
-                    "Practice progressive muscle relaxation and deep breathing exercises for stress reduction",
-                    "Maintain regular social activities, even when you don't feel like socializing",
-                    "Focus on nutrient-rich foods including omega-3 fatty acids, complex carbs, and lean proteins",
-                    "Try the '5-4-3-2-1' grounding technique when feeling overwhelmed",
-                    "Engage in creative activities like art, music, or writing for emotional expression",
-                    "Set small, achievable daily goals to build momentum and sense of accomplishment",
-                    "Practice mindful movement like yoga or tai chi",
-                    "Spend time in nature when possible, as outdoor exposure can boost mood"
-                ],
-                "detailed_breakdown": {
-                    "score_range": "5-9 points",
-                    "severity_category": "Mild Depression",
-                    "key_insights": [
-                        "You may experience low mood, reduced energy, or changes in sleep/appetite",
-                        "Symptoms are noticeable but don't severely impair daily functioning",
-                        "Early intervention can prevent progression to more severe depression",
-                        "Many people with mild depression respond well to lifestyle changes and therapy"
-                    ],
-                    "warning_signs": [
-                        "Symptoms persisting for more than 2 weeks without improvement",
-                        "Increasing difficulty with work, school, or relationship responsibilities",
-                        "Thoughts of self-harm or worthlessness",
-                        "Complete loss of interest in all previously enjoyable activities"
-                    ]
-                },
-                "professional_help_recommended": True,
-                "urgency_level": "low"
-            }
+            primary_interpretation = "mild depression symptoms"
+            clinical_severity = "Mild Depression"
+            urgency = "low"
+            help_rec = True
         elif score <= 14:
-            return {
-                "interpretation": "Your PHQ-9 score of {} indicates moderate depression symptoms. This level suggests that depression is having a noticeable impact on your daily life and functioning. The good news is that moderate depression is highly treatable with professional support, and many people see significant improvement with the right treatment approach.".format(score),
-                "recommendations": [
-                    "Schedule an appointment with a licensed mental health professional within the next 1-2 weeks",
-                    "Consider cognitive-behavioral therapy (CBT) or other evidence-based therapeutic approaches",
-                    "Discuss your symptoms with your primary healthcare provider to rule out medical causes",
-                    "Create a structured daily routine with regular sleep, meals, and activities",
-                    "Ask trusted friends or family members for additional support during this time",
-                    "Consider joining a depression support group or online community",
-                    "Keep a mood diary to track symptoms and identify triggers",
-                    "Discuss medication options with a psychiatrist if therapy alone isn't sufficient"
-                ],
-                "coping_strategies": [
-                    "Develop and maintain a consistent daily routine, even when motivation is low",
-                    "Practice progressive muscle relaxation and guided meditation for 10-20 minutes daily",
-                    "Stay connected with your support system - reach out even when you don't feel like it",
-                    "Break large tasks into smaller, manageable steps to avoid feeling overwhelmed",
-                    "Engage in 'behavioral activation' - do activities that used to bring joy, even if they don't feel appealing",
-                    "Practice the 'STOP' technique: Stop, Take a breath, Observe your thoughts, Proceed mindfully",
-                    "Use the '3-3-3 rule' when anxious: name 3 things you see, 3 sounds you hear, move 3 parts of your body",
-                    "Focus on basic self-care: regular showers, nutritious meals, and adequate sleep",
-                    "Limit news consumption and social media if they increase negative feelings",
-                    "Try light therapy, especially during winter months or if you spend lots of time indoors"
-                ],
-                "detailed_breakdown": {
-                    "score_range": "10-14 points",
-                    "severity_category": "Moderate Depression",
-                    "key_insights": [
-                        "Depression symptoms are significantly impacting your daily functioning and quality of life",
-                        "You may experience persistent low mood, fatigue, difficulty concentrating, or changes in sleep/appetite",
-                        "This level typically requires professional intervention for optimal recovery",
-                        "With proper treatment, most people with moderate depression see substantial improvement within 6-12 weeks",
-                        "Combination therapy (counseling + lifestyle changes) often shows the best outcomes"
-                    ],
-                    "warning_signs": [
-                        "Symptoms worsening rapidly or lasting more than 2 weeks without any improvement",
-                        "Increasing thoughts of self-harm, suicide, or feeling that life isn't worth living",
-                        "Complete inability to function at work, school, or in relationships",
-                        "Significant changes in eating patterns (eating much more or much less than usual)",
-                        "Sleeping much more or much less than normal for extended periods",
-                        "Increased use of alcohol or drugs to cope with feelings"
-                    ]
-                },
-                "professional_help_recommended": True,
-                "urgency_level": "medium"
-            }
+            primary_interpretation = "moderate depression symptoms"
+            clinical_severity = "Moderate Depression"
+            urgency = "medium"
+            help_rec = True
         elif score <= 19:
-            return {
-                "interpretation": "Your PHQ-9 score suggests moderately severe depression. We recommend seeking professional help.",
-                "recommendations": [
-                    "Seek immediate professional help",
-                    "Consider medication evaluation",
-                    "Regular therapy sessions recommended"
-                ],
-                "coping_strategies": [
-                    "Focus on basic self-care",
-                    "Reach out to trusted friends/family",
-                    "Practice grounding techniques"
-                ],
-                "professional_help_recommended": True,
-                "urgency_level": "high"
-            }
+            primary_interpretation = "moderately severe depression"
+            clinical_severity = "Moderately Severe Depression"
+            urgency = "high"
+            help_rec = True
         else:
-            return {
-                "interpretation": "Your PHQ-9 score suggests severe depression. We strongly recommend seeking professional help as soon as possible.",
+            primary_interpretation = "severe depression"
+            clinical_severity = "Severe Depression"
+            urgency = "high"
+            help_rec = True
+
+        full_data = {
+            "user_safe": {
+                "interpretation": f"Your PHQ-9 score of {score} indicates {primary_interpretation}. It's important to keep monitoring your mood and practicing self-care.",
                 "recommendations": [
-                    "Seek immediate professional help",
-                    "Contact crisis helpline if needed",
-                    "Consider emergency support"
+                    "Maintain a consistent sleep schedule",
+                    "Engage in light physical activity daily",
+                    "Practice mindfulness or deep breathing"
                 ],
                 "coping_strategies": [
-                    "Prioritize safety and basic needs",
-                    "Stay with trusted support person",
-                    "Use crisis resources when needed"
-                ],
-                "professional_help_recommended": True,
-                "urgency_level": "high"
+                    "Break large tasks into smaller steps",
+                    "Reach out to a trusted friend or family member",
+                    "Limit time spent on social media"
+                ]
+            },
+            "counsellor_detailed": {
+                "score_range": "0-27 points",
+                "severity_category": clinical_severity,
+                "urgency_level": urgency,
+                "professional_help_recommended": help_rec,
+                "key_insights": [
+                    f"Structural score: {score}",
+                    "Suggests potential impact on cognitive functioning" if score > 10 else "Suggests stable functioning"
+                ]
             }
+        }
     elif assessment_type == 'GAD-7':
         if score < 5:
-            return {
-                "interpretation": "Your GAD-7 score suggests minimal anxiety. This is great news!",
-                "recommendations": [
-                    "Continue current coping strategies",
-                    "Maintain healthy stress management",
-                    "Practice preventive self-care"
-                ],
-                "coping_strategies": [
-                    "Regular relaxation exercises",
-                    "Maintain work-life balance",
-                    "Practice deep breathing"
-                ],
-                "professional_help_recommended": False,
-                "urgency_level": "low"
-            }
+            severity = "Minimal Anxiety"
+            urgency = "low"
         elif score < 10:
-            return {
-                "interpretation": "Your GAD-7 score suggests mild anxiety. Consider monitoring your anxiety levels.",
-                "recommendations": [
-                    "Track anxiety triggers",
-                    "Learn stress management techniques",
-                    "Consider counseling if persistent"
-                ],
-                "coping_strategies": [
-                    "Practice mindfulness meditation",
-                    "Regular physical exercise",
-                    "Limit caffeine intake"
-                ],
-                "professional_help_recommended": True,
-                "urgency_level": "low"
-            }
+            severity = "Mild Anxiety"
+            urgency = "low"
         elif score < 15:
-            return {
-                "interpretation": "Your GAD-7 score suggests moderate anxiety. You may benefit from professional support.",
-                "recommendations": [
-                    "Seek professional counseling",
-                    "Consider anxiety management therapy",
-                    "Discuss with healthcare provider"
-                ],
-                "coping_strategies": [
-                    "Practice progressive muscle relaxation",
-                    "Use grounding techniques",
-                    "Maintain regular sleep schedule"
-                ],
-                "professional_help_recommended": True,
-                "urgency_level": "medium"
-            }
+            severity = "Moderate Anxiety"
+            urgency = "medium"
         else:
-            return {
-                "interpretation": "Your GAD-7 score suggests severe anxiety. We recommend seeking professional help.",
-                "recommendations": [
-                    "Seek immediate professional help",
-                    "Consider medication evaluation",
-                    "Regular therapy sessions"
-                ],
-                "coping_strategies": [
-                    "Focus on breathing exercises",
-                    "Use crisis coping techniques",
-                    "Stay connected with support system"
-                ],
-                "professional_help_recommended": True,
-                "urgency_level": "high"
+            severity = "Severe Anxiety"
+            urgency = "high"
+            
+        full_data = {
+            "user_safe": {
+                "interpretation": f"Your GAD-7 score of {score} suggests {severity.lower()}.",
+                "recommendations": ["Deep breathing exercises", "Routine tracking"],
+                "coping_strategies": ["5-4-3-2-1 technique", "Avoid excess caffeine"]
+            },
+            "counsellor_detailed": {
+                "severity": severity,
+                "urgency_level": urgency,
+                "professional_help_recommended": score >= 5
             }
+        }
     elif assessment_type == 'GHQ':
-        if score < 4:
-            return {
-                "interpretation": "Your GHQ score suggests good psychological well-being.",
-                "recommendations": [
-                    "Continue healthy lifestyle",
-                    "Maintain current wellness practices",
-                    "Regular self-assessment"
-                ],
-                "coping_strategies": [
-                    "Keep balanced lifestyle",
-                    "Regular social activities",
-                    "Stress prevention techniques"
-                ],
-                "professional_help_recommended": False,
-                "urgency_level": "low"
+        severity = "Good" if score < 4 else "Distressed" if score < 12 else "Significantly Distressed"
+        full_data = {
+            "user_safe": {
+                "interpretation": f"Your GHQ score of {score} suggests {severity.lower()} well-being.",
+                "recommendations": ["Positive affirmations", "Social interaction"],
+                "coping_strategies": ["Journaling", "Nature walks"]
+            },
+            "counsellor_detailed": {
+                "severity": severity,
+                "urgency_level": "low" if score < 4 else "medium" if score < 12 else "high",
+                "professional_help_recommended": score >= 4
             }
-        elif score < 12:
-            return {
-                "interpretation": "Your GHQ score suggests some psychological distress. Consider monitoring your well-being.",
-                "recommendations": [
-                    "Monitor stress levels",
-                    "Consider counseling support",
-                    "Practice self-care activities"
-                ],
-                "coping_strategies": [
-                    "Regular exercise routine",
-                    "Mindfulness practices",
-                    "Social support engagement"
-                ],
-                "professional_help_recommended": True,
-                "urgency_level": "medium"
-            }
-        else:
-            return {
-                "interpretation": "Your GHQ score suggests significant psychological distress. We recommend seeking professional support.",
-                "recommendations": [
-                    "Seek professional counseling",
-                    "Consider comprehensive assessment",
-                    "Regular mental health check-ins"
-                ],
-                "coping_strategies": [
-                    "Focus on stress reduction",
-                    "Practice relaxation techniques",
-                    "Build strong support network"
-                ],
-                "professional_help_recommended": True,
-                "urgency_level": "high"
-            }
+        }
+    
+    return full_data
+

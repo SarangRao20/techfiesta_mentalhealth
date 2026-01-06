@@ -5,6 +5,7 @@ from models import Assessment, User
 from app import db
 from utils import get_assessment_questions, get_assessment_options, calculate_phq9_score, calculate_gad7_score, calculate_ghq_score, generate_analysis
 import json
+from datetime import datetime
 
 ns = Namespace('assessments', description='Mental health assessments and results')
 
@@ -52,10 +53,23 @@ class Assessments(Resource):
             user_id=current_user.id,
             assessment_type=a_type,
             score=score,
-            severity_level=analysis.get('severity_category', severity),
-            recommendations=analysis
+            severity_level=analysis.get('counsellor_detailed', {}).get('severity_category', severity),
+            recommendations=analysis,
+            responses=responses
         )
         db.session.add(assessment)
+        
+        # Universal Activity Log
+        from models import UserActivityLog
+        log = UserActivityLog(
+            user_id=current_user.id,
+            activity_type='assessment',
+            action='complete',
+            result_value=float(score),
+            extra_data={'type': a_type, 'severity': assessment.severity_level},
+            timestamp=datetime.utcnow()
+        )
+        db.session.add(log)
         db.session.commit()
         
         return {
@@ -63,6 +77,51 @@ class Assessments(Resource):
             'score': score,
             'analysis': analysis
         }, 201
+
+@ns.route('/export/<int:assessment_id>')
+class ExportAssessmentPDF(Resource):
+    @login_required
+    def get(self, assessment_id):
+        """Export assessment result as PDF"""
+        from io import BytesIO
+        from flask import send_file
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+        
+        assessment = Assessment.query.get_or_404(assessment_id)
+        if assessment.user_id != current_user.id and current_user.role != 'counsellor':
+            return {'message': 'Unauthorized'}, 403
+            
+        buffer = BytesIO()
+        p = canvas.Canvas(buffer, pagesize=letter)
+        p.setTitle(f"Assessment Report - {assessment.user.full_name}")
+        
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(100, 750, f"{assessment.assessment_type} Assessment Report")
+        p.setFont("Helvetica", 12)
+        p.drawString(100, 730, f"User: {assessment.user.full_name}")
+        p.drawString(100, 715, f"Date: {assessment.completed_at.strftime('%Y-%m-%d %H:%M')}")
+        p.line(100, 705, 500, 705)
+        
+        p.drawString(100, 680, f"Score: {assessment.score}")
+        p.drawString(100, 665, f"Severity: {assessment.severity_level}")
+        
+        analysis = assessment.recommendations or generate_analysis(assessment.assessment_type, assessment.score)
+        detail = analysis.get('counsellor_detailed', {})
+        
+        y = 640
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(100, y, "Clinical Summary:")
+        p.setFont("Helvetica", 11)
+        y -= 20
+        p.drawString(120, y, f"Urgency Level: {detail.get('urgency_level', 'N/A')}")
+        y -= 15
+        p.drawString(120, y, f"Professional Help Recommended: {'Yes' if detail.get('professional_help_recommended') else 'No'}")
+        
+        p.showPage()
+        p.save()
+        buffer.seek(0)
+        return send_file(buffer, as_attachment=True, download_name=f"Assessment_{assessment_id}.pdf", mimetype='application/pdf')
 
 @ns.route('/questions/<string:assessment_type>')
 class Questions(Resource):

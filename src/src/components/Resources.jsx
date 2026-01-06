@@ -1,8 +1,27 @@
 import React, { useState } from 'react';
-import { BookOpen, Clock, ArrowRight } from 'lucide-react';
+import { BookOpen, Clock, ArrowRight, Play, Video, X, ExternalLink } from 'lucide-react';
+import { API_URL } from '../config';
 
 const Resources = () => {
   const [selectedCategory, setSelectedCategory] = useState('All Resources');
+  const [playingVideo, setPlayingVideo] = useState(null);
+
+  const logActivity = async (action, metadata = {}) => {
+    try {
+      await fetch(`${API_URL}/api/activity/log`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          activity_type: 'resource',
+          action: action,
+          extra_data: metadata
+        })
+      });
+    } catch (e) {
+      console.error("Logging failed", e);
+    }
+  };
 
   const categories = [
     'All Resources',
@@ -87,8 +106,35 @@ const Resources = () => {
     }
   ];
 
-  const filteredArticles = selectedCategory === 'All Resources' 
-    ? articles 
+  const videos = [
+    {
+      id: 101,
+      title: "Daily Mindfulness Practice",
+      category: "Anxiety",
+      duration: "10:30",
+      url: "https://www.youtube.com/embed/inpok4MKVLM", // Sample
+      thumbnail: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+      id: 102,
+      title: "Understanding Stress Biology",
+      category: "Stress",
+      duration: "15:45",
+      url: "https://www.youtube.com/embed/Mc7pU78kP38",
+      thumbnail: "https://images.unsplash.com/photo-1499209974431-9dac3dc5c27d?auto=format&fit=crop&q=80&w=400"
+    },
+    {
+      id: 103,
+      title: "Sleep Hygiene Masterclass",
+      category: "Wellness",
+      duration: "08:20",
+      url: "https://www.youtube.com/embed/nm1TxQj9IsQ",
+      thumbnail: "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&q=80&w=400"
+    }
+  ];
+
+  const filteredArticles = selectedCategory === 'All Resources'
+    ? articles
     : articles.filter(article => article.category === selectedCategory.toLowerCase());
 
   return (
@@ -110,11 +156,10 @@ const Resources = () => {
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-5 py-2 rounded-full font-medium transition-all ${
-                selectedCategory === category
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
-              }`}
+              className={`px-5 py-2 rounded-full font-medium transition-all ${selectedCategory === category
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+                }`}
             >
               {category}
             </button>
@@ -173,6 +218,39 @@ const Resources = () => {
           ))}
         </div>
 
+        {/* Videos Header */}
+        <div className="flex items-center gap-3 mb-6 mt-16">
+          <Video className="w-7 h-7 text-purple-400" />
+          <h2 className="text-2xl font-semibold text-gray-100">Guided Video Sessions</h2>
+        </div>
+
+        {/* Videos Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          {videos.filter(v => selectedCategory === 'All Resources' || v.category === selectedCategory).map(video => (
+            <div key={video.id} className="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 hover:border-purple-500/50 transition-all group">
+              <div className="relative aspect-video">
+                <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => {
+                      setPlayingVideo(video);
+                      logActivity('video_watch', { video_id: video.id, title: video.title });
+                    }}
+                    className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black"
+                  >
+                    <Play fill="currentColor" size={20} />
+                  </button>
+                </div>
+                <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/80 rounded text-[10px] font-mono">{video.duration}</div>
+              </div>
+              <div className="p-4">
+                <div className="text-[10px] uppercase tracking-widest text-purple-400 font-bold mb-1">{video.category}</div>
+                <h4 className="font-semibold text-white group-hover:text-purple-300 transition-colors line-clamp-1">{video.title}</h4>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Empty State */}
         {filteredArticles.length === 0 && (
           <div className="text-center py-16">
@@ -199,6 +277,30 @@ const Resources = () => {
             </div>
           </div>
         </div>
+        {/* Video Modal */}
+        {playingVideo && (
+          <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+            <div className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+              <button
+                onClick={() => setPlayingVideo(null)}
+                className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white backdrop-blur-md transition-all"
+              >
+                <X size={24} />
+              </button>
+              <iframe
+                src={playingVideo.url + "?autoplay=1"}
+                title={playingVideo.title}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+              <div className="absolute bottom-4 left-6">
+                <h3 className="text-xl font-bold text-white">{playingVideo.title}</h3>
+                <p className="text-sm text-neutral-400">{playingVideo.category} Session</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

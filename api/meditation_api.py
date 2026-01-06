@@ -40,7 +40,21 @@ class CompleteMeditation(Resource):
             date=datetime.utcnow().date()
         )
         db.session.add(session)
+        
+        # Universal Activity Log
+        from models import UserActivityLog
+        log = UserActivityLog(
+            user_id=current_user.id,
+            activity_type='meditation',
+            action='complete',
+            duration=duration,
+            extra_data={'session_type': session_type},
+            timestamp=datetime.utcnow()
+        )
+        db.session.add(log)
+        
         db.session.commit()
+        return {'message': 'Meditation session saved'}, 201
 
 @ns.route('/stats')
 class MeditationStats(Resource):

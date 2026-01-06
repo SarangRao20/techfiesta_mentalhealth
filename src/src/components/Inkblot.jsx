@@ -1,21 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL } from '../config';
-import { Eye, Send, RotateCcw, BookOpen } from 'lucide-react';
+import { Eye, Send, RotateCcw, BookOpen, Download, CheckCircle, FileText, Share2 } from 'lucide-react';
 
 const Inkblot = () => {
     const [started, setStarted] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [sequence, setSequence] = useState([]);
     const [response, setResponse] = useState('');
+    const [elaboration, setElaboration] = useState('');
+    const [step, setStep] = useState('perception'); // 'perception', 'elaboration', 'results'
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showTransition, setShowTransition] = useState(false);
+    const [resultId, setResultId] = useState(null);
 
     // Total plates available in assets
     const TOTAL_ASSETS = 10;
     const SESSION_LENGTH = 5;
 
+    const logActivity = async (action, metadata = {}) => {
+        try {
+            await fetch(`${API_URL}/api/activity/log`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    activity_type: 'inkblot',
+                    action: action,
+                    extra_data: metadata
+                })
+            });
+        } catch (e) {
+            console.error("Logging failed", e);
+        }
+    };
+
     const handleStart = async () => {
-        // Generate random sequence of 5 unique plates
         const numbers = Array.from({ length: TOTAL_ASSETS }, (_, i) => i + 1);
         const shuffled = numbers.sort(() => 0.5 - Math.random());
         const selected = shuffled.slice(0, SESSION_LENGTH);
@@ -23,6 +42,9 @@ const Inkblot = () => {
         setSequence(selected);
         setCurrentIndex(0);
         setResponse('');
+        setElaboration('');
+        setStep('perception');
+        setResultId(null);
 
         try {
             await fetch(`${API_URL}/api/inkblot/init`, {
@@ -31,15 +53,23 @@ const Inkblot = () => {
                 credentials: 'include'
             });
             setStarted(true);
+            logActivity('inkblot_start');
         } catch (e) {
             console.error("Failed to init session", e);
         }
     };
 
-    const handleSubmit = async () => {
-        if (!response.trim()) return;
-        setIsSubmitting(true);
+    const handleNext = async () => {
+        if (step === 'perception') {
+            if (!response.trim()) return;
+            setStep('elaboration');
+        } else if (step === 'elaboration') {
+            await submitStep();
+        }
+    };
 
+    const submitStep = async () => {
+        setIsSubmitting(true);
         const currentBlotId = sequence[currentIndex];
 
         try {
@@ -49,34 +79,86 @@ const Inkblot = () => {
                 credentials: 'include',
                 body: JSON.stringify({
                     blot_num: currentBlotId,
-                    response: response
+                    response: response,
+                    elaboration: elaboration
                 })
             });
 
-            // Transition logic
-            setShowTransition(true);
-            setTimeout(() => {
-                if (currentIndex < SESSION_LENGTH - 1) {
+            if (currentIndex < SESSION_LENGTH - 1) {
+                setShowTransition(true);
+                setTimeout(() => {
                     setCurrentIndex(prev => prev + 1);
                     setResponse('');
+                    setElaboration('');
+                    setStep('perception');
                     setShowTransition(false);
-                } else {
-                    alert("Test Complete. Thank you for your participation.");
-                    setStarted(false);
-                    setCurrentIndex(0);
-                    setResponse('');
-                    setShowTransition(false);
-                }
+                    setIsSubmitting(false);
+                }, 600);
+            } else {
+                // Final submission
+                const res = await fetch(`${API_URL}/api/inkblot/complete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+                const data = await res.json();
+                setResultId(data.result_id);
+                setStep('results');
                 setIsSubmitting(false);
-            }, 800);
-
+                logActivity('inkblot_complete', { result_id: data.result_id });
+            }
         } catch (e) {
             console.error("Failed to submit", e);
             setIsSubmitting(false);
         }
     };
 
+    const downloadReport = () => {
+        if (!resultId) return;
+        window.open(`${API_URL}/api/inkblot/export/${resultId}`, '_blank');
+    };
+
     const currentBlotNum = sequence[currentIndex];
+
+    if (step === 'results') {
+        return (
+            <div className="min-h-screen bg-[#0f0f10] text-gray-100 flex items-center justify-center p-6">
+                <div className="max-w-2xl w-full bg-[#1a1a1a] border border-white/5 rounded-2xl p-10 text-center animate-fade-in-up">
+                    <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-emerald-500/30">
+                        <CheckCircle size={40} className="text-emerald-500" />
+                    </div>
+                    <h1 className="text-3xl font-serif mb-4">Assessment Complete</h1>
+                    <p className="text-neutral-400 mb-10 font-light leading-relaxed">
+                        Your responses have been securely recorded and analyzed. This projective test provides insights into your current emotional state and cognitive processing.
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+                        <button
+                            onClick={downloadReport}
+                            className="flex items-center justify-center gap-3 px-6 py-4 bg-white text-black rounded-xl font-medium hover:bg-gray-200 transition-all group"
+                        >
+                            <Download size={18} className="group-hover:translate-y-1 transition-transform" />
+                            Download PDF Report
+                        </button>
+                        <button
+                            onClick={() => window.location.href = '/app/consultation'}
+                            className="flex items-center justify-center gap-3 px-6 py-4 bg-white/5 border border-white/10 text-white rounded-xl font-medium hover:bg-white/10 transition-all"
+                        >
+                            <Share2 size={18} />
+                            Share with Counselor
+                        </button>
+                    </div>
+
+                    <button
+                        onClick={() => setStarted(false)}
+                        className="text-neutral-500 hover:text-white transition-colors text-sm uppercase tracking-widest flex items-center gap-2 mx-auto"
+                    >
+                        <RotateCcw size={14} /> Back to Start
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#0f0f10] text-gray-100 flex items-center justify-center p-6">
@@ -87,79 +169,91 @@ const Inkblot = () => {
                     </div>
                     <div>
                         <h1 className="text-4xl font-serif mb-4 tracking-wide">Projective Inkblot Test</h1>
-                        <p className="text-neutral-400 leading-relaxed font-light">
-                            This is a psychological test in which your perceptions of inkblots are recorded and then analyzed using psychological interpretation.
+                        <p className="text-neutral-400 leading-relaxed font-light text-lg">
+                            An immersive psychological exploration. Describe your perceptions and elaborate on the stories your mind creates.
                             <br /><br />
-                            There are no right or wrong answers. Simply describe what you see.
+                            <span className="text-sm italic opacity-60">There are no right or wrong answers. Trust your intuition.</span>
                         </p>
                     </div>
                     <button
                         onClick={handleStart}
-                        className="px-8 py-3 bg-white text-black font-medium rounded-full hover:bg-gray-200 transition-all tracking-wider uppercase text-sm"
+                        className="px-10 py-4 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-all tracking-wider uppercase text-sm shadow-xl shadow-white/5"
                     >
-                        Begin Session
+                        Enter the Test
                     </button>
                 </div>
             ) : (
-                <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
 
                     {/* Visual Area */}
                     <div className={`
-                        relative bg-white rounded-xl shadow-2xl overflow-hidden aspect-square flex items-center justify-center p-8
-                        transition-all duration-1000 transform
-                        ${showTransition ? 'opacity-0 scale-90 blur-sm' : 'opacity-100 scale-100 blur-0'}
+                        relative bg-white rounded-2xl shadow-2xl overflow-hidden aspect-square flex items-center justify-center p-12
+                        transition-all duration-1000 transform border-4 border-black
+                        ${showTransition ? 'opacity-0 scale-90 blur-xl rotate-12' : 'opacity-100 scale-100 blur-0 rotate-0'}
                     `}>
                         <img
                             src={`/assets/inkblots/blot${currentBlotNum}.jpg`}
                             alt={`Rorschach Plate ${currentBlotNum}`}
-                            className="w-full h-full object-contain mix-blend-multiply opacity-90"
-                            onError={(e) => { e.target.style.display = 'none'; alert('Image missing: blot' + currentBlotNum + '.jpg'); }}
+                            className="w-full h-full object-contain mix-blend-multiply opacity-90 contrast-125 grayscale hover:grayscale-0 transition-all duration-1000 cursor-none"
+                            style={{ filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.1))' }}
                         />
-                        {/* Grain/Texture Overlay */}
-                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] opacity-20 mix-blend-overlay pointer-events-none" />
+                        <div className="absolute inset-0 bg-[#f4f1ea] mix-blend-multiply opacity-30 pointer-events-none" />
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-black/5 pointer-events-none" />
 
-                        <div className="absolute top-4 right-4 text-xs font-mono text-gray-400">
-                            Plate {currentIndex + 1} / {SESSION_LENGTH}
+                        <div className="absolute top-6 right-6 flex items-center gap-2 px-3 py-1 bg-black/80 rounded-full border border-white/10 text-[10px] font-mono text-gray-400">
+                            <FileText size={10} />
+                            PLATE {currentIndex + 1} OF {SESSION_LENGTH}
                         </div>
                     </div>
 
                     {/* Interaction Area */}
-                    <div className="space-y-6">
-                        <div className="space-y-2">
-                            <h2 className="text-2xl font-light">What do you see?</h2>
-                            <p className="text-sm text-neutral-500">Describe the image, specific details, or feelings it evokes.</p>
+                    <div className="space-y-8 animate-fade-in-right">
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-neutral-500 uppercase tracking-[0.3em] text-[10px] font-bold">
+                                <div className="w-6 h-[1px] bg-neutral-700" />
+                                {step === 'perception' ? 'First Impression' : 'Deep Elaboration'}
+                            </div>
+                            <h2 className="text-3xl font-serif italic text-white">
+                                {step === 'perception' ? "What do you see?" : "Tell the story..."}
+                            </h2>
+                            <p className="text-neutral-500 font-light leading-relaxed">
+                                {step === 'perception'
+                                    ? "Description, details, or immediate feelings evoked by the symmetry."
+                                    : "Briefly expand on what's happening. Who, what, why? Build the narrative."}
+                            </p>
                         </div>
 
-                        <textarea
-                            value={response}
-                            onChange={(e) => setResponse(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSubmit();
-                                }
-                            }}
-                            className="w-full h-40 bg-[#1a1a1a] border border-white/10 rounded-lg p-4 text-white placeholder-neutral-600 focus:outline-none focus:border-white/30 transition-colors resize-none font-serif"
-                            placeholder="I see..."
-                            autoFocus
-                        />
+                        <div className="relative group">
+                            <textarea
+                                value={step === 'perception' ? response : elaboration}
+                                onChange={(e) => step === 'perception' ? setResponse(e.target.value) : setElaboration(e.target.value)}
+                                className="w-full h-48 bg-[#1a1a1a]/50 border border-white/5 rounded-2xl p-6 text-white text-lg leading-relaxed placeholder-neutral-700 focus:outline-none focus:border-white/20 focus:bg-[#1a1a1a] transition-all resize-none shadow-inner"
+                                placeholder={step === 'perception' ? "I see..." : "Once upon a time..."}
+                                autoFocus
+                            />
+                        </div>
 
-                        <div className="flex justify-between items-center">
-                            <div className="text-xs text-neutral-600 uppercase tracking-widest">
-                                Processing...
+                        <div className="flex justify-between items-center pt-4">
+                            <div className="flex gap-1.5">
+                                {[...Array(SESSION_LENGTH)].map((_, i) => (
+                                    <div
+                                        key={i}
+                                        className={`h-1 rounded-full transition-all duration-500 ${i < currentIndex ? 'w-6 bg-emerald-500' : i === currentIndex ? 'w-10 bg-white' : 'w-6 bg-white/10'}`}
+                                    />
+                                ))}
                             </div>
                             <button
-                                onClick={handleSubmit}
-                                disabled={!response.trim() || isSubmitting}
+                                onClick={handleNext}
+                                disabled={!(step === 'perception' ? response.trim() : elaboration.trim()) || isSubmitting}
                                 className={`
-                                    flex items-center gap-3 px-8 py-3 rounded-full font-medium transition-all
-                                    ${!response.trim()
-                                        ? 'bg-white/5 text-neutral-500 cursor-not-allowed'
-                                        : 'bg-white text-black hover:bg-gray-200'}
+                                    flex items-center gap-3 px-10 py-4 rounded-full font-bold transition-all uppercase tracking-widest text-xs
+                                    ${!(step === 'perception' ? response.trim() : elaboration.trim())
+                                        ? 'bg-white/5 text-neutral-600 cursor-not-allowed border border-white/5'
+                                        : 'bg-white text-black hover:bg-emerald-500 hover:text-white hover:shadow-[0_0_30px_rgba(16,185,129,0.3)]'}
                                 `}
                             >
-                                {isSubmitting ? 'Recording...' : 'Next Plate'}
-                                <Send size={16} />
+                                {isSubmitting ? 'Recording...' : (step === 'perception' ? 'Continue' : 'Finalize Plate')}
+                                <Send size={14} />
                             </button>
                         </div>
                     </div>
@@ -170,8 +264,15 @@ const Inkblot = () => {
                     0% { opacity: 0; transform: translateY(20px); }
                     100% { opacity: 1; transform: translateY(0); }
                 }
+                @keyframes fade-in-right {
+                    0% { opacity: 0; transform: translateX(20px); }
+                    100% { opacity: 1; transform: translateX(0); }
+                }
                 .animate-fade-in-up {
-                    animation: fade-in-up 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+                    animation: fade-in-up 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+                }
+                .animate-fade-in-right {
+                    animation: fade-in-right 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
                 }
             `}</style>
         </div>

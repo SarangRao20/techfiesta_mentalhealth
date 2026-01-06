@@ -26,26 +26,51 @@ class CreateRequest(Resource):
     @login_required
     @ns.expect(request_model)
     def post(self):
-        """Create a generic consultation request"""
+        """Create a generic consultation request with explicit timing and attachments"""
         data = ns.payload
         try:
+            # Handle preferred_time as ISO format if available
+            p_time_str = data.get('preferred_time')
+            p_time = None
+            if p_time_str:
+                try:
+                    p_time = datetime.fromisoformat(p_time_str.replace('Z', '+00:00'))
+                except:
+                    p_time = None # Fallback to string in time_slot if not ISO
+
             req = ConsultationRequest(
                 user_id=current_user.id,
-                counsellor_id=data['counsellor_id'],
-                urgency_level=data['urgency'],
-                contact_preference=data['contact_preference'],
-                time_slot=data.get('preferred_time'),
+                counsellor_id=data.get('counsellor_id'),
+                urgency_level=data.get('urgency'),
+                contact_preference=data.get('contact_preference'),
+                time_slot=p_time_str if not p_time else p_time.strftime('%Y-%m-%d %H:%M'),
+                session_datetime=p_time,
                 additional_notes=data.get('notes'),
+                attachment_type=data.get('attachment_type'), # NEW
+                attachment_id=data.get('attachment_id'),     # NEW
                 status='pending'
             )
             db.session.add(req)
+            
+            # Universal Activity Log
+            from models import UserActivityLog
+            log = UserActivityLog(
+                user_id=current_user.id,
+                activity_type='consultation',
+                action='request_submitted',
+                extra_data={'urgency': data.get('urgency'), 'attachment': data.get('attachment_type')},
+                timestamp=datetime.utcnow()
+            )
+            db.session.add(log)
             db.session.commit()
             
             # Trigger Email
             try:
                 counsellor = User.query.get(data.get('counsellor_id'))
                 if counsellor:
-                    send_consultation_request_email(counsellor.email, current_user.full_name, data.get('preferred_time'), data.get('urgency'))
+                    # Provide explicit formatted time to email
+                    time_display = p_time.strftime('%Y-%m-%d %H:%M') if p_time else p_time_str
+                    send_consultation_request_email(counsellor.email, current_user.full_name, time_display, data.get('urgency'))
             except Exception as e:
                 print(f"Email trigger failed: {e}")
 
@@ -182,6 +207,8 @@ class CounsellorRequests(Resource):
                 'contact_preference': r.contact_preference,
                 'status': r.status,
                 'notes': r.additional_notes,
+                'attachment_type': r.attachment_type,
+                'attachment_id': r.attachment_id,
                 'created_at': r.created_at.isoformat()
             } for r in requests
         ], 200

@@ -3,7 +3,6 @@ from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
 from models import User, ChatSession, ChatMessage, Assessment, MeditationSession, VentingPost, VentingResponse, ConsultationRequest, AvailabilitySlot, SoundVentingSession
 from gemini_service import chat_with_ai, analyze_assessment_results, suggest_assessment, analyze_projective_input
-from voice_service import voice_service
 from utils import (hash_student_id, calculate_phq9_score, calculate_gad7_score, 
                   calculate_ghq_score, get_assessment_questions, get_assessment_options,
                   format_time_ago, get_meditation_content, generate_analysis)
@@ -633,13 +632,8 @@ def voice_chat():
             return jsonify({'error': 'Failed to generate speech'}), 500
             
     except ImportError:
-        # Fallback to original voice service
-        audio_path = voice_service.text_to_speech(text)
-        if audio_path:
-            filename = os.path.basename(audio_path)
-            return jsonify({'audio_url': f'/audio/{filename}'})
-        else:
-            return jsonify({'error': 'Failed to generate speech'}), 500
+        app.logger.error("Sarvam voice service could not be imported. Please ensure dependencies are installed.")
+        return jsonify({'error': 'Voice service unavailable'}), 503
     except Exception as e:
         app.logger.error(f"Voice chat error: {e}")
         return jsonify({'error': f'Voice chat failed: {str(e)}'}), 500
