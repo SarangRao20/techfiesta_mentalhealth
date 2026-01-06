@@ -18,31 +18,11 @@ This implementation adds a continuous hands-free voice conversation mode to the 
 - Cleans text of markdown and HTML for better speech output
 - Adjustable speech rate, pitch, and volume
 
-### 🎨 **Modern UI Design**
-- Semi-transparent overlay with blur effect
-- Pulsing avatar with dynamic state animations
-- Smooth transitions and modern gradients
-- Responsive design for mobile and desktop
-- Visual feedback for listening, speaking, and processing states
-
 ### 🔄 **Seamless Integration**
-- Works with existing Flask chatbot infrastructure
+- Works with existing chatbot infrastructure
 - Preserves chat history and UI state
 - Keyboard shortcuts (Escape to exit, Ctrl+Space to toggle)
 - Accessible design with proper focus management
-
-## Files Structure
-
-```
-static/
-├── css/
-│   └── voice-conversation.css      # Complete styling for voice mode
-├── js/
-│   └── voice-conversation.js       # Main voice conversation logic
-templates/
-└── chatbot.html                    # Updated with voice mode integration
-voice-conversation-demo.html        # Standalone demo page
-```
 
 ## Implementation Details
 
@@ -51,58 +31,7 @@ voice-conversation-demo.html        # Standalone demo page
 - **MediaRecorder API**: Fallback for audio recording
 - **MutationObserver**: For detecting new bot messages
 - **CSS Animations**: For visual feedback and transitions
-
-### Browser Support
-- ✅ Chrome/Chromium (full support)
-- ✅ Edge (full support)
-- ⚠️ Safari (limited speech recognition)
-- ❌ Firefox (no Web Speech API support)
-
-## Integration Guide
-
-### 1. Add CSS and JavaScript Files
-
-Add to your template's `<head>` section:
-```html
-<link rel="stylesheet" href="{{ url_for('static', filename='css/voice-conversation.css') }}">
-```
-
-Add before closing `</body>` tag:
-```html
-<script src="{{ url_for('static', filename='js/voice-conversation.js') }}"></script>
-```
-
-### 2. Update Voice Button
-
-Replace existing voice button with:
-```html
-<button class="btn btn-outline-light btn-sm rounded-pill px-3" id="voice-conversation-trigger">
-    <i class="fas fa-microphone me-1"></i> Voice
-</button>
-```
-
-### 3. Ensure Chat Elements
-
-Your HTML must have these elements with correct IDs:
-```html
-<div id="chat-messages"><!-- Chat messages container --></div>
-<form id="chat-form">
-    <input type="text" id="message-input" name="message">
-    <button type="submit" id="send-btn">Send</button>
-</form>
-```
-
-### 4. Bot Message Structure
-
-Ensure bot messages follow this structure:
-```html
-<div class="message bot">
-    <div class="message-content">Bot response text here</div>
-    <!-- OR -->
-    <div class="message-bubble">Bot response text here</div>
-</div>
-```
-
+ 
 ## Usage Instructions
 
 ### For Users
@@ -141,35 +70,6 @@ utterance.rate = 0.9;           // Slightly slower speech
 utterance.pitch = 1;            // Normal pitch
 utterance.volume = 0.8;         // 80% volume
 ```
-
-## Customization
-
-### Avatar States
-The avatar changes appearance based on current state:
-- **Idle**: Default robot icon with gradient background
-- **Listening**: Pulsing blue with microphone icon
-- **Speaking**: Green gradient with volume icon
-- **Processing**: Orange gradient with spinning cog
-
-### Color Themes
-Modify CSS variables to match your brand:
-```css
-:root {
-    --periwinkle: #809BCE;
-    --periwinkle-light: #95B8D1;
-    --bot-color: #b8e0d2;
-    --user-color: #809bce;
-}
-```
-
-### Animation Timing
-Adjust animation durations:
-```css
-@keyframes avatarPulse {
-    /* Custom timing and effects */
-}
-```
-
 ## Troubleshooting
 
 ### Common Issues
@@ -226,16 +126,7 @@ console.log('Voice Conversation Mode initialized');
 ### Permissions
 - Requests microphone permission only when needed
 - Respects user permission choices
-- Graceful degradation if permissions denied
-
-## Browser Compatibility Matrix
-
-| Feature | Chrome | Edge | Safari | Firefox |
-|---------|--------|------|--------|---------|
-| Speech Recognition | ✅ | ✅ | ⚠️ | ❌ |
-| Speech Synthesis | ✅ | ✅ | ✅ | ✅ |
-| MediaRecorder | ✅ | ✅ | ✅ | ✅ |
-| CSS Animations | ✅ | ✅ | ✅ | ✅ |
+- Graceful degradation if permissions denied|
 
 ## Future Enhancements
 
@@ -251,37 +142,3 @@ console.log('Voice Conversation Mode initialized');
 - **Voice Analytics**: Conversation insights
 - **Emotion Detection**: Tone analysis
 - **Custom Wake Words**: Hands-free activation
-
-## Testing
-
-### Demo Page
-Use `voice-conversation-demo.html` for testing:
-```bash
-# Serve locally
-python -m http.server 8000
-# Visit: http://localhost:8000/voice-conversation-demo.html
-```
-
-### Unit Testing
-```javascript
-// Test voice mode activation
-window.voiceConversationMode.toggleVoiceMode();
-
-// Test speech synthesis
-window.voiceConversationMode.speakResponse('Test message');
-
-// Test cleanup
-window.voiceConversationMode.exitVoiceMode();
-```
-
-## Support
-
-For issues or questions:
-1. Check browser console for errors
-2. Verify microphone permissions
-3. Test with the demo page first
-4. Review integration checklist above
-
-## License
-
-This implementation is part of the MindCare mental health chatbot project and follows the same licensing terms.

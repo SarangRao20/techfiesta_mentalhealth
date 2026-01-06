@@ -15,9 +15,11 @@ const PrivateVentingRoom = () => {
     const [isRecording, setIsRecording] = useState(false);
     const [duration, setDuration] = useState(0);
     const [maxDb, setMaxDb] = useState(0);
+    const [currentDb, setCurrentDb] = useState(0); // Added for live display
     const [avgDb, setAvgDb] = useState(0);
     const [screamCount, setScreamCount] = useState(0);
     const [showSoundReport, setShowSoundReport] = useState(false);
+    const [isScreaming, setIsScreaming] = useState(false); // Visual Feedback State
 
     const canvasRef = useRef(null);
     const audioContextRef = useRef(null);
@@ -26,7 +28,14 @@ const PrivateVentingRoom = () => {
     const rafIdRef = useRef(null);
     const streamRef = useRef(null);
     const timerRef = useRef(null);
+    // Refs for safe access inside animation frame
     const dbReadingsRef = useRef([]);
+    const isScreamingRef = useRef(false);
+    const isRecordingRef = useRef(false);
+    const maxDbRef = useRef(0); // Track max locally to avoid stale closures
+    const screamDebounceRef = useRef(null); // Minimum time between scream counts
+    const screamDurationRef = useRef(null); // To keep visual state active for a bit
+    const lastUiUpdateRef = useRef(0); // Throttle UI updates
 
     useEffect(() => {
         return () => {
@@ -39,11 +48,20 @@ const PrivateVentingRoom = () => {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             streamRef.current = stream;
 
+            // Ensure previous context is closed
+            if (audioContextRef.current) {
+                audioContextRef.current.close().catch(() => {});
+            }
+
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
             audioContextRef.current = audioContext;
 
             const analyser = audioContext.createAnalyser();
             analyser.fftSize = 256;
+            analyser.smoothingTimeConstant = 0.5; // More responsive
             analyserRef.current = analyser;
 
             const source = audioContext.createMediaStreamSource(stream);
@@ -51,10 +69,15 @@ const PrivateVentingRoom = () => {
             sourceRef.current = source;
 
             setIsRecording(true);
+            isRecordingRef.current = true; // Use Ref for loop
             setDuration(0);
             setMaxDb(0);
+            setCurrentDb(0);
+            maxDbRef.current = 0; // Reset ref
             setScreamCount(0);
             dbReadingsRef.current = [];
+            isScreamingRef.current = false;
+            setIsScreaming(false);
 
             timerRef.current = setInterval(() => {
                 setDuration(prev => prev + 1);
@@ -68,19 +91,23 @@ const PrivateVentingRoom = () => {
     };
 
     const stopRecording = async () => {
-        if (!isRecording) return;
+        if (!isRecordingRef.current) return;
+
+        isRecordingRef.current = false; // Stop loop immediately
+        setIsRecording(false);
+        setIsScreaming(false);
 
         if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
         if (timerRef.current) clearInterval(timerRef.current);
-        if (audioContextRef.current) audioContextRef.current.close();
+        if (audioContextRef.current) audioContextRef.current.close().catch(e => console.log(e));
         if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
-
-        setIsRecording(false);
 
         // Calculate stats
         const readings = dbReadingsRef.current;
         const avg = readings.length > 0 ? readings.reduce((a, b) => a + b, 0) / readings.length : 0;
         setAvgDb(avg);
+        // Use the Ref for reliable max value
+        setMaxDb(maxDbRef.current); 
         setShowSoundReport(true);
 
         // Save to backend
@@ -91,9 +118,9 @@ const PrivateVentingRoom = () => {
                 credentials: 'include',
                 body: JSON.stringify({
                     duration: duration,
-                    max_decibel: maxDb,
+                    max_decibel: maxDbRef.current,
                     avg_decibel: avg,
-                    scream_count: screamCount,
+                    scream_count: screamCount, // Use state here
                     session_type: 'sound_venting'
                 })
             });
@@ -113,28 +140,68 @@ const PrivateVentingRoom = () => {
         const height = canvas.height;
 
         const draw = () => {
-            if (!isRecording) return;
+            if (!isRecordingRef.current) return; // Check Ref instead of State
             rafIdRef.current = requestAnimationFrame(draw);
 
             analyserRef.current.getByteFrequencyData(dataArray);
 
-            // Calculate dB (approximate)
+            // Calculate Volume / Energy
             let sum = 0;
             for (let i = 0; i < bufferLength; i++) {
                 sum += dataArray[i];
             }
             const average = sum / bufferLength;
-            const db = (average / 255) * 100; // Normalized 0-100
+            // Normalize approx 0-100 relative to 255 max
+            const db = (average / 255) * 100;
 
             dbReadingsRef.current.push(db);
-            if (db > maxDb) setMaxDb(Math.round(db));
-
-            // Detect "Scream" (threshold > 80% volume) if needed
-            if (db > 80) {
-                // Simple debounce could be added here
+            
+            // Track Max accurately using Ref
+            if (db > maxDbRef.current) {
+                maxDbRef.current = Math.round(db);
+                // setMaxDb(maxDbRef.current); // Removed to avoid confusion, only update curr
             }
 
-            ctx.clearRect(0, 0, width, height); // Clear properly
+            // Update Live UI (Throttled ~ 100ms)
+            const now = Date.now();
+            if (now - lastUiUpdateRef.current > 100) {
+                setCurrentDb(Math.round(db));
+                lastUiUpdateRef.current = now;
+            }
+
+            // SCREAM DETECTION LOGIC
+            // Threshold updated to 30 based on user feedback
+            const SCREAM_THRESHOLD = 35; 
+            
+            if (db > SCREAM_THRESHOLD) {
+                // Trigger scream effects
+                if (!isScreamingRef.current) {
+                    isScreamingRef.current = true;
+                    setIsScreaming(true);
+                    
+                    // Haptic Feedback
+                    if (navigator.vibrate) navigator.vibrate(200);
+
+                    // Increment count only if enough time has passed since last scream (debounce)
+                    // e.g., 2 seconds
+                    if (!screamDebounceRef.current) {
+                         setScreamCount(prev => prev + 1);
+                         screamDebounceRef.current = setTimeout(() => {
+                             screamDebounceRef.current = null;
+                         }, 2000);
+                    }
+                }
+
+                // Reset "stop screaming" timer
+                if (screamDurationRef.current) clearTimeout(screamDurationRef.current);
+                screamDurationRef.current = setTimeout(() => {
+                    isScreamingRef.current = false;
+                    setIsScreaming(false);
+                }, 300); // 300ms of silence/low vol to stop effect
+
+            }
+
+            ctx.clearRect(0, 0, width, height); 
             ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
             ctx.fillRect(0, 0, width, height);
 
@@ -145,10 +212,19 @@ const PrivateVentingRoom = () => {
             for (let i = 0; i < bufferLength; i++) {
                 barHeight = dataArray[i] * 1.5; // Scale up
 
-                // Color based on intensity
-                const r = barHeight + (25 * (i / bufferLength));
-                const g = 250 * (i / bufferLength);
-                const b = 50;
+                // Dynamic coloring
+                let r, g, b;
+                if (isScreamingRef.current) {
+                    // Angry/Intense colors
+                    r = 255; // Always red
+                    g = Math.random() * 50; // Flicker black/red
+                    b = Math.random() * 50;
+                } else {
+                    // Calm/Normal gradient
+                    r = barHeight + (25 * (i / bufferLength));
+                    g = 250 * (i / bufferLength);
+                    b = 50;
+                }
 
                 ctx.fillStyle = `rgb(${r},${g},${b})`;
                 ctx.fillRect(x, height - barHeight, barWidth, barHeight);
@@ -172,21 +248,31 @@ const PrivateVentingRoom = () => {
     };
 
     return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+        <div className={`min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-100 ${isScreaming ? 'bg-[#1a0505]' : 'bg-black'}`}>
             {/* Dynamic Background */}
             <div className="absolute inset-0 bg-gradient-to-t from-orange-950/40 via-neutral-950 to-neutral-950" />
 
+            {/* Visual Feedback Overlay (Shake & Flash) */}
+            {isScreaming && (
+                <div className="absolute inset-0 z-0 animate-scream-shake opacity-80 pointer-events-none">
+                     <div className="absolute inset-0 bg-red-600/10 mix-blend-overlay" />
+                     <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-900/40 via-transparent to-transparent animate-pulse-fast" />
+                </div>
+            )}
+
             {/* Fire particles effect (simulated) */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-orange-600/10 rounded-full blur-[100px] animate-pulse" />
-                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-red-900/10 rounded-full blur-[120px]" />
+                <div className={`absolute top-1/2 left-1/4 w-96 h-96 bg-orange-600/10 rounded-full blur-[100px] animate-pulse ${isScreaming ? 'bg-red-600/30 scale-150 duration-75' : ''}`} />
+                <div className={`absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-red-900/10 rounded-full blur-[120px] ${isScreaming ? 'bg-red-800/30 scale-125 duration-100' : ''}`} />
             </div>
 
-            <div className="relative w-full max-w-2xl z-10 flex flex-col items-center">
+            <div className={`relative w-full max-w-2xl z-10 flex flex-col items-center ${isScreaming ? 'animate-vibrate' : ''}`}>
 
                 {/* Header with Mode Toggle */}
                 <div className="mb-8 text-center space-y-4">
-                    <h1 className="text-4xl font-light text-white tracking-[0.2em] uppercase font-serif">The Void</h1>
+                    <h1 className={`text-4xl font-light text-white tracking-[0.2em] uppercase font-serif transition-all ${isScreaming ? 'text-red-500 scale-110 tracking-[0.3em] font-bold' : ''}`}>
+                        {isScreaming ? "LET IT OUT!" : "The Void"}
+                    </h1>
                     <p className="text-neutral-500 font-light">
                         {mode === 'text' ? "Release your burdens. Let them burn." : "Scream into the void. Let it out."}
                     </p>
@@ -278,12 +364,12 @@ const PrivateVentingRoom = () => {
                 ) : (
                     /* Sound Venting UI */
                     <div className="w-full relative">
-                        <div className="bg-[#1a1a1a] border border-white/5 rounded-xl shadow-2xl p-8 flex flex-col items-center">
+                        <div className={`bg-[#1a1a1a] border border-white/5 rounded-xl shadow-2xl p-8 flex flex-col items-center transition-all duration-75 ${isScreaming ? 'border-red-500/50 shadow-[0_0_50px_rgba(220,38,38,0.3)]' : ''}`}>
 
                             {!showSoundReport ? (
                                 <>
                                     {/* Visualizer Canvas */}
-                                    <div className="w-full h-64 bg-black/50 rounded-lg mb-8 overflow-hidden relative border border-white/5">
+                                    <div className={`w-full h-64 bg-black/50 rounded-lg mb-8 overflow-hidden relative border transition-all duration-75 ${isScreaming ? 'border-red-500 scale-[1.02]' : 'border-white/5'}`}>
                                         <canvas
                                             ref={canvasRef}
                                             width={600}
@@ -296,8 +382,15 @@ const PrivateVentingRoom = () => {
                                             </div>
                                         )}
                                         {isRecording && (
-                                            <div className="absolute top-4 right-4 text-xs font-mono text-purple-400">
-                                                {maxDb} dB | {new Date(duration * 1000).toISOString().substr(14, 5)}
+                                            <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
+                                                <div className="text-xs font-mono text-purple-400">
+                                                    {currentDb} dB | {new Date(duration * 1000).toISOString().substr(14, 5)}
+                                                </div>
+                                                {screamCount > 0 && (
+                                                     <div className="text-xs font-bold text-red-500 animate-pulse">
+                                                         SCREAMS: {screamCount}
+                                                     </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -314,13 +407,13 @@ const PrivateVentingRoom = () => {
                                         ) : (
                                             <button
                                                 onClick={stopRecording}
-                                                className="w-20 h-20 rounded-full bg-red-900/20 border-2 border-red-500 flex items-center justify-center hover:scale-105 hover:bg-red-900/40 hover:shadow-[0_0_30px_rgba(239,68,68,0.4)] transition-all duration-300 animate-pulse"
+                                                className={`w-20 h-20 rounded-full border-2 flex items-center justify-center hover:scale-105 transition-all duration-100 ${isScreaming ? 'bg-red-600 border-red-400 shadow-[0_0_40px_rgba(220,38,38,0.6)] animate-pulse-fast' : 'bg-red-900/20 border-red-500 animate-pulse hover:shadow-[0_0_30px_rgba(239,68,68,0.4)]'}`}
                                             >
-                                                <Square className="w-8 h-8 text-red-500 fill-red-500" />
+                                                <Square className={`w-8 h-8 ${isScreaming ? 'text-white fill-white' : 'text-red-500 fill-red-500'}`} />
                                             </button>
                                         )}
-                                        <p className="text-neutral-500 text-sm tracking-wider uppercase">
-                                            {isRecording ? "Scream if you need to" : "Tap to Start Session"}
+                                        <p className={`text-sm tracking-wider uppercase transition-colors ${isScreaming ? 'text-red-400 font-bold animate-pulse' : 'text-neutral-500'}`}>
+                                            {isRecording ? (isScreaming ? "SCREAM!" : "Listening...") : "Tap to Start Session"}
                                         </p>
                                     </div>
                                 </>
@@ -338,7 +431,12 @@ const PrivateVentingRoom = () => {
                                             <div className="text-3xl font-bold text-purple-400 mb-1">{maxDb}</div>
                                             <div className="text-xs text-neutral-500 uppercase">Max Intensity (dB)</div>
                                         </div>
-                                        <div className="bg-white/5 p-4 rounded-lg col-span-2">
+                                        {/* Scream Count UI */}
+                                         <div className="bg-white/5 p-4 rounded-lg">
+                                            <div className="text-3xl font-bold text-red-500 mb-1">{screamCount}</div>
+                                            <div className="text-xs text-neutral-500 uppercase">Screams Released</div>
+                                        </div>
+                                        <div className="bg-white/5 p-4 rounded-lg">
                                             <div className="text-3xl font-bold text-white mb-1">{Math.round(avgDb)}</div>
                                             <div className="text-xs text-neutral-500 uppercase">Average Intensity</div>
                                         </div>
@@ -372,6 +470,36 @@ const PrivateVentingRoom = () => {
                 }
                 .animate-fade-in-up {
                     animation: fade-in-up 0.5s ease-out forwards;
+                }
+                
+                /* Scream Animations */
+                @keyframes vibrate {
+                    0% { transform: translate(0, 0); }
+                    20% { transform: translate(-2px, 2px); }
+                    40% { transform: translate(-2px, -2px); }
+                    60% { transform: translate(2px, 2px); }
+                    80% { transform: translate(2px, -2px); }
+                    100% { transform: translate(0, 0); }
+                }
+                .animate-vibrate {
+                    animation: vibrate 0.1s linear infinite;
+                }
+
+                @keyframes scream-shake {
+                    0%, 100% { transform: translateX(0); }
+                    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px) translateY(2px); }
+                    20%, 40%, 60%, 80% { transform: translateX(5px) translateY(-2px); }
+                }
+                .animate-scream-shake {
+                    animation: scream-shake 0.2s linear infinite;
+                }
+
+                @keyframes pulse-fast {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.6; }
+                }
+                .animate-pulse-fast {
+                    animation: pulse-fast 0.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
                 }
             `}</style>
         </div>

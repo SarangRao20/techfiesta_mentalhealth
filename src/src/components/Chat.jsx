@@ -13,13 +13,28 @@ const Chat = () => {
 
     // Voice Mode State
     const [isVoiceMode, setIsVoiceMode] = useState(false);
-    const [voiceStatus, setVoiceStatus] = useState('listening'); // listening, processing, speaking
+    const [voiceStatus, setVoiceStatus] = useState('idle'); // idle, listening, processing, speaking
+    const [transcript, setTranscript] = useState('');
+    
+    // Voice Refs
+    const recognitionRef = useRef(null);
+    const synthesisRef = useRef(window.speechSynthesis);
+    const silenceTimerRef = useRef(null);
+    const isSpeakingRef = useRef(false);
+    const isVoiceModeRef = useRef(false); // Ref to track voice mode for event handlers
 
     const messagesEndRef = useRef(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
+
+    // Keep ref in sync with state
+    useEffect(() => {
+        isVoiceModeRef.current = isVoiceMode;
+    }, [isVoiceMode]);
+
+
 
     useEffect(() => {
         if (messagesEndRef.current) {
@@ -34,10 +49,10 @@ const Chat = () => {
         }
     }, [sessionId]);
 
-    const handleSend = async () => {
-        if (!input.trim()) return;
+    const sendMessage = async (text) => {
+        if (!text.trim()) return;
 
-        const userMsg = { role: 'user', content: input };
+        const userMsg = { role: 'user', content: text };
         setMessages(prev => [...prev, userMsg]);
         setInput('');
         setIsLoading(true);
@@ -48,7 +63,7 @@ const Chat = () => {
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({
-                    message: input,
+                    message: text,
                     session_id: sessionId
                 })
             });
@@ -57,12 +72,19 @@ const Chat = () => {
 
             const botMsg = { role: 'bot', content: data.bot_message };
             setMessages(prev => [...prev, botMsg]);
+            return data.bot_message;
         } catch (error) {
             console.error(error);
-            setMessages(prev => [...prev, { role: 'bot', content: "I'm having trouble connecting right now." }]);
+            const errorMsg = "I'm having trouble connecting right now.";
+            setMessages(prev => [...prev, { role: 'bot', content: errorMsg }]);
+            return errorMsg;
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleSend = () => {
+        sendMessage(input);
     };
 
     const handleKeyPress = (e) => {
@@ -72,21 +94,212 @@ const Chat = () => {
         }
     };
 
-    // Voice Mode Simulation
-    const toggleVoiceMode = () => {
-        if (isVoiceMode) {
-            setIsVoiceMode(false);
-        } else {
-            setIsVoiceMode(true);
-            setVoiceStatus('listening');
-            // Mock interaction flow
-            setTimeout(() => setVoiceStatus('processing'), 3000);
-            setTimeout(() => {
-                setVoiceStatus('speaking');
-                // Could acturally trigger TTS here
-            }, 5000);
-            setTimeout(() => setVoiceStatus('listening'), 8000);
+    // --- Voice Logic ---
+
+    // Initialize Speech Recognition
+    const setupSpeechRecognition = () => {
+        if (!('webkitSpeechRecognition' in window)) {
+            alert('Speech recognition is not supported in this browser. Please use Chrome or Edge.');
+            return null;
         }
+
+        const recognition = new window.webkitSpeechRecognition();
+        recognition.continuous = true; // Keep listening
+        recognition.interimResults = true;
+        recognition.lang = 'en-IN'; // Hinglish support
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+            console.log('Voice recognition started');
+            setVoiceStatus('listening');
+        };
+
+        recognition.onresult = (event) => {
+            // STRICT GUARD: If bot is speaking or about to speak, ignore EVERYTHING.
+            if (isSpeakingRef.current) {
+                console.log('Ignored input while speaking');
+                return;
+            }
+
+            let interimTranscript = '';
+            let finalTranscript = '';
+
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+            }
+
+            if (finalTranscript) {
+                setTranscript(finalTranscript);
+                handleVoiceInput(finalTranscript);
+            } else if (interimTranscript) {
+                setTranscript(interimTranscript);
+                // Only reset timer if we are actually listening properly
+                if (!isSpeakingRef.current) resetSilenceTimer();
+            }
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error', event.error);
+            if (event.error === 'no-speech') {
+                return; // Ignore no-speech errors
+            }
+            if (event.error === 'aborted') {
+                return; // Ignore manual aborts
+            }
+            // Attempt restart if active
+            if (isVoiceModeRef.current && !isSpeakingRef.current) {
+                 // Short delay before restart
+                 setTimeout(() => {
+                     try { recognition.start(); } catch (e) {}
+                 }, 1000);
+            }
+        };
+
+        recognition.onend = () => {
+            console.log('Voice recognition ended');
+            // Auto-restart if still in voice mode and not speaking
+            if (isVoiceModeRef.current && !isSpeakingRef.current) {
+                console.log('Restarting recognition...');
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.error('Failed to restart recognition', e);
+                }
+            } else {
+                 setVoiceStatus('idle');
+            }
+        };
+
+        return recognition;
+    };
+
+    const handleVoiceInput = async (text) => {
+        // Prevent processing if we are already handling something or speaking
+        if (isSpeakingRef.current) return;
+        
+        setVoiceStatus('processing');
+        // Stop recognition temporarily while processing/speaking
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+        }
+
+        const responseText = await sendMessage(text);
+        // sendMessage updates messages state, which triggers useEffect to speak
+    };
+
+    const speakResponse = (text) => {
+        if (!text || !isVoiceMode) return;
+
+        // CRITICAL FIX: Abort recognition IMMEDIATELY. 
+        // stop() is too slow and might return a result. abort() kills it.
+        if (recognitionRef.current) {
+            recognitionRef.current.abort();
+        }
+        isSpeakingRef.current = true; // Set flag immediately
+        setVoiceStatus('speaking');
+
+        // Clean text (remove markdown etc - basic cleanup)
+        const cleanText = text.replace(/[*#`]/g, '');
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'en-IN';
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+
+        // Find a female voice or Hindi voice if available
+        const voices = window.speechSynthesis.getVoices();
+        const preferredVoice = voices.find(v => v.lang.includes('hi') || v.name.includes('India') || v.name.includes('Female'));
+        if (preferredVoice) utterance.voice = preferredVoice;
+
+        utterance.onstart = () => {
+            // Redundant safety check
+            if (recognitionRef.current) recognitionRef.current.abort();
+            setVoiceStatus('speaking');
+            isSpeakingRef.current = true;
+        };
+
+        utterance.onend = () => {
+             // Add a small delay before listening again to avoid "echo" of the last word
+            setTimeout(() => {
+                isSpeakingRef.current = false;
+                setVoiceStatus('listening');
+                setTranscript(''); // Clear transcript
+                
+                // Restart recognition
+                if (isVoiceModeRef.current && recognitionRef.current) {
+                    try {
+                        recognitionRef.current.start();
+                    } catch(e) {
+                         // Might be already started
+                    }
+                }
+            }, 300); // 300ms delay helps clear the audio buffer
+        };
+
+        utterance.onerror = () => {
+            isSpeakingRef.current = false;
+            setVoiceStatus('listening');
+        };
+        
+        // Cancel any current speaking
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+    };
+
+    // Effect to toggle Voice Mode
+    useEffect(() => {
+        if (isVoiceMode) {
+            // Start
+            if (!recognitionRef.current) {
+                recognitionRef.current = setupSpeechRecognition();
+            }
+            try {
+                recognitionRef.current?.start();
+            } catch (e) { console.log('Already started'); }
+            
+        } else {
+            // Stop
+            if (recognitionRef.current) {
+                recognitionRef.current.abort(); // Uses abort instead of stop for immediate effect
+            }
+            window.speechSynthesis.cancel();
+            setVoiceStatus('idle');
+            setTranscript('');
+        }
+        
+        return () => {
+            // Cleanup on unmount or mode switch
+            if (recognitionRef.current) recognitionRef.current.abort();
+            window.speechSynthesis.cancel();
+        };
+    }, [isVoiceMode]);
+
+    // Effect to auto-speak bot messages in Voice Mode
+    useEffect(() => {
+        if (isVoiceMode && messages.length > 0) {
+            const lastMsg = messages[messages.length - 1];
+            if (lastMsg.role === 'bot') {
+                speakResponse(lastMsg.content);
+            }
+        }
+    }, [messages, isVoiceMode]);
+
+    const resetSilenceTimer = () => {
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = setTimeout(() => {
+            // Silence timeout logic - maybe stop listening or prompt?
+            // For now, let's just let it stay listening as 'continuous' handles a lot.
+            // But if we want to force stop on long silence:
+            // setIsVoiceMode(false); 
+        }, 8000);
+    };
+
+    const toggleVoiceMode = () => {
+        setIsVoiceMode(prev => !prev);
     };
 
     return (
@@ -215,18 +428,18 @@ const Chat = () => {
                                 {voiceStatus === 'processing' && "Thinking..."}
                                 {voiceStatus === 'speaking' && "Speaking..."}
                             </h2>
-                            <p className="text-neutral-400 font-light">
-                                Speak naturally. I'm here to listen.
+                            <p className="text-neutral-400 font-light max-w-md text-center">
+                                {transcript || "Speak naturally. I'm here to listen."}
                             </p>
                         </div>
 
                         {/* Controls */}
                         <div className="flex gap-6">
-                            <button className="p-4 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors">
+                            <button 
+                                onClick={toggleVoiceMode}
+                                className="p-4 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors"
+                            >
                                 <StopCircle className="w-6 h-6" />
-                            </button>
-                            <button className="p-4 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
-                                <Volume2 className="w-6 h-6" />
                             </button>
                         </div>
                     </div>

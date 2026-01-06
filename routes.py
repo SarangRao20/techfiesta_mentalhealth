@@ -6,7 +6,7 @@ from gemini_service import chat_with_ai, analyze_assessment_results, suggest_ass
 from voice_service import voice_service
 from utils import (hash_student_id, calculate_phq9_score, calculate_gad7_score, 
                   calculate_ghq_score, get_assessment_questions, get_assessment_options,
-                  format_time_ago, get_meditation_content)
+                  format_time_ago, get_meditation_content, generate_analysis)
 import json
 import logging
 from datetime import datetime, timedelta
@@ -754,7 +754,7 @@ def assessment_results_redirect(assessment_id):
     """Redirect old URL format to new format"""
     return redirect(url_for('assessment_results', assessment_id=assessment_id))
 
-def generate_analysis(assessment_type, score):
+def _unused_generate_analysis(assessment_type, score):
     if assessment_type == 'PHQ-9':
         if score <= 4:
             return {

@@ -3,8 +3,7 @@ from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
 from models import Assessment, User
 from app import db
-from utils import get_assessment_questions, get_assessment_options, calculate_phq9_score, calculate_gad7_score, calculate_ghq_score
-from routes import generate_analysis
+from utils import get_assessment_questions, get_assessment_options, calculate_phq9_score, calculate_gad7_score, calculate_ghq_score, generate_analysis
 import json
 
 ns = Namespace('assessments', description='Mental health assessments and results')
