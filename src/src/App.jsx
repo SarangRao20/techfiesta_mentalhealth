@@ -11,7 +11,7 @@ import MagicBento from './components/MagicBento'
 import ChatHistory from './components/ChatHistory'
 import TasksManager from './components/TasksManager'
 import Consultant from './components/Consultant'
-import Ar_breathing from './components/Ar_breathing'
+import Ar_breathing from './components/Features/Ar_breathing'
 import SignIn from './components/SignIn'
 import Meditation from './components/Meditation'
 import Resources from './components/Resources'
@@ -20,6 +20,7 @@ import Profile from './components/Profile'
 import MentorDashboard from './components/MentorDashboard'
 import CounselorDashboard from './components/CounselorDashboard'
 import VrMeditation from './components/VrMeditation'
+import MeditationHub from './components/MeditationHub'
 import Assessments from './components/Assessments'
 import Inkblot from './components/Inkblot'
 
@@ -87,8 +88,8 @@ function App() {
           element: <Community />
         },
         {
-          path: "meditation",
-          element: <Meditation />
+          path: "meditation-hub",
+          element: <MeditationHub />
         },
         {
           path: "ar-breathing",

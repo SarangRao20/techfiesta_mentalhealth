@@ -20,11 +20,6 @@ const VrMeditation = () => {
         ocean: {
             name: 'Calm Beach',
             graident: 'from-blue-900 to-cyan-900',
-            sky: 'https://live.staticflickr.com/65535/49969966133_be65507567_b.jpg', // Placeholder for usable 360 beach or use abstract
-            // Fallback to a reliable one if that fails, but let's try a standard one or just the cubes one if user used it.
-            // Actually, let's use a reliable 360 image from a repo.
-            sky: 'https://cdn.glitch.com/b8720227-4298-44d5-8a2e-33b79d280192%2FTeemall_panorama_1024.jpg?v=1561541819543', // Mall? No.
-            // Let's stick to the ones from the legacy code for now, even if names mismatch, to ensure it works "like before".
             sky: 'https://cdn.aframe.io/360-image-gallery-boilerplate/img/cubes.jpg',
             audio: '/assets/audio/waves-382467.mp3',
             icon: Waves

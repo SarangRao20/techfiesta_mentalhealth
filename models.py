@@ -213,9 +213,12 @@ class ConsultationRequest(db.Model):
     chat_video_link = db.Column(db.String(256))  # Secure chat/video link
     follow_up_datetime = db.Column(db.DateTime)  # Next follow-up session
     
-    # Attachment for shared reports
+    # Attachment for shared reports (legacy single attachment - kept for backward compatibility)
     attachment_type = db.Column(db.String(20)) # 'assessment', 'inkblot'
     attachment_id = db.Column(db.Integer)     # ID of the report in its table
+    
+    # Multiple attachments support (new field)
+    attachments = db.Column(JSONB)  # Array of {type: 'assessment'|'inkblot', id: int}
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

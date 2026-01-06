@@ -43,6 +43,8 @@ export default function Consultant() {
      setCalMonth(newMonth);
      setCalYear(newYear);
   };
+
+  const [start, setStart] = useState("");
   
   const [formData, setFormData] = useState({
     counsellor_id: "",
@@ -125,6 +127,7 @@ export default function Consultant() {
     setTimeHour("09");
     setTimeMinute("00");
     setTimeAmPm("AM");
+    setStart("");
     setModalView("form");
   };
 
@@ -143,9 +146,7 @@ export default function Consultant() {
        preferred_time = `${dateInput}T${hourStr}:${timeMinute}`;
     }
 
-    // Process attachments
-    const primaryAttachment = formData.attachments[0] || { type: null, id: null };
-    
+    // Process attachments - send all attachments as an array
     let finalNotes = formData.notes;
     if (formData.attachments.length > 0) {
        const attachmentText = formData.attachments.map(a => `[Attached: ${a.label}]`).join(", ");
@@ -156,8 +157,7 @@ export default function Consultant() {
        ...formData,
        preferred_time,
        notes: finalNotes,
-       attachment_type: primaryAttachment.type,
-       attachment_id: primaryAttachment.id
+       attachments: formData.attachments.map(a => ({ type: a.type, id: parseInt(a.id) }))
     };
 
     try {

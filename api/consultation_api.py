@@ -38,6 +38,16 @@ class CreateRequest(Resource):
                 except:
                     p_time = None # Fallback to string in time_slot if not ISO
 
+            # Handle attachments - support both old single attachment and new multiple attachments
+            attachments_list = data.get('attachments', [])
+            attachment_type = data.get('attachment_type')
+            attachment_id = data.get('attachment_id')
+            
+            # If old single attachment format is used, convert to list
+            if attachment_type and attachment_id:
+                if not attachments_list:
+                    attachments_list = [{'type': attachment_type, 'id': attachment_id}]
+            
             req = ConsultationRequest(
                 user_id=current_user.id,
                 counsellor_id=data.get('counsellor_id'),
@@ -46,8 +56,9 @@ class CreateRequest(Resource):
                 time_slot=p_time_str if not p_time else p_time.strftime('%Y-%m-%d %H:%M'),
                 session_datetime=p_time,
                 additional_notes=data.get('notes'),
-                attachment_type=data.get('attachment_type'), # NEW
-                attachment_id=data.get('attachment_id'),     # NEW
+                attachment_type=attachments_list[0]['type'] if attachments_list else None,  # Legacy field
+                attachment_id=attachments_list[0]['id'] if attachments_list else None,      # Legacy field
+                attachments=attachments_list,  # New field for multiple attachments
                 status='pending'
             )
             db.session.add(req)
@@ -207,8 +218,9 @@ class CounsellorRequests(Resource):
                 'contact_preference': r.contact_preference,
                 'status': r.status,
                 'notes': r.additional_notes,
-                'attachment_type': r.attachment_type,
-                'attachment_id': r.attachment_id,
+                'attachment_type': r.attachment_type,  # Legacy single attachment
+                'attachment_id': r.attachment_id,      # Legacy single attachment
+                'attachments': r.attachments or [],    # New multiple attachments array
                 'created_at': r.created_at.isoformat()
             } for r in requests
         ], 200

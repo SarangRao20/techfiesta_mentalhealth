@@ -99,9 +99,7 @@ function SideBar() {
             <div className="space-y-0.5">
               <div className="text-[10px] uppercase text-white/20 font-bold tracking-[0.2em] px-3 mb-1">Therapy</div>
               <NavItem icon={Wind} label="Venting" href="private-venting" />
-              <NavItem icon={Brain} label="Meditation" href="meditation" />
-              <NavItem icon={Glasses} label="VR Space" href="vr-meditation" />
-              <NavItem icon={Wind} label="AR Breathing" href="ar-breathing" />
+              <NavItem icon={Brain} label="Meditation" href="meditation-hub" />
             </div>
 
             <div className="space-y-0.5">
