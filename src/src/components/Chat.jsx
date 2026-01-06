@@ -59,7 +59,6 @@ const Chat = () => {
     const [messages, setMessages] = useState([
         { role: 'bot', content: "Hello! I'm here to listen. How are you feeling today?" }
     ]);
-    const[disableInput, setDisableInput] = useState(false);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [activeFeature, setActiveFeature] = useState(null);
@@ -68,8 +67,7 @@ const Chat = () => {
 
     // Voice Mode State
     const [isVoiceMode, setIsVoiceMode] = useState(false);
-    const [voiceStatus, setVoiceStatus] = useState('listening'); // listening, processing, speaking
-
+    const [voiceStatus, setVoiceStatus] = useState('listening');
     const messagesEndRef = useRef(null);
     const sosTimerRef = useRef(null);
     const sosCountdownRef = useRef(null);
@@ -77,13 +75,6 @@ const Chat = () => {
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
-
-    // Keep ref in sync with state
-    useEffect(() => {
-        isVoiceModeRef.current = isVoiceMode;
-    }, [isVoiceMode]);
-
-
 
     useEffect(() => {
         if (messagesEndRef.current) {
@@ -124,7 +115,11 @@ const Chat = () => {
     const handleSend = async () => {
         if (!input.trim()) return;
 
-        const userMsg = { role: 'user', content: text };
+        // IMMEDIATE HEURISTIC CHECK
+        const userMessage = input.trim();
+        const isCrisisDetected = detectCrisisHeuristic(userMessage);
+
+        const userMsg = { role: 'user', content: userMessage };
         setMessages(prev => [...prev, userMsg]);
         
         // If crisis detected, immediately show crisis response
@@ -136,11 +131,10 @@ const Chat = () => {
                 isCrisis: true
             };
             setMessages(prev => [...prev, crisisMsg]);
-            startSosTimer(); // Start immediate timer
+            startSosTimer();
             setInput('');
             setIsLoading(false);
-            setDisableInput(true);
-            return; // Don't wait for API
+            return;
         }
 
         setInput('');
@@ -151,30 +145,58 @@ const Chat = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    message: input,
-                    session_id: sessionId
+                    user_message: userMessage
                 })
             });
 
             const data = await res.json();
+            console.log('API Response:', data);
 
-            // Parse the reply - it could be plain text or JSON
-            let replyContent = data.reply;
+            // FIXED: Parse the reply properly with robust error handling
+            let replyContent = '';
             let suggestedFeature = null;
 
-            // Try to parse as JSON first
-            try {
-                const parsedReply = JSON.parse(data.reply);
-                replyContent = parsedReply.response || data.reply;
-                suggestedFeature = parsedReply.suggested_feature || null;
-            } catch (e) {
-                // If it's not JSON, treat it as plain text
-                replyContent = data.reply;
+            // Try to extract content from JSON-like string
+            if (typeof data.reply === 'string') {
+                const reply = data.reply.trim();
+                
+                // Try strict JSON parsing first
+                if (reply.startsWith('{')) {
+                    try {
+                        const parsedReply = JSON.parse(reply);
+                        replyContent = parsedReply.response || '';
+                        suggestedFeature = parsedReply.suggested_feature || null;
+                    } catch (e) {
+                        console.warn('Strict JSON parsing failed, trying regex extraction:', e);
+                        
+                        // Fallback: Extract using regex
+                        const responseMatch = reply.match(/"response"\s*:\s*"([^"]*(?:\\.[^"]*)*)"/);
+                        const featureMatch = reply.match(/"suggested_feature"\s*:\s*"([^"]*)"/);
+                        
+                        if (responseMatch) {
+                            replyContent = responseMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
+                        }
+                        if (featureMatch) {
+                            suggestedFeature = featureMatch[1];
+                        }
+                        
+                        // If regex also fails, use raw text
+                        if (!responseMatch) {
+                            replyContent = reply;
+                        }
+                    }
+                } else {
+                    // Plain text response
+                    replyContent = reply;
+                }
+            } else {
+                // If it's not a string, convert to string
+                replyContent = String(data.reply);
             }
 
             const isCrisis = data.self_harm_crisis === "true";
 
-            // If crisis detected by API, override suggested feature
+            // If crisis, override suggested feature
             if (isCrisis) {
                 suggestedFeature = "CALL";
             }
@@ -186,13 +208,63 @@ const Chat = () => {
                 isCrisis: isCrisis
             };
 
+            console.log('Bot Message:', botMsg);
             setMessages(prev => [...prev, botMsg]);
+
+            // Start SOS timer if crisis detected
+            if (isCrisis) {
+                startSosTimer();
+            }
         } catch (error) {
-            console.error(error);
-            setMessages(prev => [...prev, { role: 'bot', content: "I'm having trouble connecting right now." }]);
+            console.error('Error:', error);
+            setMessages(prev => [...prev, {
+                role: 'bot',
+                content: "I'm having trouble connecting right now."
+            }]);
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const startSosTimer = () => {
+        setSosCountdown(5);
+        
+        // Clear any existing timers
+        if (sosTimerRef.current) {
+            clearTimeout(sosTimerRef.current);
+        }
+        if (sosCountdownRef.current) {
+            clearInterval(sosCountdownRef.current);
+        }
+
+        // Countdown interval
+        let count = 5;
+        sosCountdownRef.current = setInterval(() => {
+            count -= 1;
+            setSosCountdown(count);
+            if (count <= 0) {
+                clearInterval(sosCountdownRef.current);
+            }
+        }, 1000);
+
+        // Navigate after 5 seconds
+        sosTimerRef.current = setTimeout(() => {
+            navigate('/app/ar_breathing');
+        }, 5000);
+    };
+
+    const handleSosClick = () => {
+        // Clear timers when user clicks SOS
+        if (sosTimerRef.current) {
+            clearTimeout(sosTimerRef.current);
+        }
+        if (sosCountdownRef.current) {
+            clearInterval(sosCountdownRef.current);
+        }
+        setSosCountdown(5);
+        
+        // Handle SOS action
+        window.location.href = 'tel:988';
     };
 
     const handleKeyPress = (e) => {
@@ -202,19 +274,14 @@ const Chat = () => {
         }
     };
 
-    // Voice Mode Simulation
     const toggleVoiceMode = () => {
         if (isVoiceMode) {
             setIsVoiceMode(false);
         } else {
             setIsVoiceMode(true);
             setVoiceStatus('listening');
-            // Mock interaction flow
             setTimeout(() => setVoiceStatus('processing'), 3000);
-            setTimeout(() => {
-                setVoiceStatus('speaking');
-                // Could acturally trigger TTS here
-            }, 5000);
+            setTimeout(() => setVoiceStatus('speaking'), 5000);
             setTimeout(() => setVoiceStatus('listening'), 8000);
         }
     };
@@ -263,23 +330,7 @@ const Chat = () => {
                                         ? 'bg-[#8e74ff] text-white rounded-tr-md'
                                         : ' text-white/70 '}
                                 `}>
-                                    {msg.role === 'user' ? (
-                                        <SplitText
-                                            text={msg.content}
-                                            className="text-md font-medium"
-                                            delay={35}
-                                            duration={0.6}
-                                            ease="power3.out"
-                                            splitType="words"
-                                            from={{ opacity: 0, y: 40 }}
-                                            to={{ opacity: 1, y: 0 }}
-                                            threshold={0.1}
-                                            rootMargin="-100px"
-                                            textAlign="left"
-                                        />
-                                    ) : (
-                                        <p className="text-md font-medium">{msg.content}</p>
-                                    )}
+                              {msg.content}
                                 </div>
                             </div>
 
@@ -287,7 +338,7 @@ const Chat = () => {
                                 <div className="flex justify-start mt-3">
                                     <button
                                         onClick={handleSosClick}
-                                        className="group relative ml-4 px-6 py-3 rounded-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-bold text-lg transition-all duration-300 shadow-[0_0_30px_rgba(239,68,68,0.5)] hover:shadow-[0_0_40px_rgba(239,68,68,0.7)] animate-pulse-urgent flex items-center gap-3"
+                                        className="group relative px-8 py-4 rounded-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-bold text-lg transition-all duration-300 shadow-[0_0_30px_rgba(239,68,68,0.5)] hover:shadow-[0_0_40px_rgba(239,68,68,0.7)] animate-pulse-urgent flex items-center gap-3"
                                     >
                                         <Phone className="w-6 h-6 animate-bounce" />
                                         <span>Call SOS ({sosCountdown}s)</span>
@@ -327,7 +378,6 @@ const Chat = () => {
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            disabled={disableInput}
                             onKeyDown={handleKeyPress}
                             placeholder="Type a message..."
                             className="flex-1 bg-[#1a1f2e] border border-white/5 rounded-2xl px-5 py-3 focus:outline-none focus:border-[#8e74ff]/30 transition-colors text-white placeholder:text-white/30"
@@ -401,18 +451,17 @@ const Chat = () => {
                                 {voiceStatus === 'processing' && "Thinking..."}
                                 {voiceStatus === 'speaking' && "Speaking..."}
                             </h2>
-                            <p className="text-neutral-400 font-light">
+                            <p className="text-white/40 text-sm">
                                 Speak naturally. I'm here to listen.
                             </p>
                         </div>
 
-                        {/* Controls */}
-                        <div className="flex gap-6">
-                            <button className="p-4 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors">
-                                <StopCircle className="w-6 h-6" />
+                        <div className="flex gap-4">
+                            <button className="w-12 h-12 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors flex items-center justify-center">
+                                <StopCircle className="w-5 h-5" />
                             </button>
-                            <button className="p-4 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
-                                <Volume2 className="w-6 h-6" />
+                            <button className="w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 text-white/70 transition-colors flex items-center justify-center">
+                                <Volume2 className="w-5 h-5" />
                             </button>
                         </div>
                     </div>
