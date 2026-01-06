@@ -43,6 +43,11 @@ class Routine(Resource):
         )
         db.session.add(task)
         db.session.commit()
+        
+        # Invalidate Dashboard Cache
+        from api.dashboard_api import invalidate_dashboard_cache
+        invalidate_dashboard_cache(current_user.id)
+        
         return task.as_dict(), 201
 
 @ns.route('/<int:task_id>/toggle')
@@ -56,6 +61,11 @@ class ToggleTask(Resource):
             
         task.status = 'completed' if task.status == 'pending' else 'pending'
         db.session.commit()
+        
+        # Invalidate Dashboard Cache
+        from api.dashboard_api import invalidate_dashboard_cache
+        invalidate_dashboard_cache(current_user.id)
+        
         return {'id': task.id, 'status': task.status}, 200
 
 @ns.route('/<int:task_id>')
@@ -69,4 +79,9 @@ class DeleteTask(Resource):
             
         db.session.delete(task)
         db.session.commit()
+        
+        # Invalidate Dashboard Cache
+        from api.dashboard_api import invalidate_dashboard_cache
+        invalidate_dashboard_cache(current_user.id)
+        
         return {'message': 'Task deleted successfully'}, 200

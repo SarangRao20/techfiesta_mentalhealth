@@ -72,6 +72,10 @@ class Assessments(Resource):
         db.session.add(log)
         db.session.commit()
         
+        # Invalidate Dashboard Cache
+        from api.dashboard_api import invalidate_dashboard_cache
+        invalidate_dashboard_cache(current_user.id)
+        
         return {
             'id': assessment.id,
             'score': score,

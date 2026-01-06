@@ -1,6 +1,6 @@
-import hashlib
 import json
 from datetime import datetime, timedelta
+from utils.celery_app import celery
 from flask import session
 
 def hash_student_id(student_id):
@@ -282,4 +282,59 @@ def generate_analysis(assessment_type, score):
         }
     
     return full_data
+
+@celery.task
+def sync_streak_to_db(user_id, streak_count):
+    """Sync Redis streak count to database"""
+    from app import app, db
+    from models import User
+    with app.app_context():
+        user = User.query.get(user_id)
+        if user:
+            user.login_streak = streak_count
+            user.last_streak_date = datetime.utcnow().date()
+            db.session.commit()
+
+def get_user_streak(r_streaks, user):
+    """Get current streak count for a user (Try Redis, fallback to DB)"""
+    count = r_streaks.get(f"streak_count:{user.id}")
+    if count is not None:
+        return int(count)
+    return user.login_streak or 0
+
+def update_user_streak(r_streaks, user):
+    """Update user streak based on activity and sync to DB asynchronously"""
+    user_id = user.id
+    count_key = f"streak_count:{user_id}"
+    last_key = f"streak_last_active:{user_id}"
+    
+    today = datetime.utcnow().date()
+    last_active_raw = r_streaks.get(last_key)
+    
+    # If key doesn't exist in Redis, seed it from DB
+    if not last_active_raw and user.last_streak_date:
+        r_streaks.set(last_key, user.last_streak_date.strftime('%Y-%m-%d'))
+        r_streaks.set(count_key, user.login_streak)
+        last_active_raw = user.last_streak_date.strftime('%Y-%m-%d').encode()
+
+    new_count = 1
+    if last_active_raw:
+        last_active = datetime.strptime(last_active_raw.decode(), '%Y-%m-%d').date()
+        if last_active == today:
+            return int(r_streaks.get(count_key) or 1)
+        elif last_active == today - timedelta(days=1):
+            new_count = r_streaks.incr(count_key)
+        else:
+            new_count = 1
+            r_streaks.set(count_key, new_count)
+    else:
+        new_count = 1
+        r_streaks.set(count_key, new_count)
+        
+    r_streaks.set(last_key, today.strftime('%Y-%m-%d'))
+    
+    # Sync to DB in background
+    sync_streak_to_db.delay(user_id, new_count)
+    
+    return new_count
 

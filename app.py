@@ -1,5 +1,6 @@
 import os
 import logging
+from datetime import timedelta
 from flask import Flask, request, session
 from markupsafe import Markup
 from flask_sqlalchemy import SQLAlchemy
@@ -13,6 +14,10 @@ from flask_cors import CORS
 ## Removed inkblot import; will define inkblot routes in routes.py
 from database import db
 from flask_migrate import Migrate
+import redis
+from flask_session import Session
+from flask_caching import Cache
+import json
 
 # Load environment variables
 load_dotenv()
@@ -33,7 +38,14 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}}, supports_credentials=True)
+# Selective origins to allow credentials (wildcard '*' won't work with supports_credentials=True)
+allowed_origins = [
+    "http://localhost:5173", 
+    "http://127.0.0.1:5173", 
+    "http://localhost:3000",
+    "http://192.168.29.24:5173" # Adding user's specific LAN IP from logs
+]
+CORS(app, resources={r"/api/*": {"origins": allowed_origins}}, supports_credentials=True)
 
 api = Api(app, 
           title='Mental Health Support API',
@@ -63,6 +75,29 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     'pool_pre_ping': True,
     "pool_recycle": 300,
 }
+
+# Redis Clients
+app.config['REDIS_URL'] = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379')
+r_sessions = redis.from_url(f"{app.config['REDIS_URL']}/1")
+r_cache = redis.from_url(f"{app.config['REDIS_URL']}/2")
+r_context = redis.from_url(f"{app.config['REDIS_URL']}/3")
+r_streaks = redis.from_url(f"{app.config['REDIS_URL']}/4")
+
+# Server-Side Sessions with Redis
+app.config['SESSION_TYPE'] = 'redis'
+app.config['SESSION_PERMANENT'] = True
+app.config['SESSION_USE_SIGNER'] = True
+app.config['SESSION_REDIS'] = r_sessions
+app.config['SESSION_KEY_PREFIX'] = 'mh_session:'
+app.config['SESSION_COOKIE_NAME'] = 'mh_auth_session'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+Session(app)
+
+# API Caching with Redis
+app.config['CACHE_TYPE'] = 'RedisCache'
+app.config['CACHE_REDIS_URL'] = f"{app.config['REDIS_URL']}/2"
+app.config['CACHE_DEFAULT_TIMEOUT'] = 300
+cache = Cache(app)
 
 db.init_app(app)
 
@@ -100,8 +135,33 @@ def unauthorized():
 
 @login_manager.user_loader
 def load_user(user_id):
+    # Try fetching user profile from Redis first to skip DB hit
+    user_key = f"user_profile:{user_id}"
+    cached_user = r_sessions.get(user_key)
     from models import User
-    return User.query.get(int(user_id))
+    
+    if cached_user:
+        try:
+            user_data = json.loads(cached_user)
+            user = User()
+            # Minimal mapping for Flask-Login to work
+            user.id = user_data['id']
+            user.username = user_data['username']
+            user.role = user_data['role']
+            user.full_name = user_data.get('full_name', '')
+            return user
+        except: pass
+        
+    user = User.query.get(int(user_id))
+    if user:
+        # Cache for 10 minutes
+        r_sessions.setex(user_key, 600, json.dumps({
+            'id': user.id,
+            'username': user.username,
+            'role': user.role,
+            'full_name': user.full_name
+        }))
+    return user
 
 with app.app_context():
     import models  # noqa: F401

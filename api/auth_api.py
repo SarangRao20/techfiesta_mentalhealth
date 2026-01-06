@@ -2,8 +2,10 @@ from flask import request, session
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_user, logout_user, login_required, current_user
 from models import User
-from app import db
 from datetime import datetime, timedelta
+from app import db, r_streaks, r_sessions
+from utils.common import update_user_streak
+import json
 
 ns = Namespace('auth', description='Authentication operations')
 
@@ -37,27 +39,41 @@ class Login(Resource):
     def post(self):
         """User login"""
         data = ns.payload
+        import time
+        start_time = time.time()
+        
         user = User.query.filter_by(username=data['username']).first()
+        print(f"DEBUG: DB User Fetch took {time.time() - start_time:.4f}s")
+        
         if user and user.check_password(data['password']):
-            login_user(user)
+            step_start = time.time()
+            login_user(user, remember=True)
+            print(f"DEBUG: Flask-Login login_user took {time.time() - step_start:.4f}s")
             
-            # Update streak
-            today = datetime.utcnow().date()
-            if user.last_streak_date:
-                if user.last_streak_date == today - timedelta(days=1):
-                    user.login_streak += 1
-                elif user.last_streak_date < today - timedelta(days=1):
-                    user.login_streak = 1
-            else:
-                user.login_streak = 1
-            user.last_streak_date = today
-            db.session.commit()
+            step_start = time.time()
+            # Update streak in Redis (Syncs to DB in background)
+            streak_count = update_user_streak(r_streaks, user)
+            print(f"DEBUG: Streak Update took {time.time() - step_start:.4f}s")
             
+            step_start = time.time()
+            # Invalidate profile cache
+            r_sessions.delete(f"user_profile:{user.id}")
+            print(f"DEBUG: Cache Invalidation took {time.time() - step_start:.4f}s")
+            
+            step_start = time.time()
+            # Trigger background calculation so it's ready when dashboard calls
+            from api.dashboard_api import precalculate_dashboard_task
+            precalculate_dashboard_task.delay(user.id)
+            print(f"DEBUG: Celery Task Trigger took {time.time() - step_start:.4f}s")
+
+            print(f"DEBUG: TOTAL LOGIN TIME: {time.time() - start_time:.4f}s")
+
             return {'message': 'Login successful', 'user': {
                 'id': user.id,
                 'username': user.username,
                 'role': user.role,
-                'login_streak': user.login_streak
+                'full_name': user.full_name,
+                'login_streak': streak_count
             }}, 200
         return {'message': 'Invalid credentials'}, 401
 
@@ -137,6 +153,9 @@ class Profile(Resource):
             user.accommodation_type = data['accommodation_type']
             
         db.session.commit()
+        
+        # Invalidate profile cache so it re-fetches with new details
+        r_sessions.delete(f"user_profile:{user.id}")
         
         return {
             'message': 'Profile updated successfully',

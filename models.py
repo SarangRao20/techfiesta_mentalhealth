@@ -9,13 +9,13 @@ from sqlalchemy.dialects.postgresql import JSONB
 class RoutineTask(db.Model):
     __tablename__ = 'routine_tasks'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     title = db.Column(db.String(100), nullable=False)
     start_time = db.Column(db.String(5), nullable=False)  # HH:MM
     end_time = db.Column(db.String(5), nullable=False)    # HH:MM
     notes = db.Column(db.Text)
     status = db.Column(db.String(20), default='pending')  # pending, completed, skipped
-    created_date = db.Column(db.Date, default=datetime.utcnow)
+    created_date = db.Column(db.Date, default=datetime.utcnow, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -98,10 +98,10 @@ class User(UserMixin, db.Model):
 
 class ChatSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     session_start = db.Column(db.DateTime, default=datetime.utcnow)
     session_end = db.Column(db.DateTime)
-    crisis_flag = db.Column(db.Boolean, default=False)
+    crisis_flag = db.Column(db.Boolean, default=False, index=True)
     keywords_detected = db.Column(JSONB)  # JSON string of detected keywords
     
     # Emotional Vector Dynamics (VD) State
@@ -121,22 +121,22 @@ class ChatMessage(db.Model):
 
 class Assessment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     assessment_type = db.Column(db.String(10), nullable=False)  # PHQ-9, GAD-7, GHQ
     responses = db.Column(JSONB, nullable=False)  # JSON string of responses
     score = db.Column(db.Integer, nullable=False)
     severity_level = db.Column(db.String(20), nullable=False)
     recommendations = db.Column(JSONB)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    completed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
 class MeditationSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     session_type = db.Column(db.String(20), nullable=False)  # meditation, music
     duration = db.Column(db.Integer)  # in minutes
-    completed_at = db.Column(db.DateTime, default=datetime.utcnow)
-    date = db.Column(db.Date, default=datetime.utcnow().date)
+    completed_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    date = db.Column(db.Date, default=datetime.utcnow().date, index=True)
 
 class VentingPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -186,26 +186,26 @@ class InkblotResult(db.Model):
 class UserActivityLog(db.Model):
     __tablename__ = 'user_activity_logs'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     activity_type = db.Column(db.String(50), nullable=False) # assessment, venting, meditation, chat, ar_vr
     action = db.Column(db.String(50)) # start, complete, submit, result_generated
     duration = db.Column(db.Integer) # in seconds
     result_value = db.Column(db.Float) # e.g., assessment score, max decibel
     extra_data = db.Column(JSONB) # Any additional context
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    date = db.Column(db.Date, default=datetime.utcnow().date)
+    date = db.Column(db.Date, default=datetime.utcnow().date, index=True)
 
     user = db.relationship('User', backref='activity_logs')
 
 class ConsultationRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     counsellor_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # Link to counsellor
     urgency_level = db.Column(db.String(10), nullable=False)  # low, medium, high
     time_slot = db.Column(db.String(50))  # Selected time slot
     contact_preference = db.Column(db.String(20))  # phone, email, video
     additional_notes = db.Column(db.Text)
-    status = db.Column(db.String(20), default='pending')  # pending, accepted, rejected, booked, completed
+    status = db.Column(db.String(20), default='pending', index=True)  # pending, accepted, rejected, booked, completed
     session_datetime = db.Column(db.DateTime)  # Scheduled session date/time
     session_notes = db.Column(db.Text)  # Notes by counsellor after session
     feedback_rating = db.Column(db.Integer)  # User rating (1-5)
