@@ -23,6 +23,22 @@ export default function Dashboard() {
     // Fire ignites on page refresh
     setTimeout(() => setIgnite(true), 300);
 
+    // Quick Hydration from LocalStorage
+    const cachedDash = localStorage.getItem("initial_dash");
+    const cachedUser = localStorage.getItem("user");
+    if (cachedDash) {
+      const dash = JSON.parse(cachedDash);
+      const user = cachedUser ? JSON.parse(cachedUser) : {};
+      setStats({
+        ...stats,
+        ...dash,
+        username: user.username || dash.username,
+        full_name: user.full_name || dash.full_name,
+        meditation_minutes: dash.total_minutes_meditated || 0
+      });
+      setLoading(false);
+    }
+
     // Fetch dashboard data
     const fetchDashboardData = async () => {
       try {
@@ -34,19 +50,7 @@ export default function Dashboard() {
           let username = data.username || "";
           let full_name = data.full_name || "";
 
-          // Fallback: If username/name is missing, fetch from /auth/me
-          if (!username || !full_name) {
-            try {
-              const meRes = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
-              if (meRes.ok) {
-                const meData = await meRes.json();
-                username = meData.username || username;
-                full_name = meData.full_name || full_name;
-              }
-            } catch (e) {
-              console.error("Failed to fetch user profile fallback", e);
-            }
-          }
+          // No fallback needed if data is provided in dashboard itself
 
           setStats({
             login_streak: data.login_streak || 0,
@@ -58,6 +62,9 @@ export default function Dashboard() {
             consultations: data.consultations || [],
             recent_meditation_logs: data.recent_meditation_logs || []
           });
+
+          // Persistent Cache: Save for next instant-load
+          localStorage.setItem("initial_dash", JSON.stringify(data));
         }
       } catch (error) {
         console.error("Failed to fetch dashboard stats", error);
@@ -68,6 +75,24 @@ export default function Dashboard() {
 
     fetchDashboardData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0f131c] to-[#141923] p-8 text-white">
+        <h1 className="text-3xl font-semibold mb-8 tracking-wide">
+          Dashboard
+        </h1>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="h-64 bg-white/5 animate-pulse rounded-2xl"></div>
+          <div className="h-64 bg-white/5 animate-pulse rounded-2xl"></div>
+          <div className="h-64 bg-white/5 animate-pulse rounded-2xl"></div>
+          <div className="h-64 bg-white/5 animate-pulse rounded-2xl"></div>
+          <div className="h-64 bg-white/5 animate-pulse rounded-2xl"></div>
+          <div className="h-64 bg-white/5 animate-pulse rounded-2xl"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f131c] to-[#141923] p-8 text-white">

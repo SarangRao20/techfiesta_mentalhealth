@@ -5,6 +5,8 @@ from app import db
 from utils import get_meditation_content
 from datetime import datetime, timedelta
 from sqlalchemy import func
+from app import r_streaks
+from utils.common import update_user_streak, get_user_streak
 
 ns = Namespace('meditation', description='Meditation content and session tracking')
 
@@ -53,6 +55,13 @@ class CompleteMeditation(Resource):
         )
         db.session.add(log)
         
+        # Redis Streak Update
+        update_user_streak(r_streaks, current_user)
+        
+        # Invalidate Dashboard Cache
+        from api.dashboard_api import invalidate_dashboard_cache
+        invalidate_dashboard_cache(current_user.id)
+        
         db.session.commit()
         return {'message': 'Meditation session saved'}, 201
 
@@ -77,5 +86,5 @@ class MeditationStats(Resource):
         return {
             'total_sessions': stats.total_sessions or 0,
             'total_minutes': total_minutes,
-            'streak': current_user.login_streak
+            'streak': get_user_streak(r_streaks, current_user)
         }, 200

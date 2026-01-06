@@ -20,3 +20,7 @@ flask_restx
 flask_cors
 flask_migrate
 psycopg2-binary
+redis
+Flask-Session
+Flask-Caching
+celery

@@ -3,9 +3,31 @@ from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
 from models import ChatSession, ChatMessage
 from app import db
-import json
 import requests
 from ollama import Client
+import json
+from utils.celery_app import celery
+from flask import current_app
+import redis
+import time
+import os
+
+# Initialize redis client for chatbot context (DB index 3 as per plan)
+r_context = redis.from_url(f"{os.environ.get('REDIS_URL', 'redis://localhost:6379')}/3")
+r_streaks = redis.from_url(f"{os.environ.get('REDIS_URL', 'redis://localhost:6379')}/4")
+from utils.common import update_user_streak
+
+@celery.task
+def save_chat_message(session_id, message_type, content, crisis_detected=False):
+    from app import app, db
+    with app.app_context():
+        msg = ChatMessage(session_id=session_id, message_type=message_type, content=content)
+        db.session.add(msg)
+        if crisis_detected and message_type == 'bot':
+            chat_session = ChatSession.query.get(session_id)
+            if chat_session:
+                chat_session.crisis_flag = True
+        db.session.commit()
 
 ns = Namespace('chatbot', description='AI Chatbot operations')
 
@@ -40,111 +62,100 @@ class Chat(Resource):
         else:
             chat_session = ChatSession.query.get_or_404(session_id)
 
-        # Save user message
-        user_msg = ChatMessage(session_id=session_id, message_type='user', content=user_message)
-        db.session.add(user_msg)
+        # Rate Limiting: Max 10 messages per minute
+        rate_limit_key = f"chat_limit:{current_user.id}"
+        count = r_context.get(rate_limit_key)
+        if count and int(count) >= 10:
+            return {
+                'bot_message': "You're sending messages too fast. Please take a deep breath.",
+                'crisis_detected': False,
+                'session_id': session_id
+            }, 429
+        r_context.incr(rate_limit_key)
+        if not count: r_context.expire(rate_limit_key, 60)
+
+        # Context Management (Redis)
+        context_key = f"chat_context:{session_id}"
+        history_raw = r_context.get(context_key)
+        chat_history = json.loads(history_raw) if history_raw else []
+
+        # Save user message asynchronously
+        save_chat_message.delay(session_id, 'user', user_message)
+        
+        # Redis Streak Update
+        update_user_streak(r_streaks, current_user)
         
         bot_message = "I'm here to listen."
         crisis_detected = False
         assessment_suggestion = None
 
-        # Try FastAPI first, fallback to direct Ollama if unavailable
+        # Fallback helper for Ollama
+        def call_ollama(msg, hist):
+            ollama_client = Client(host='http://localhost:11434')
+            system_prompt = """You are a compassionate mental health assistant. 
+            FEATURES:
+            1. 1/2-Minute Breathing Exercise
+            2. Body Scan Meditation
+            3. Mindfulness Meditation
+            4. Nature Sounds
+            5. Piano Relaxation
+            6. Ocean Waves
+            7. AR Breathing
+            8. Sound Venting Hall
+            9. Private Venting Room
+            10. VR Meditation
+            
+            Return JSON: { intent_analysis: { emotional_state, intent_type, self_harm_crisis }, response, suggested_feature }."""
+            msgs = [{'role': 'system', 'content': system_prompt}]
+            for h in hist: msgs.append({'role': 'assistant' if h['role'] == 'bot' else 'user', 'content': h['content']})
+            msgs.append({'role': 'user', 'content': msg})
+            
+            res = ollama_client.chat(model='llama3.2:3b', messages=msgs)
+            text = res['message']['content'].strip()
+            
+            try:
+                start = text.find('{')
+                end = text.rfind('}')
+                if start != -1 and end != -1:
+                    return json.loads(text[start:end+1])
+            except: pass
+            return {"response": text}
+
+        # Main Logic: FastAPI -> Ollama
         try:
             fastapi_response = requests.post(
                 'http://localhost:8000/send-message',
-                json={'user_message': user_message},
-                timeout=30
+                json={'user_message': user_message, 'history': chat_history},
+                timeout=10
             )
             fastapi_data = fastapi_response.json()
-            
-            bot_message = fastapi_data.get('reply', 'I am here to listen.')
+            bot_message = fastapi_data.get('reply', '...')
             crisis_detected = fastapi_data.get('self_harm_crisis') == 'true'
-            
-            # Parse intent for assessment suggestion
+            # (Suggestion logic...)
             intent_json_str = fastapi_data.get('intent_json', '{}')
             try:
                 intent_data = json.loads(intent_json_str)
                 suggested_assessment = intent_data.get('suggested_assessment', 'none')
                 if suggested_assessment != 'none':
-                    assessment_suggestion = {
-                        'suggested_assessment': suggested_assessment,
-                        'reason': f"Based on your conversation, a {suggested_assessment} assessment might be helpful."
-                    }
-            except:
-                pass
-                
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout, requests.exceptions.RequestException):
-            # Fallback: Direct Ollama call
-            try:
-                ollama_client = Client(host='http://localhost:11434')
-                system_prompt = """You are a compassionate mental health assistant.
-                
-                HERE IS THE CATALOG OF FEATURES YOU MUST SUGGEST FROM (USE EXACT NAMES):
-                1. 1/2-Minute Breathing Exercise (For quick stress/anxiety relief)
-                2. Body Scan Meditation (For physical relaxation)
-                3. Mindfulness Meditation (For mental clarity)
-                4. Nature Sounds (For calming background)
-                5. Piano Relaxation (For soothing music)
-                6. Ocean Waves (For rhythmic relaxation)
-                7. AR Breathing (For immersive breathing)
-                8. Sound Venting Hall (For anonymous community sharing)
-                9. Private Venting Room (For private emotional release)
-                10. VR Meditation (For fully immersive environments)
+                    assessment_suggestion = {'suggested_assessment': suggested_assessment, 'reason': f"Based on our talk, {suggested_assessment} might help."}
+            except: pass
+        except:
+            # Fallback to direct Ollama
+            unified_data = call_ollama(user_message, chat_history)
+            bot_message = unified_data.get('response', 'I am here to listen.')
+            intent_analysis = unified_data.get('intent_analysis', {})
+            crisis_detected = str(intent_analysis.get('self_harm_crisis', 'false')).lower() == 'true'
+            feat = unified_data.get('suggested_feature', 'none')
+            if feat != 'none':
+                assessment_suggestion = {'suggested_assessment': feat, 'reason': 'Recommended for you.'}
 
-                Return a SINGLE JSON object with:
-                - intent_analysis: { emotional_state, intent_type, self_harm_crisis }
-                - response: <empathetic response tailored to user's state>
-                - suggested_feature: <EXACT feature name from the catalog above or "none">
-                
-                CRITICAL: The suggested_feature MUST match the primary suggestion in your response. 
-                If you mention breathing, suggest "1/2-Minute Breathing Exercise". 
-                If you mention venting, suggest "Private Venting Room".
-                
-                RESPONSE RULES: Speak naturally, be empathetic, non-judgmental.
-                OUTPUT MUST BE JSON ONLY. NO PREAMBLE. NO POST-TEXT."""
-
-                response = ollama_client.chat(model='llama3.2:3b', messages=[
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': user_message}
-                ])
-                
-                response_text = response['message']['content'].strip()
-                
-                def extract_json(text):
-                    try:
-                        start = text.find('{')
-                        end = text.rfind('}')
-                        if start != -1 and end != -1:
-                            return json.loads(text[start:end+1])
-                    except:
-                        pass
-                    return None
-
-                unified_data = extract_json(response_text)
-                if unified_data:
-                    bot_message = unified_data.get('response', 'I am here to listen.')
-                    intent_analysis = unified_data.get('intent_analysis', {})
-                    crisis_detected = str(intent_analysis.get('self_harm_crisis', 'false')).lower() == 'true'
-                    
-                    feat = unified_data.get('suggested_feature', 'none')
-                    if feat != 'none':
-                        assessment_suggestion = {
-                            'suggested_assessment': feat,
-                            'reason': 'This feature might help you currently.'
-                        }
-                else:
-                    bot_message = response_text.replace("```json", "").replace("```", "").strip()
-            except:
-                bot_message = "I'm listening. Tell me more about how you feel."
-
-        # Save bot message to DB
-        bot_msg = ChatMessage(session_id=session_id, message_type='bot', content=bot_message)
-        db.session.add(bot_msg)
+        # Save bot message asynchronously
+        save_chat_message.delay(session_id, 'bot', bot_message, crisis_detected)
         
-        if crisis_detected:
-            chat_session.crisis_flag = True
-            
-        db.session.commit()
+        # Update Redis context
+        chat_history.append({'role': 'user', 'content': user_message})
+        chat_history.append({'role': 'bot', 'content': bot_message})
+        r_context.setex(context_key, 3600, json.dumps(chat_history[-4:])) # Keep last 4
         
         return {
             'bot_message': bot_message,
@@ -152,6 +163,7 @@ class Chat(Resource):
             'assessment_suggestion': assessment_suggestion,
             'session_id': session_id
         }
+
 
 @ns.route('/history')
 class ChatHistory(Resource):

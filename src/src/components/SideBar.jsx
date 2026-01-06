@@ -22,8 +22,19 @@ import {
 function SideBar() {
   const [open, setOpen] = useState(true);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [username, setUsername] = useState("User");
-  const [role, setRole] = useState("student");
+  const [username, setUsername] = useState(() => {
+    try {
+      const saved = localStorage.getItem("user");
+      const u = saved ? JSON.parse(saved) : null;
+      return u ? (u.username || u.full_name || "User") : "User";
+    } catch (e) { return "User"; }
+  });
+  const [role, setRole] = useState(() => {
+    try {
+      const saved = localStorage.getItem("user");
+      return saved ? (JSON.parse(saved).role || "student") : "student";
+    } catch (e) { return "student"; }
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -167,9 +178,9 @@ function SideBar() {
     min-h-screen
   `}
       >
-    
-            <Outlet />
-  
+
+        <Outlet />
+
       </main>
 
       {/* Logout Confirmation Modal */}

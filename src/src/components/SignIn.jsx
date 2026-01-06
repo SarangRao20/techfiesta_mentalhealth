@@ -32,6 +32,11 @@ const SignIn = () => {
       const data = await response.json();
 
       if (response.ok) {
+        // Instant Dash: Store initial data
+        localStorage.setItem("user", JSON.stringify(data.user));
+        if (data.user.initial_dash) {
+          localStorage.setItem("initial_dash", JSON.stringify(data.user.initial_dash));
+        }
         navigate("/app/dashboard");
       } else {
         alert(data.message || "Login failed. Please check your credentials.");

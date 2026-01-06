@@ -2,7 +2,7 @@ from flask import request
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
 from models import VentingPost, VentingResponse, SoundVentingSession, User
-from app import db
+from app import db, cache
 from datetime import datetime
 
 ns = Namespace('venting', description='Venting wall and emotional expression')
@@ -29,6 +29,7 @@ sound_venting_model = ns.model('SoundVentingSession', {
 @ns.route('/posts')
 class Posts(Resource):
     @login_required
+    @cache.cached(timeout=300, key_prefix='all_venting_posts')
     def get(self):
         """Get all venting posts"""
         posts = VentingPost.query.order_by(VentingPost.created_at.desc()).all()
@@ -70,6 +71,8 @@ class Posts(Resource):
         db.session.add(log)
         
         db.session.commit()
+        # Clear cache so new post shows up
+        cache.delete('all_venting_posts')
         return {'message': 'Post created', 'id': post.id}, 201
 
 @ns.route('/posts/<int:post_id>/like')

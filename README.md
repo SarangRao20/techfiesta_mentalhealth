@@ -1,127 +1,150 @@
 # Nivana: Proactive AI Mental Health Platform
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
-![Type](https://img.shields.io/badge/architecture-machine--centric-orange.svg)
-![AI](https://img.shields.io/badge/intelligence-intent--aware-blueviolet.svg)
+![Version](https://img.shields.io/badge/version-2.0.0-purple.svg)
+![Stack](https://img.shields.io/badge/stack-PERN+Redis-blue.svg)
+![AI](https://img.shields.io/badge/AI-Ollama+Gemini-orange.svg)
 
-Nivana is a next-generation, **machine-centric** mental health ecosystem. Unlike traditional reactive support systems, Nivana uses intent-aware LLMs and automated trend analysis to proactively suggest interventions, prescribe assessments, and provide personalized wellness solutions before a crisis occurs.
-
----
-
-## 🌟 Key Features
-
-- **🧠 Intent-Aware AI Support**: A fine-tuned, context-conscious chatbot that understands user sentiment and underlying needs.
-- **📈 Proactive Analytics**: Machine-driven trend analysis that identifies behavioral patterns and suggests relevant tests or modules.
-- **📝 Automated Intake & Assessment**: Integrated PHQ-9/GAD-7 questionnaires with contextual AI pre-analysis.
-- **🌊 Module-Based Interventions**: Dynamic suggestions for tools like the **Sound Vent Box**, **Meditation**, or **Specialist Booking**.
-- **📊 Therapist Analytics Dashboard**: Comprehensive data-driven insights for professionals to monitor trends and anonymized metrics.
-- **🎮 Gamified Session Management**: Progress tracking with badges and streaks to ensure long-term user engagement.
+Nivana is a next-generation, **machine-centric** mental health ecosystem. It uses intent-aware LLMs, proactive trend analysis, and a high-performance event-driven architecture to suggest interventions before a crisis occurs.
 
 ---
 
-## 🏗 Machine-Centric Architecture
+## 🛠 Tech Stack & Architecture
 
-Nivana's architecture is built for proactive intelligence, separating user interaction from deep data processing.
+| Component | Technology | Role |
+| :--- | :--- | :--- |
+| **Frontend** | React, Vite, TailwindCSS | Fast, responsive Single Page Application (SPA) |
+| **Backend** | Python, Flask, RESTx | API Gateway, Logic, and Orchestration |
+| **Database** | PostgreSQL | Relational data persistence (Users, Streaks breakdown) |
+| **Real-time Store** | **Redis (Memurai)** | Session storage, API Caching, Streak Counters, Chat Context |
+| **Async Broker** | **Celery** | Background task processing (PDFs, Emails, AI Analysis) |
+| **Local AI** | **Ollama** | Running local interaction models (Intent Classification) |
+| **Cloud AI** | Google Gemini 1.5 | Complex reasoning and empathetic response generation |
 
-```mermaid
-graph TD
-    subgraph UI_Layer [User Interface]
-        Mobile["📱 Mobile App (Android/iOS)"]
-        Web["💻 Web Portal (React/Vue)"]
-    end
+---
 
-    subgraph Logic_Gateway [API Gateway & Backend]
-        Gateway["🚀 FastAPI / Flask Services"]
-    end
+## 📋 Prerequisites
 
-    subgraph Module_Layer [Intake & Support Modules]
-        Intake["📝 Intake & Assessment Module<br/>(Pre-Analysis)"]
-        ChatEngine["🤖 Chatbot & AI Support<br/>(LLM / Crisis Detect)"]
-        History["💬 Conversational History<br/>(Context Engine)"]
-        Session["🎮 Session Mgmt & Gamification<br/>(Tracking)"]
-    end
+Before running the project, ensure you have the following installed:
 
-    subgraph Analytics_Layer [Data Processing & Analytics]
-        TrendAnal["📊 Trend Analysis & Insights<br/>(ML/Reporting)"]
-    end
+1. **Node.js (v18+)**: [Download Here](https://nodejs.org/)
+2. **Python (v3.10+)**: [Download Here](https://www.python.org/)
+3. **Memurai (Redis for Windows)**: [Download Here](https://www.memurai.com/)
+    * *Why Memurai?* Redis doesn't officially support Windows. Memurai is the native Windows port.
+4. **Ollama**: [Download Here](https://ollama.com/)
+    * *For Local AI models.*
 
-    subgraph Storage_Layer [Storage & Persistence]
-        VectorDB[("🧠 Vector DB<br/>(History Context)")]
-        RDBMS[("🗄 User & Booking DB")]
-        DataLake[("📈 Analytics Data Lake")]
-    end
+---
 
-    subgraph External_Integrations [External Integrations]
-        Notif["📧 SMS/Email Notifications"]
-        Monitor["📡 System Monitoring"]
-    end
+## 🤖 AI Models Setup (The "models" guide)
 
-    %% Flow
-    UI_Layer <--> Gateway
-    Gateway <--> Intake & ChatEngine & History & Session
-    
-    Intake --> RDBMS
-    ChatEngine <--> VectorDB
-    History --> RDBMS
-    Session --> DataLake
-    
-    TrendAnal <--> DataLake & RDBMS
-    
-    TrendAnal --> Gateway
-    Gateway --> Notif & Monitor
+Nivana uses custom-tuned local models for speed and privacy. You must load these into Ollama before starting the app.
+
+1. Open your terminal/command prompt.
+2. Navigate to the `models` directory:
+
+    ```powershell
+    cd models
+    ```
+
+3. **Create the Conversation Model**:
+    This model (`mental_health_core`) handles the base conversational structure.
+
+    ```powershell
+    ollama create mental_health_core -f Modelfile.convo_LLM
+    ```
+
+4. **Create the Intent Classifier**:
+    This model (`intent_classifier`) detects if a user is in crisis, venting, or seeking advice.
+
+    ```powershell
+    ollama create intent_classifier -f Modelfile.intent_classifier
+    ```
+
+5. **Verify**:
+    Run `ollama list` to see both models listed.
+
+---
+
+## ⚙️ Installation
+
+### 1. Backend Setup
+
+```powershell
+# Navigate to project root
+pip install -r requirements.txt
+
+# Create .env file (if not exists)
+# copy .env.example .env
+```
+
+### 2. Frontend Setup
+
+```powershell
+cd src
+npm install
 ```
 
 ---
 
-## 🔄 Proactive User Workflow
+## � How to Run (The "Running Steps")
 
-The system doesn't just wait for input; it proactively guides the user journey.
+For the comprehensive application to work, you need 4 terminal windows running simultaneously.
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant System as Nivana Platform
-    participant Analytics as ML Analytics Layer
-    participant AI as Intent-Aware AI
+### Terminal 1: Redis (Database)
 
-    User->>System: Interact / Chat
-    System->>AI: Analyze Tone & Intent
-    AI-->>System: Provide Context-Aware Support
-    
-    System->>Analytics: Record Interaction Data
-    Note over Analytics: Processing Trends & Behavioral Patterns
+Start the Redis/Memurai server.
 
-    alt Trend Detected: High Stress
-        Analytics->>System: Trigger Proactive Suggestion
-        System->>User: "I've noticed your recent patterns. Would you like to try the Sound Vent Box?"
-    else High Anxiety Score
-        Analytics->>System: Trigger Assessment Need
-        System->>User: "Let's check in with a quick GAD-7 assessment."
-    end
-
-    User->>System: Book Specialist
-    System-->>User: Connected with Professional Counselor
+```powershell
+# If installed via MSI, it runs as a service automatically.
+# To run manually:
+./memurai.exe
 ```
 
+### Terminal 2: Celery (Background Worker)
+
+Processes background tasks like saving chat logs and updating long-term streaks.
+**Important**: Run this in the project root.
+
+```powershell
+celery -A utils.common.celery worker --pool=solo --loglevel=info
+```
+
+*Note: We use `--pool=solo` because `prefork` is not supported on Windows.*
+
+### Terminal 3: Flask Backend (API)
+
+Starts the main API server at `http://localhost:2323`.
+
+```powershell
+python main.py
+```
+
+### Terminal 4: Frontend (UI)
+
+Starts the React app.
+
+```powershell
+cd src
+npm run dev
+```
+
+The application will be live at `http://localhost:5173`.
+
 ---
 
-## 🛠 Tech Stack
+## � Troubleshooting
 
-| Component | Technology |
-| :--- | :--- |
-| **Backend** | Python, Flask/FastAPI, SQLAlchemy |
-| **User Interface** | Bootstrap 5, Jinja2, Chart.js, React/Vue (Frontend ready) |
-| **Intelligence** | Gemini 1.5 Pro (Fine-tuned), LangChain, VectorDB (FAISS/Pinecone) |
-| **Analytics** | Scikit-Learn, Pandas, PowerBI/Talend Integration |
-| **Voice/Audio** | Sarvam AI, OpenAI Whisper |
-| **Data Lake** | Snowflake/PostgreSQL Analytics Schema |
+### "Redis connection failed"
 
----
+- Ensure Memurai is running. Open Task Manager -> Services and check if `Memurai` is active.
+* Check `app.py` Redis URL `redis://localhost:6379`.
 
-## 🚀 Installation & Setup
+### "CORS Error" or "Network Error"
 
-Please refer to the original `README.md` structure for detailed installation steps or check [ARCHITECTURE.md](file:///c:/Users/Sarang/OneDrive/Desktop/techfiesta_mentalhealth/ARCHITECTURE.md) for deeper system specs.
+- We use a dynamic API URL configuration.
+* If testing on mobile (LAN), ensure your phone and laptop are on the same Wi-Fi.
+* The app automatically detects your IP (`192.168.x.x`) to configure CORS.
 
----
+### "Module not found" in Celery
 
-**Nivana** - *Peace of mind, proactively driven.*
+- Make sure you run the celery command from the **root directory** of the project, not inside `utils` or `api`.

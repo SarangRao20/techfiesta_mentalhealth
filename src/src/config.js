@@ -1,1 +1,2 @@
-export const API_URL = "http://localhost:2323";
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+export const API_URL = isLocalhost ? "http://localhost:2323" : `http://${window.location.hostname}:2323`;

@@ -1,8 +1,12 @@
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
+from app import cache, r_streaks
+from database import db
 from models import User, RoutineTask, Assessment, MeditationSession, ChatSession, ConsultationRequest
-from sqlalchemy import func
 from datetime import datetime, timedelta
+from sqlalchemy import func, or_
+from sqlalchemy.orm import joinedload
+from utils.common import update_user_streak, get_user_streak
 
 ns = Namespace('dashboard', description='User dashboard and statistics')
 
@@ -26,70 +30,116 @@ dashboard_model = ns.model('Dashboard', {
     'recent_meditation_logs': fields.List(fields.Raw())
 })
 
+def get_dashboard_summary(user):
+    """Utility function to get dashboard stats for a user (used by API and Login)"""
+    today = datetime.utcnow().date()
+    start_of_week = today - timedelta(days=today.weekday())
+    
+    # Routine Tasks - Optimized with .count() to avoid object initialization
+    tasks_today_query = RoutineTask.query.filter_by(user_id=user.id, created_date=today)
+    tasks_today_count = tasks_today_query.count()
+    completed_tasks_count = tasks_today_query.filter_by(status='completed').count()
+    progress = (completed_tasks_count / tasks_today_count * 100) if tasks_today_count > 0 else 0
+    
+    # Meditation Stats - Aggregate query for speed
+    med_stats = db.session.query(
+        func.count(MeditationSession.id).label('count'),
+        func.sum(MeditationSession.duration).label('total_duration')
+    ).filter(
+        MeditationSession.user_id == user.id,
+        MeditationSession.date >= start_of_week
+    ).first()
+    
+    weekly_sessions = med_stats.count or 0
+    total_seconds = med_stats.total_duration or 0
+    
+    # Crisis
+    crisis_count = ChatSession.query.filter_by(user_id=user.id, crisis_flag=True).count()
+    
+    # Assessments
+    recent_assessments = Assessment.query.filter_by(user_id=user.id).order_by(
+        Assessment.completed_at.desc()
+    ).limit(5).all()
+    
+    # Update Streak in Redis
+    from app import r_streaks
+    streak_count = update_user_streak(r_streaks, user)
+    
+    return {
+        'username': user.username,
+        'full_name': user.full_name,
+        'login_streak': streak_count,
+        'meditation_streak': streak_count,
+        'weekly_sessions': weekly_sessions,
+        'total_minutes_meditated': total_seconds // 60,
+        'crisis_sessions': crisis_count,
+        'tasks': {
+            'total': tasks_today_count,
+            'completed': completed_tasks_count,
+            'progress': progress
+        },
+        'recent_assessments': [
+            {
+                'id': a.id,
+                'type': a.assessment_type,
+                'severity': a.severity_level,
+                'date': a.completed_at.isoformat()
+            } for a in recent_assessments
+        ],
+        'consultations': [
+            {
+                'id': c.id,
+                'counsellor_name': c.counsellor.username if c.counsellor else 'Assigned Counselor',
+                'time_slot': c.time_slot,
+                'date': c.session_datetime.isoformat() if c.session_datetime else None,
+                'status': c.status
+            } for c in ConsultationRequest.query.options(joinedload(ConsultationRequest.counsellor)).filter_by(user_id=user.id, status='booked').filter(ConsultationRequest.session_datetime >= datetime.utcnow()).order_by(ConsultationRequest.session_datetime.asc()).limit(3).all()
+        ],
+        'recent_meditation_logs': [
+            {
+                'type': m.session_type,
+                'duration': m.duration,
+                'date': m.date.isoformat()
+            } for m in MeditationSession.query.filter_by(user_id=user.id).order_by(MeditationSession.completed_at.desc()).limit(5).all()
+        ]
+    }
+
+from utils.common import celery
+
+@celery.task
+def precalculate_dashboard_task(user_id):
+    """Background task to pre-calculate dashboard stats and store in Redis"""
+    from app import app, cache
+    from models import User
+    with app.app_context():
+        user = User.query.get(user_id)
+        if user:
+            summary = get_dashboard_summary(user)
+            cache.set(f"dashboard_user_{user_id}", summary, timeout=600)
+
+def invalidate_dashboard_cache(user_id, proactive=True):
+    """Invalidate cache and optionally trigger background re-calculation"""
+    from app import cache
+    cache.delete(f"dashboard_user_{user_id}")
+    if proactive:
+        precalculate_dashboard_task.delay(user_id)
+
 @ns.route('')
 class Dashboard(Resource):
     @login_required
     @ns.marshal_with(dashboard_model)
     def get(self):
         """Get user dashboard summary stats"""
-        today = datetime.utcnow().date()
-        start_of_week = today - timedelta(days=today.weekday())
+        cache_key = f"dashboard_user_{current_user.id}"
+        cached_data = cache.get(cache_key)
         
-        # Routine Tasks
-        tasks_today = RoutineTask.query.filter_by(user_id=current_user.id, created_date=today).all()
-        completed_tasks = [t for t in tasks_today if t.status == 'completed']
-        progress = (len(completed_tasks) / len(tasks_today) * 100) if tasks_today else 0
+        # If cache exists, return immediately for "Instant Load"
+        if cached_data:
+            return cached_data
+
+        # If not, calculate, cache, and return
+        result = get_dashboard_summary(current_user)
         
-        # Meditation
-        weekly_meditation = MeditationSession.query.filter_by(user_id=current_user.id).filter(
-            MeditationSession.date >= start_of_week
-        ).all()
-        
-        total_seconds = sum(s.duration or 0 for s in weekly_meditation)
-        
-        # Crisis
-        crisis_count = ChatSession.query.filter_by(user_id=current_user.id, crisis_flag=True).count()
-        
-        # Assessments
-        recent_assessments = Assessment.query.filter_by(user_id=current_user.id).order_by(
-            Assessment.completed_at.desc()
-        ).limit(5).all()
-        
-        return {
-            'username': current_user.username,
-            'full_name': current_user.full_name,
-            'login_streak': current_user.login_streak or 0,
-            'meditation_streak': current_user.login_streak or 0, # Placeholder until better logic
-            'weekly_sessions': len(weekly_meditation),
-            'total_minutes_meditated': total_seconds // 60,
-            'crisis_sessions': crisis_count,
-            'tasks': {
-                'total': len(tasks_today),
-                'completed': len(completed_tasks),
-                'progress': progress
-            },
-            'recent_assessments': [
-                {
-                    'id': a.id,
-                    'type': a.assessment_type,
-                    'severity': a.severity_level,
-                    'date': a.completed_at.isoformat()
-                } for a in recent_assessments
-            ],
-            'consultations': [
-                {
-                    'id': c.id,
-                    'counsellor_name': c.counsellor.username if c.counsellor else 'Assigned Counselor',
-                    'time_slot': c.time_slot,
-                    'date': c.session_datetime.isoformat() if c.session_datetime else None,
-                    'status': c.status
-                } for c in ConsultationRequest.query.filter_by(user_id=current_user.id, status='booked').filter(ConsultationRequest.session_datetime >= datetime.utcnow()).order_by(ConsultationRequest.session_datetime.asc()).limit(3).all()
-            ],
-            'recent_meditation_logs': [
-                {
-                    'type': m.session_type,
-                    'duration': m.duration,  # in seconds
-                    'date': m.date.isoformat()
-                } for m in MeditationSession.query.filter_by(user_id=current_user.id).order_by(MeditationSession.id.desc()).limit(5).all()
-            ]
-        }
+        # Cache for 10 minutes (invalidated on activity)
+        cache.set(cache_key, result, timeout=600)
+        return result
