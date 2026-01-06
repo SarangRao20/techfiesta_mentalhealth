@@ -7,6 +7,10 @@ import MindfulnessMeditation from './Features/MindfulnessMeditation.jsx';
 import NatureSounds from './Features/NatureSounds.jsx';
 import OceanWaves from './Features/OceanWaves.jsx';
 import PianoRelaxation from './Features/PianoRelaxation.jsx';
+import Ar_breathing from './Features/Ar_breathing.jsx';
+import PrivateVentingRoom from './PrivateVentingRoom.jsx';
+import VrMeditation from './VrMeditation.jsx';
+import Community from './Community.jsx';
 import SplitText from './animation/SplitText.jsx';
 
 const FeatureRenderer = ({ feature, onClose }) => {
@@ -34,7 +38,25 @@ const FeatureRenderer = ({ feature, onClose }) => {
         case "Piano Relaxation":
             return (
                 <PianoRelaxation onClose={onClose} />
-            )
+            );
+        case "AR Breathing":
+            return (
+                <Ar_breathing onClose={onClose} />
+            );
+        case "Sound Venting Hall":
+        case "Venting Hall":
+        case "Community":
+            return (
+                <Community onClose={onClose} />
+            );
+        case "Private Venting Room":
+            return (
+                <PrivateVentingRoom onClose={onClose} />
+            );
+        case "VR Meditation":
+            return (
+                <VrMeditation onClose={onClose} />
+            );
 
         default:
             return (
@@ -67,7 +89,16 @@ const Chat = () => {
 
     // Voice Mode State
     const [isVoiceMode, setIsVoiceMode] = useState(false);
-    const [voiceStatus, setVoiceStatus] = useState('listening');
+    const [voiceStatus, setVoiceStatus] = useState('idle'); // idle, listening, processing, speaking
+    const [transcript, setTranscript] = useState('');
+
+    // Voice Refs
+    const recognitionRef = useRef(null);
+    const synthesisRef = useRef(window.speechSynthesis);
+    const silenceTimerRef = useRef(null);
+    const isSpeakingRef = useRef(false);
+    const isVoiceModeRef = useRef(false); // Ref to track voice mode for event handlers
+
     const messagesEndRef = useRef(null);
     const sosTimerRef = useRef(null);
     const sosCountdownRef = useRef(null);
@@ -75,6 +106,11 @@ const Chat = () => {
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
+
+    // Keep ref in sync with state
+    useEffect(() => {
+        isVoiceModeRef.current = isVoiceMode;
+    }, [isVoiceMode]);
 
     useEffect(() => {
         if (messagesEndRef.current) {
@@ -97,9 +133,9 @@ const Chat = () => {
     // Heuristic crisis detection - immediate response
     const detectCrisisHeuristic = (message) => {
         const lowerMsg = message.toLowerCase().trim();
-        
+
         const crisisKeywords = [
-            'kill myself', 'end my life', 'want to die', 'wanna die', 
+            'kill myself', 'end my life', 'want to die', 'wanna die',
             'suicide', 'suicidal', 'end it all', 'better off dead',
             'no reason to live', 'cant go on', "can't go on",
             'im dying', "i'm dying", 'leave this world', 'dont want to live',
@@ -108,8 +144,30 @@ const Chat = () => {
             'life is meaningless', 'no point in living', 'want it to end',
             'planning to die', 'take my life', 'commit suicide'
         ];
-        
+
         return crisisKeywords.some(keyword => lowerMsg.includes(keyword));
+    };
+
+    const formatMessage = (content) => {
+        if (!content) return '';
+
+        // 1. Convert URLs to links
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        let formatted = content.replace(urlRegex, (url) => {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-400 underline hover:text-blue-300">${url}</a>`;
+        });
+
+        // 2. Bold keywords
+        const keywords = ['important', 'urgent', 'crisis', 'emergency', 'help', 'concerned', 'safety'];
+        keywords.forEach(word => {
+            const regex = new RegExp(`\\b${word}\\b`, 'gi');
+            formatted = formatted.replace(regex, (match) => `<strong class="text-white font-bold">${match}</strong>`);
+        });
+
+        // 3. Newlines to breaks
+        formatted = formatted.replace(/\n/g, '<br />');
+
+        return <span dangerouslySetInnerHTML={{ __html: formatted }} />;
     };
 
     const handleSend = async () => {
@@ -121,7 +179,7 @@ const Chat = () => {
 
         const userMsg = { role: 'user', content: userMessage };
         setMessages(prev => [...prev, userMsg]);
-        
+
         // If crisis detected, immediately show crisis response
         if (isCrisisDetected) {
             const crisisMsg = {
@@ -141,56 +199,82 @@ const Chat = () => {
         setIsLoading(true);
 
         try {
-            const res = await fetch('http://localhost:8000/send-message', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_message: userMessage
-                })
-            });
+            let data;
 
-            const data = await res.json();
-            console.log('API Response:', data);
+            // Try FastAPI first
+            try {
+                const res = await fetch('http://localhost:8000/send-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_message: userMessage
+                    }),
+                    signal: AbortSignal.timeout(5000) // 5s timeout
+                });
+                data = await res.json();
+                console.log('FastAPI Response:', data);
+            } catch (fastApiError) {
+                // Fallback to Flask
+                console.log('FastAPI unavailable, falling back to Flask');
+                const res = await fetch('http://localhost:2323/api/chatbot/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        message: userMessage
+                    })
+                });
+                const flaskData = await res.json();
+                // Convert Flask response format to FastAPI format
+                data = {
+                    reply: flaskData.bot_message,
+                    self_harm_crisis: flaskData.crisis_detected ? 'true' : 'false',
+                    suggested_feature: flaskData.assessment_suggestion ? flaskData.assessment_suggestion.suggested_assessment : null
+                };
+                console.log('Flask Response:', data);
+            }
 
             // FIXED: Parse the reply properly with robust error handling
             let replyContent = '';
-            let suggestedFeature = null;
+            let suggestedFeature = data.suggested_feature || null;
 
-            // Try to extract content from JSON-like string
             if (typeof data.reply === 'string') {
                 const reply = data.reply.trim();
-                
-                // Try strict JSON parsing first
-                if (reply.startsWith('{')) {
+
+                // Helper to extract JSON from text even if surrounded by other characters
+                const extractJson = (text) => {
                     try {
-                        const parsedReply = JSON.parse(reply);
-                        replyContent = parsedReply.response || '';
-                        suggestedFeature = parsedReply.suggested_feature || null;
+                        const start = text.indexOf('{');
+                        const end = text.lastIndexOf('}');
+                        if (start !== -1 && end !== -1) {
+                            return JSON.parse(text.substring(start, end + 1));
+                        }
                     } catch (e) {
-                        console.warn('Strict JSON parsing failed, trying regex extraction:', e);
-                        
-                        // Fallback: Extract using regex
-                        const responseMatch = reply.match(/"response"\s*:\s*"([^"]*(?:\\.[^"]*)*)"/);
-                        const featureMatch = reply.match(/"suggested_feature"\s*:\s*"([^"]*)"/);
-                        
-                        if (responseMatch) {
-                            replyContent = responseMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
-                        }
-                        if (featureMatch) {
-                            suggestedFeature = featureMatch[1];
-                        }
-                        
-                        // If regex also fails, use raw text
-                        if (!responseMatch) {
-                            replyContent = reply;
-                        }
+                        console.error('JSON Extraction failed:', e);
                     }
+                    return null;
+                };
+
+                const parsed = extractJson(reply);
+                if (parsed && (parsed.response || parsed.bot_message)) {
+                    replyContent = parsed.response || parsed.bot_message;
+                    suggestedFeature = parsed.suggested_feature || null;
                 } else {
-                    // Plain text response
-                    replyContent = reply;
+                    // Fallback: If not JSON or no response field, use raw text but CLEAN IT
+                    // Remove common intent markers if they leaked
+                    replyContent = reply
+                        .replace(/\{.*\}/s, '') // Remove everything inside curly braces
+                        .replace(/intent_analysis.*/si, '')
+                        .replace(/intent:.*/si, '')
+                        .replace(/emotional_state:.*/si, '')
+                        .replace(/suggested_feature:.*/si, '')
+                        .replace(/```json|```/g, '')
+                        .trim();
+
+                    // If after cleaning it's empty, use original but avoid showing json
+                    if (!replyContent) replyContent = reply.split('\n')[0];
                 }
             } else {
-                // If it's not a string, convert to string
                 replyContent = String(data.reply);
             }
 
@@ -228,7 +312,7 @@ const Chat = () => {
 
     const startSosTimer = () => {
         setSosCountdown(5);
-        
+
         // Clear any existing timers
         if (sosTimerRef.current) {
             clearTimeout(sosTimerRef.current);
@@ -262,7 +346,7 @@ const Chat = () => {
             clearInterval(sosCountdownRef.current);
         }
         setSosCountdown(5);
-        
+
         // Handle SOS action
         window.location.href = 'tel:988';
     };
@@ -274,16 +358,320 @@ const Chat = () => {
         }
     };
 
-    const toggleVoiceMode = () => {
-        if (isVoiceMode) {
-            setIsVoiceMode(false);
-        } else {
-            setIsVoiceMode(true);
-            setVoiceStatus('listening');
-            setTimeout(() => setVoiceStatus('processing'), 3000);
-            setTimeout(() => setVoiceStatus('speaking'), 5000);
-            setTimeout(() => setVoiceStatus('listening'), 8000);
+    // --- Voice Logic ---
+
+    // Initialize Speech Recognition
+    const setupSpeechRecognition = () => {
+        if (!('webkitSpeechRecognition' in window)) {
+            alert('Speech recognition is not supported in this browser. Please use Chrome or Edge.');
+            return null;
         }
+
+        const recognition = new window.webkitSpeechRecognition();
+        recognition.continuous = true; // Keep listening
+        recognition.interimResults = true;
+        recognition.lang = 'en-IN'; // Hinglish support
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+            console.log('Voice recognition started');
+            setVoiceStatus('listening');
+        };
+
+        recognition.onresult = (event) => {
+            // STRICT GUARD: If bot is speaking or about to speak, ignore EVERYTHING.
+            if (isSpeakingRef.current) {
+                console.log('Ignored input while speaking');
+                return;
+            }
+
+            let interimTranscript = '';
+            let finalTranscript = '';
+
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+            }
+
+            if (finalTranscript) {
+                setTranscript(finalTranscript);
+                handleVoiceInput(finalTranscript);
+            } else if (interimTranscript) {
+                setTranscript(interimTranscript);
+                // Only reset timer if we are actually listening properly
+                if (!isSpeakingRef.current) resetSilenceTimer();
+            }
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error', event.error);
+            if (event.error === 'no-speech') {
+                return; // Ignore no-speech errors
+            }
+            if (event.error === 'aborted') {
+                return; // Ignore manual aborts
+            }
+            // Attempt restart if active
+            if (isVoiceModeRef.current && !isSpeakingRef.current) {
+                // Short delay before restart
+                setTimeout(() => {
+                    try { recognition.start(); } catch (e) { }
+                }, 1000);
+            }
+        };
+
+        recognition.onend = () => {
+            console.log('Voice recognition ended');
+            // Auto-restart if still in voice mode and not speaking
+            if (isVoiceModeRef.current && !isSpeakingRef.current) {
+                console.log('Restarting recognition...');
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.error('Failed to restart recognition', e);
+                }
+            } else {
+                setVoiceStatus('idle');
+            }
+        };
+
+        return recognition;
+    };
+
+    const handleVoiceInput = async (text) => {
+        // Prevent processing if we are already handling something or speaking
+        if (isSpeakingRef.current) return;
+
+        setVoiceStatus('processing');
+        // Stop recognition temporarily while processing/speaking
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+        }
+
+        // Use existing handleSend logic but with voice input
+        const userMessage = text.trim();
+        const isCrisisDetected = detectCrisisHeuristic(userMessage);
+
+        const userMsg = { role: 'user', content: userMessage };
+        setMessages(prev => [...prev, userMsg]);
+
+        // If crisis detected, immediately show crisis response
+        if (isCrisisDetected) {
+            const crisisMsg = {
+                role: 'bot',
+                content: "I'm really concerned about what you're sharing. Your safety is the most important thing right now. Please reach out to someone who can help immediately.",
+                suggestedFeature: "CALL",
+                isCrisis: true
+            };
+            setMessages(prev => [...prev, crisisMsg]);
+            startSosTimer();
+            return;
+        }
+
+        try {
+            let data;
+
+            // Try FastAPI first
+            try {
+                const res = await fetch('http://localhost:8000/send-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_message: userMessage
+                    }),
+                    signal: AbortSignal.timeout(5000) // 5s timeout
+                });
+                data = await res.json();
+            } catch (fastApiError) {
+                // Fallback to Flask
+                console.log('Voice: FastAPI unavailable, falling back to Flask');
+                const res = await fetch('http://localhost:2323/api/chatbot/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        message: userMessage
+                    })
+                });
+                const flaskData = await res.json();
+                // Convert Flask response format to FastAPI format
+                data = {
+                    reply: flaskData.bot_message,
+                    self_harm_crisis: flaskData.crisis_detected ? 'true' : 'false',
+                    suggested_feature: flaskData.assessment_suggestion ? flaskData.assessment_suggestion.suggested_assessment : null
+                };
+            }
+
+            let replyContent = '';
+            let suggestedFeature = data.suggested_feature || null;
+
+            if (typeof data.reply === 'string') {
+                const reply = data.reply.trim();
+
+                const extractJson = (text) => {
+                    try {
+                        const start = text.indexOf('{');
+                        const end = text.lastIndexOf('}');
+                        if (start !== -1 && end !== -1) {
+                            return JSON.parse(text.substring(start, end + 1));
+                        }
+                    } catch (e) { }
+                    return null;
+                };
+
+                const parsed = extractJson(reply);
+                if (parsed && (parsed.response || parsed.bot_message)) {
+                    replyContent = parsed.response || parsed.bot_message;
+                    suggestedFeature = parsed.suggested_feature || null;
+                } else {
+                    replyContent = reply
+                        .replace(/\{.*\}/s, '')
+                        .replace(/intent_analysis.*/si, '')
+                        .replace(/```json|```/g, '')
+                        .trim();
+                    if (!replyContent) replyContent = reply.split('\n')[0];
+                }
+            } else {
+                replyContent = String(data.reply);
+            }
+
+            const isCrisis = data.self_harm_crisis === "true";
+
+            if (isCrisis) {
+                suggestedFeature = "CALL";
+            }
+
+            const botMsg = {
+                role: 'bot',
+                content: replyContent,
+                suggestedFeature: suggestedFeature,
+                isCrisis: isCrisis
+            };
+
+            setMessages(prev => [...prev, botMsg]);
+
+            if (isCrisis) {
+                startSosTimer();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            setMessages(prev => [...prev, {
+                role: 'bot',
+                content: "I'm having trouble connecting right now."
+            }]);
+        }
+    };
+
+    const speakResponse = (text) => {
+        if (!text || !isVoiceMode) return;
+
+        // CRITICAL FIX: Abort recognition IMMEDIATELY. 
+        // stop() is too slow and might return a result. abort() kills it.
+        if (recognitionRef.current) {
+            recognitionRef.current.abort();
+        }
+        isSpeakingRef.current = true; // Set flag immediately
+        setVoiceStatus('speaking');
+
+        // Clean text (remove markdown etc - basic cleanup)
+        const cleanText = text.replace(/[*#`]/g, '');
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = 'en-IN';
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+
+        // Find a female voice or Hindi voice if available
+        const voices = window.speechSynthesis.getVoices();
+        const preferredVoice = voices.find(v => v.lang.includes('hi') || v.name.includes('India') || v.name.includes('Female'));
+        if (preferredVoice) utterance.voice = preferredVoice;
+
+        utterance.onstart = () => {
+            // Redundant safety check
+            if (recognitionRef.current) recognitionRef.current.abort();
+            setVoiceStatus('speaking');
+            isSpeakingRef.current = true;
+        };
+
+        utterance.onend = () => {
+            // Add a small delay before listening again to avoid "echo" of the last word
+            setTimeout(() => {
+                isSpeakingRef.current = false;
+                setVoiceStatus('listening');
+                setTranscript(''); // Clear transcript
+
+                // Restart recognition
+                if (isVoiceModeRef.current && recognitionRef.current) {
+                    try {
+                        recognitionRef.current.start();
+                    } catch (e) {
+                        // Might be already started
+                    }
+                }
+            }, 300); // 300ms delay helps clear the audio buffer
+        };
+
+        utterance.onerror = () => {
+            isSpeakingRef.current = false;
+            setVoiceStatus('listening');
+        };
+
+        // Cancel any current speaking
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+    };
+
+    // Effect to toggle Voice Mode
+    useEffect(() => {
+        if (isVoiceMode) {
+            // Start
+            if (!recognitionRef.current) {
+                recognitionRef.current = setupSpeechRecognition();
+            }
+            try {
+                recognitionRef.current?.start();
+            } catch (e) { console.log('Already started'); }
+
+        } else {
+            // Stop
+            if (recognitionRef.current) {
+                recognitionRef.current.abort(); // Uses abort instead of stop for immediate effect
+            }
+            window.speechSynthesis.cancel();
+            setVoiceStatus('idle');
+            setTranscript('');
+        }
+
+        return () => {
+            // Cleanup on unmount or mode switch
+            if (recognitionRef.current) recognitionRef.current.abort();
+            window.speechSynthesis.cancel();
+        };
+    }, [isVoiceMode]);
+
+    // Effect to auto-speak bot messages in Voice Mode
+    useEffect(() => {
+        if (isVoiceMode && messages.length > 0) {
+            const lastMsg = messages[messages.length - 1];
+            if (lastMsg.role === 'bot') {
+                speakResponse(lastMsg.content);
+            }
+        }
+    }, [messages, isVoiceMode]);
+
+    const resetSilenceTimer = () => {
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = setTimeout(() => {
+            // Silence timeout logic - maybe stop listening or prompt?
+            // For now, let's just let it stay listening as 'continuous' handles a lot.
+        }, 8000);
+    };
+
+    const toggleVoiceMode = () => {
+        setIsVoiceMode(prev => !prev);
     };
 
     const handleFeatureClick = (feature) => {
@@ -330,7 +718,7 @@ const Chat = () => {
                                         ? 'bg-[#8e74ff] text-white rounded-tr-md'
                                         : ' text-white/70 '}
                                 `}>
-                              {msg.content}
+                                    {formatMessage(msg.content)}
                                 </div>
                             </div>
 
@@ -450,18 +838,19 @@ const Chat = () => {
                                 {voiceStatus === 'listening' && "Listening..."}
                                 {voiceStatus === 'processing' && "Thinking..."}
                                 {voiceStatus === 'speaking' && "Speaking..."}
+                                {voiceStatus === 'idle' && "Ready"}
                             </h2>
-                            <p className="text-white/40 text-sm">
-                                Speak naturally. I'm here to listen.
+                            <p className="text-white/40 text-sm max-w-md">
+                                {transcript || "Speak naturally. I'm here to listen."}
                             </p>
                         </div>
 
                         <div className="flex gap-4">
-                            <button className="w-12 h-12 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors flex items-center justify-center">
+                            <button
+                                onClick={toggleVoiceMode}
+                                className="w-12 h-12 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors flex items-center justify-center"
+                            >
                                 <StopCircle className="w-5 h-5" />
-                            </button>
-                            <button className="w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 text-white/70 transition-colors flex items-center justify-center">
-                                <Volume2 className="w-5 h-5" />
                             </button>
                         </div>
                     </div>

@@ -4,6 +4,7 @@ import { Eye, Send, RotateCcw, BookOpen, Download, CheckCircle, FileText, Share2
 
 const Inkblot = () => {
     const [started, setStarted] = useState(false);
+    const [showInstructions, setShowInstructions] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [sequence, setSequence] = useState([]);
     const [response, setResponse] = useState('');
@@ -35,6 +36,10 @@ const Inkblot = () => {
     };
 
     const handleStart = async () => {
+        setShowInstructions(true);
+    };
+
+    const handleBeginTest = async () => {
         const numbers = Array.from({ length: TOTAL_ASSETS }, (_, i) => i + 1);
         const shuffled = numbers.sort(() => 0.5 - Math.random());
         const selected = shuffled.slice(0, SESSION_LENGTH);
@@ -45,6 +50,8 @@ const Inkblot = () => {
         setElaboration('');
         setStep('perception');
         setResultId(null);
+        setStarted(true);
+        setShowInstructions(false);
 
         try {
             await fetch(`${API_URL}/api/inkblot/init`, {
@@ -52,7 +59,6 @@ const Inkblot = () => {
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
             });
-            setStarted(true);
             logActivity('inkblot_start');
         } catch (e) {
             console.error("Failed to init session", e);
@@ -92,30 +98,31 @@ const Inkblot = () => {
                     setElaboration('');
                     setStep('perception');
                     setShowTransition(false);
-                    setIsSubmitting(false);
-                }, 600);
+                }, 800);
             } else {
-                // Final submission
-                const res = await fetch(`${API_URL}/api/inkblot/complete`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include'
-                });
-                const data = await res.json();
-                setResultId(data.result_id);
-                setStep('results');
-                setIsSubmitting(false);
-                logActivity('inkblot_complete', { result_id: data.result_id });
+                await finishSession();
             }
         } catch (e) {
-            console.error("Failed to submit", e);
+            console.error("Submit failed", e);
+        } finally {
             setIsSubmitting(false);
         }
     };
 
-    const downloadReport = () => {
-        if (!resultId) return;
-        window.open(`${API_URL}/api/inkblot/export/${resultId}`, '_blank');
+    const finishSession = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/inkblot/finish`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+            const data = await res.json();
+            setResultId(data.result_id);
+            setStep('results');
+            logActivity('inkblot_complete', { result_id: data.result_id });
+        } catch (e) {
+            console.error("Finish failed", e);
+        }
     };
 
     const currentBlotNum = sequence[currentIndex];
@@ -123,22 +130,25 @@ const Inkblot = () => {
     if (step === 'results') {
         return (
             <div className="min-h-screen bg-[#0f0f10] text-gray-100 flex items-center justify-center p-6">
-                <div className="max-w-2xl w-full bg-[#1a1a1a] border border-white/5 rounded-2xl p-10 text-center animate-fade-in-up">
-                    <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-emerald-500/30">
-                        <CheckCircle size={40} className="text-emerald-500" />
+                <div className="max-w-lg text-center space-y-8 animate-fade-in-up">
+                    <div className="w-20 h-20 mx-auto bg-emerald-500/20 rounded-full flex items-center justify-center border border-emerald-500/30">
+                        <CheckCircle size={36} className="text-emerald-400" />
                     </div>
-                    <h1 className="text-3xl font-serif mb-4">Assessment Complete</h1>
-                    <p className="text-neutral-400 mb-10 font-light leading-relaxed">
-                        Your responses have been securely recorded and analyzed. This projective test provides insights into your current emotional state and cognitive processing.
-                    </p>
+                    <div>
+                        <h1 className="text-4xl font-serif mb-4 tracking-wide">Test Complete</h1>
+                        <p className="text-neutral-400 leading-relaxed text-lg">
+                            Thank you for completing the Inkblot Test.
+                            <br />Your responses have been saved.
+                        </p>
+                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+                    <div className="grid grid-cols-2 gap-4">
                         <button
-                            onClick={downloadReport}
-                            className="flex items-center justify-center gap-3 px-6 py-4 bg-white text-black rounded-xl font-medium hover:bg-gray-200 transition-all group"
+                            onClick={() => window.location.href = '/app/assessments'}
+                            className="flex items-center justify-center gap-3 px-6 py-4 bg-white/5 border border-white/10 text-white rounded-xl font-medium hover:bg-white/10 transition-all"
                         >
-                            <Download size={18} className="group-hover:translate-y-1 transition-transform" />
-                            Download PDF Report
+                            <Download size={18} />
+                            View Results
                         </button>
                         <button
                             onClick={() => window.location.href = '/app/consultation'}
@@ -162,7 +172,55 @@ const Inkblot = () => {
 
     return (
         <div className="min-h-screen bg-[#0f0f10] text-gray-100 flex items-center justify-center p-6">
-            {!started ? (
+            {/* Instructions Screen */}
+            {showInstructions && (
+                <div className="max-w-xl text-center space-y-8 animate-fade-in-up">
+                    <div className="w-20 h-20 mx-auto bg-purple-500/20 rounded-full flex items-center justify-center border border-purple-500/30">
+                        <BookOpen size={36} className="text-purple-400" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-serif mb-4 tracking-wide">How It Works</h1>
+                        <p className="text-neutral-400 leading-relaxed text-lg">
+                            You'll see {SESSION_LENGTH} inkblot images. For each one:
+                        </p>
+                    </div>
+                    
+                    <div className="space-y-4 max-w-md mx-auto text-left">
+                        <div className="flex gap-4 items-start">
+                            <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 border border-purple-500/30">
+                                <span className="text-purple-400 font-bold text-sm">1</span>
+                            </div>
+                            <div>
+                                <h3 className="text-white font-semibold mb-1">Describe what you see</h3>
+                                <p className="text-neutral-500 text-sm">Objects, shapes, or feelings</p>
+                            </div>
+                        </div>
+                        
+                        <div className="flex gap-4 items-start">
+                            <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 border border-purple-500/30">
+                                <span className="text-purple-400 font-bold text-sm">2</span>
+                            </div>
+                            <div>
+                                <h3 className="text-white font-semibold mb-1">Tell a brief story</h3>
+                                <p className="text-neutral-500 text-sm">Build a narrative around it</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p className="text-neutral-500 text-sm italic">
+                        No right or wrong answers. Trust your intuition.
+                    </p>
+
+                    <button
+                        onClick={handleBeginTest}
+                        className="px-10 py-4 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-all tracking-wider uppercase text-sm shadow-xl shadow-white/5"
+                    >
+                        Begin Test
+                    </button>
+                </div>
+            )}
+
+            {!started && !showInstructions ? (
                 <div className="max-w-xl text-center space-y-8 animate-fade-in-up">
                     <div className="w-32 h-32 mx-auto bg-white/5 rounded-full flex items-center justify-center border border-white/10">
                         <Eye size={48} className="text-neutral-400" />
@@ -182,7 +240,7 @@ const Inkblot = () => {
                         Enter the Test
                     </button>
                 </div>
-            ) : (
+            ) : started && (
                 <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
 
                     {/* Visual Area */}

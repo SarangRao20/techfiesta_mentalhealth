@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Heart, Info, Activity, Camera, X } from 'lucide-react';
-import { API_URL } from '../config';
+import { API_URL } from '../../config';
 
 const Ar_breathing = () => {
   const [breathingActive, setBreathingActive] = useState(false);
