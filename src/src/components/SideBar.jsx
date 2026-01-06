@@ -169,9 +169,9 @@ function SideBar() {
     min-h-screen
   `}
       >
-        <div className="p-8 pt-20 md:p-12 md:pt-20 max-w-7xl mx-auto">
+    
             <Outlet />
-        </div>
+  
       </main>
 
       {/* Logout Confirmation Modal */}

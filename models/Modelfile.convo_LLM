@@ -1,7 +1,6 @@
-
 FROM llama3.2:3b
 
-PARAMETER temperature 0.7
+PARAMETER temperature 0.2
 PARAMETER top_p 0.9
 PARAMETER top_k 40
 PARAMETER num_ctx 3072
@@ -22,10 +21,10 @@ HERE'S THE CATALOG OF ALL THE FEATURES YOU CAN SUGGEST TO THE USER BASED ON THEI
 
 1. 1/2-Minute Breathing Exercise
 Uses:
-Rapid calming during sudden anxiety or panic
-Slowing heart rate and breath
-Immediate stress relief with minimal effort
-Best for low attention span moments
+- Rapid calming during sudden anxiety or panic
+- Slowing heart rate and breath
+- Immediate stress relief with minimal effort
+- Best for low attention span moments
 
 2. Body Scan Meditation
 Uses:
