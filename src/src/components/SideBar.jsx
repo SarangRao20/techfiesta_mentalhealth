@@ -63,7 +63,7 @@ function SideBar() {
 
   return (
     <div className="flex min-h-screen bg-[#0f131c] text-white overflow-x-hidden font-sans">
-      
+
       {/* FIXED TOGGLE BUTTON - Stays in place, does not shift */}
       <button
         onClick={() => setOpen(!open)}
@@ -85,10 +85,10 @@ function SideBar() {
       >
         {/* Fixed Width Inner Wrapper to maintain structure during slide */}
         <div className="w-64 h-full flex flex-col pt-20">
-          
+
           {/* Navigation - Extremely Tight Spacing */}
           <nav className="flex-1 space-y-4 text-sm px-4 custom-scrollbar overflow-y-auto">
-            
+
             <div className="space-y-0.5">
               <div className="text-[10px] uppercase text-white/20 font-bold tracking-[0.2em] px-3 mb-1">General</div>
               <NavItem icon={LayoutDashboard} label="Dashboard" href="dashboard" />
@@ -119,9 +119,9 @@ function SideBar() {
 
           {/* User Section - Compressed */}
           <div className="mt-auto px-4 pb-6 pt-3 border-t border-white/5 bg-[#0e1116]">
-            <div 
-            onClick={() => navigate("/app/profile")}
-            className="flex items-center gap-3 mb-4 px-2"
+            <div
+              onClick={() => navigate("/app/profile")}
+              className="flex items-center gap-3 mb-4 px-2"
             >
 
               <div className="w-10 h-10 rounded-full bg-[#8e74ff] flex items-center justify-center text-white text-sm font-bold shadow-lg border border-white/10">
@@ -149,14 +149,12 @@ function SideBar() {
       {/* Main Content Area */}
       <main
         className={`
-          flex-1 transition-[margin] duration-500 ease-in-out
-          ${open ? "ml-64" : "ml-0"}
-          min-h-screen
-        `}
+    flex-1 transition-[margin] duration-500 ease-in-out
+    ${open ? "ml-64" : "ml-0"}
+    min-h-screen
+  `}
       >
-        <div className="p-8 pt-20 md:p-12 md:pt-20 max-w-7xl mx-auto">
-            <Outlet />
-        </div>
+        <Outlet />
       </main>
 
       {/* Logout Confirmation Modal */}
@@ -165,15 +163,15 @@ function SideBar() {
           <div className="bg-[#1a1f2e] border border-white/10 rounded-3xl p-8 w-full max-w-sm shadow-2xl animate-in fade-in zoom-in duration-300">
             <h3 className="text-xl font-bold text-white mb-2 text-center">Confirm Logout</h3>
             <p className="text-white/50 text-center mb-8">Are you sure you want to exit? You will need to sign in again to access your dashboard.</p>
-            
+
             <div className="flex flex-col gap-3">
-              <button 
+              <button
                 onClick={handleLogout}
                 className="w-full py-3.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold transition-colors"
               >
                 Yes, Log Out
               </button>
-              <button 
+              <button
                 onClick={() => setShowLogoutConfirm(false)}
                 className="w-full py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 font-medium transition-colors"
               >
