@@ -18,11 +18,12 @@ import Resources from './components/Resources'
 import Community from './components/Community'
 import Profile from './components/Profile'
 import MentorDashboard from './components/MentorDashboard'
-import CounselorDashboard from './components/CounselorDashboard'
+import CounsellorDashboardNew from './components/CounsellorDashboardNew'
 import VrMeditation from './components/VrMeditation'
 import MeditationHub from './components/MeditationHub'
 import Assessments from './components/Assessments'
 import Inkblot from './components/Inkblot'
+import NotFound from './components/NotFound'
 
 //children routes
 function App() {
@@ -111,16 +112,20 @@ function App() {
           path: "resources",
           element: <Resources />
         },
+        {
+          path: "mentor",
+          element: <MentorDashboard />
+        },
+        {
+          path: "counselor-dashboard",
+          element: <CounsellorDashboardNew />
+        }
 
       ]
     },
     {
-      path: "counselor-dashboard",
-      element: <CounselorDashboard />
-    },
-    {
-      path: "mentor",
-      element: <MentorDashboard />
+      path: "*",
+      element: <NotFound />
     }
   ])
 
