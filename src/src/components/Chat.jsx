@@ -151,6 +151,59 @@ const Chat = () => {
     const formatMessage = (content) => {
         if (!content) return '';
 
+        // Feature list mapping
+        const featureMap = {
+            '1': '1/2-Minute Breathing Exercise',
+            '2': 'Body Scan Meditation',
+            '3': 'Mindfulness Meditation',
+            '4': 'Nature Sounds',
+            '5': 'Piano Relaxation',
+            '6': 'Ocean Waves',
+            '7': 'AR Breathing',
+            '8': 'Sound Venting Hall',
+            '9': 'Private Venting Room',
+            '10': 'VR Meditation'
+        };
+
+        // Check if content contains a numbered feature list (with markdown bold pattern)
+        const featureListRegex = /(?:^|\n)(\d+)\.\s*\*\*(.+?)\*\*:\s*(.+?)(?=\n\d+\.\s*\*\*|$)/gms;
+        const matches = [...content.matchAll(featureListRegex)];
+        
+        if (matches.length >= 2) {
+            // This looks like a feature list with markdown, render as buttons
+            const textBeforeList = content.substring(0, matches[0].index).trim();
+            const textAfterList = content.substring(matches[matches.length - 1].index + matches[matches.length - 1][0].length).trim();
+            
+            return (
+                <div>
+                    {textBeforeList && (
+                        <div className="mb-3" dangerouslySetInnerHTML={{ __html: textBeforeList.replace(/\n/g, '<br />') }} />
+                    )}
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                        {matches.map((match) => {
+                            const featureNum = match[1];
+                            const featureName = match[2].trim(); // Extract name from markdown **name**
+                            const mappedFeature = featureMap[featureNum] || featureName;
+                            return (
+                                <button
+                                    key={featureNum}
+                                    onClick={() => handleFeatureClick(mappedFeature)}
+                                    className="px-3 py-2 rounded-lg bg-[#8D2EF2]/20 hover:bg-[#8D2EF2] text-white text-sm transition-all border border-[#8D2EF2]/30 text-left group"
+                                >
+                                    <div className="font-semibold">{featureName}</div>
+                                    <div className="text-xs text-white/60 mt-1 line-clamp-2 group-hover:text-white/80">{match[3].trim()}</div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {textAfterList && (
+                        <div className="mt-3" dangerouslySetInnerHTML={{ __html: textAfterList.replace(/\n/g, '<br />') }} />
+                    )}
+                </div>
+            );
+        }
+
+        // Regular message formatting (no feature list)
         // 1. Convert URLs to links
         const urlRegex = /(https?:\/\/[^\s]+)/g;
         let formatted = content.replace(urlRegex, (url) => {
