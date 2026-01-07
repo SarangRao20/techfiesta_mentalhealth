@@ -37,6 +37,7 @@ class MentorStudents(Resource):
                 'username': s.username,
                 'email': s.email,
                 'login_streak': s.login_streak,
+                'profile_picture': s.profile_picture,
                 'has_risk': ChatSession.query.filter_by(user_id=s.id, crisis_flag=True).count() > 0
             } for s in students
         ], 200
