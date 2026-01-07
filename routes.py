@@ -1,7 +1,7 @@
 from flask import render_template, request, redirect, url_for, flash, jsonify, session, send_file
 from flask_login import login_user, logout_user, login_required, current_user
 from app import app, db
-from models import User, ChatSession, ChatMessage, Assessment, MeditationSession, VentingPost, VentingResponse, ConsultationRequest, AvailabilitySlot, SoundVentingSession
+from db_models import User, ChatSession, ChatMessage, Assessment, MeditationSession, VentingPost, VentingResponse, ConsultationRequest, AvailabilitySlot, SoundVentingSession
 from gemini_service import chat_with_ai, analyze_assessment_results, suggest_assessment, analyze_projective_input
 from utils import (hash_student_id, calculate_phq9_score, calculate_gad7_score, 
                   calculate_ghq_score, get_assessment_questions, get_assessment_options,
@@ -252,7 +252,7 @@ def dashboard():
     if getattr(current_user, 'role', None) == 'counsellor':
         return redirect(url_for('counsellor_dashboard'))
     # Get today's tasks for current user
-    from models import RoutineTask
+    from db_models import RoutineTask
     today = datetime.utcnow().date()
     tasks_today = RoutineTask.query.filter_by(user_id=current_user.id, created_date=today).all()
     total_tasks = len(tasks_today)
