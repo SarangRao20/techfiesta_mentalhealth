@@ -59,3 +59,21 @@ input[type="time"] {
 *::-webkit-scrollbar-thumb:hover {
   background-color: rgba(255, 255, 255, 0.45);
 }
+
+.page {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.page > :first-child {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+}

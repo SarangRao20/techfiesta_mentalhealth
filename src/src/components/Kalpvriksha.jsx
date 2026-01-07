@@ -8,7 +8,7 @@ export default function Kalpvriksha() {
 
   // Auto-grow based on weight
   useEffect(() => {
-    const targetGrowth = Math.min(weight * 2, 100);
+    const targetGrowth = Math.min(weight * 3, 100);
 
     if (growth < targetGrowth) {
       const timer = setTimeout(() => {
@@ -20,7 +20,7 @@ export default function Kalpvriksha() {
   }, [growth, weight]);
 
   const addWeight = (amount) => {
-    setWeight(prev => Math.min(prev + amount, 50));
+    setWeight(prev => Math.min(prev + amount, 10));
   };
 
   const reset = () => {

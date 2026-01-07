@@ -33,6 +33,8 @@ const FeatureRenderer = ({ feature, onClose }) => {
             return <TextVenting onClose={onClose} />;
         case "Sound Venting":
             return <SoundVenting onClose={onClose} />;
+        case "Sound Venting Hall":
+            return <SoundVenting onClose={onClose} />;
         case "VR Meditation":
             return <VrMeditation onClose={onClose} />;
         default:

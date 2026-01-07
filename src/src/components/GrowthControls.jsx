@@ -28,7 +28,7 @@ export function GrowthControls({ weight, growth, onAddWeight, onReset }) {
         <div className="w-full bg-amber-100 rounded-full h-2 overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-300 ease-out rounded-full"
-            style={{ width: `${(weight / 50) * 100}%` }}
+            style={{ width: `${(weight / 40) * 100}%` }}
           />
         </div>
       </div>
@@ -36,7 +36,7 @@ export function GrowthControls({ weight, growth, onAddWeight, onReset }) {
       {/* Control buttons */}
       <div className="flex gap-3">
         <button
-          onClick={() => onAddWeight(5)}
+          onClick={() => onAddWeight(2)}
           disabled={weight >= 50}
           className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-400 text-white rounded-xl py-3 px-4 flex items-center justify-center gap-2 transition-all hover:shadow-lg disabled:cursor-not-allowed"
         >

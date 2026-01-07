@@ -1,4 +1,3 @@
-
 const WEIGHTS = {
   emotional_state: {
     calm: 1.0,
@@ -32,12 +31,6 @@ const WEIGHTS = {
     mixed: 0.7,
     past: 0.5,
     future: 0.6
-  },
-
-  context_dependency: {
-    standalone: 1.0,
-    conversational: 0.8,
-    dependent: 0.6
   }
 };
 
@@ -51,13 +44,16 @@ export function calculateConfidenceScore(intent) {
     const value = intent[key];
     const weightMap = WEIGHTS[key];
 
+    // Always count the parameter
+    totalWeight += 1;
+
+    // Add score if valid, else add 0
     if (value && weightMap[value] !== undefined) {
       totalScore += weightMap[value];
-      totalWeight += 1;
+    } else {
+      totalScore += 0;
     }
   }
-
-  if (totalWeight === 0) return 0;
 
   // Normalize to 0–100
   const normalized = (totalScore / totalWeight) * 100;
