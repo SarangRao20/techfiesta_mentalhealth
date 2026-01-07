@@ -11,7 +11,7 @@ import Ar_breathing from './Features/Ar_breathing.jsx';
 import VrMeditation from './Features/VrMeditation.jsx';
 import TextVenting from './Features/TextVenting.jsx';
 import SoundVenting from './Features/SoundVenting.jsx';
-import SplitText from './animation/SplitText.jsx';
+
 
 const FeatureRenderer = ({ feature, onClose }) => {
     switch (feature) {
