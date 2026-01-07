@@ -1,6 +1,6 @@
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from models import MeditationSession, RoutineTask, Assessment
+from db_models import MeditationSession, RoutineTask, Assessment
 
 ns = Namespace('perenall', description='Kalpavriksha Plant Companion')
 

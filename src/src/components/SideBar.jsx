@@ -37,6 +37,8 @@ function SideBar() {
   });
   const navigate = useNavigate();
 
+  const [profilePicture, setProfilePicture] = useState(null);
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -49,6 +51,9 @@ function SideBar() {
           }
           if (data.role) {
             setRole(data.role);
+          }
+          if (data.profile_picture) {
+            setProfilePicture(data.profile_picture);
           }
         }
       } catch (e) {
@@ -102,7 +107,15 @@ function SideBar() {
 
             <div className="space-y-0.5">
               <div className="text-[10px] uppercase text-white/20 font-bold tracking-[0.2em] px-3 mb-1">General</div>
-              <NavItem icon={LayoutDashboard} label="Dashboard" href="dashboard" />
+              <NavItem
+                icon={LayoutDashboard}
+                label="Dashboard"
+                href={
+                  ['teacher', 'mentor'].includes(role.toLowerCase()) ? "mentor" :
+                    ['counsellor', 'counselor'].includes(role.toLowerCase()) ? "counselor-dashboard" :
+                      "dashboard"
+                }
+              />
               <NavItem icon={MessageSquare} label="AI Companion" href="chat" />
               <NavItem icon={CheckSquare} label="Tasks" href="tasks-manager" />
             </div>
@@ -148,8 +161,12 @@ function SideBar() {
               className="flex items-center gap-3 mb-4 px-2"
             >
 
-              <div className="w-10 h-10 rounded-full bg-[#8e74ff] flex items-center justify-center text-white text-sm font-bold shadow-lg border border-white/10">
-                {username.charAt(0).toUpperCase()}
+              <div className="w-10 h-10 rounded-full bg-[#8e74ff] flex items-center justify-center text-white text-sm font-bold shadow-lg border border-white/10 overflow-hidden">
+                {profilePicture ? (
+                  <img src={profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  username.charAt(0).toUpperCase()
+                )}
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-semibold text-white truncate leading-tight">{username}</span>

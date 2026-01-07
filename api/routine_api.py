@@ -1,7 +1,7 @@
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from models import RoutineTask
-from app import db
+from db_models import RoutineTask
+from database import db
 from datetime import datetime
 
 ns = Namespace('routine', description='Daily routine and task management')

@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from flask_restx import Api
 from flask_cors import CORS
 ## Removed inkblot import; will define inkblot routes in routes.py
-from database import db
+from database import db, r_sessions, r_streaks, cache
 from flask_migrate import Migrate
 import redis
 from flask_session import Session
@@ -43,7 +43,7 @@ allowed_origins = [
     "http://localhost:5173", 
     "http://127.0.0.1:5173", 
     "http://localhost:3000",
-    "http://192.168.29.24:5173" # Adding user's specific LAN IP from logs
+    "http://localhost:3000"
 ]
 CORS(app, resources={r"/api/*": {"origins": allowed_origins}}, supports_credentials=True)
 
@@ -77,11 +77,8 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 # Redis Clients
+# Redis Clients (Imported from database.py)
 app.config['REDIS_URL'] = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379')
-r_sessions = redis.from_url(f"{app.config['REDIS_URL']}/1")
-r_cache = redis.from_url(f"{app.config['REDIS_URL']}/2")
-r_context = redis.from_url(f"{app.config['REDIS_URL']}/3")
-r_streaks = redis.from_url(f"{app.config['REDIS_URL']}/4")
 
 # Server-Side Sessions with Redis
 app.config['SESSION_TYPE'] = 'redis'
@@ -97,7 +94,7 @@ Session(app)
 app.config['CACHE_TYPE'] = 'RedisCache'
 app.config['CACHE_REDIS_URL'] = f"{app.config['REDIS_URL']}/2"
 app.config['CACHE_DEFAULT_TIMEOUT'] = 300
-cache = Cache(app)
+cache.init_app(app)
 
 db.init_app(app)
 
@@ -135,37 +132,41 @@ def unauthorized():
 
 @login_manager.user_loader
 def load_user(user_id):
-    # Try fetching user profile from Redis first to skip DB hit
     user_key = f"user_profile:{user_id}"
     cached_user = r_sessions.get(user_key)
-    from models import User
+    from db_models import User
     
     if cached_user:
         try:
             user_data = json.loads(cached_user)
-            user = User()
-            # Minimal mapping for Flask-Login to work
+            if 'organization_id' not in user_data:
+                print(f"DEBUG: Stale cache for user {user_id} (missing org_id). Reloading from DB.")
+                raise Exception("Stale cache")
+
             user.id = user_data['id']
             user.username = user_data['username']
             user.role = user_data['role']
             user.full_name = user_data.get('full_name', '')
+            user.organization_id = user_data.get('organization_id')
+            print(f"DEBUG: Loaded user {user.username} from Redis. Org ID: {user.organization_id}")
             return user
-        except: pass
+        except Exception as e:
+            print(f"DEBUG: Cache miss/error for user {user_id}: {e}")
+            pass
         
     user = User.query.get(int(user_id))
     if user:
-        # Cache for 10 minutes
         r_sessions.setex(user_key, 600, json.dumps({
             'id': user.id,
             'username': user.username,
             'role': user.role,
-            'full_name': user.full_name
+            'full_name': user.full_name,
+            'organization_id': user.organization_id
         }))
     return user
 
 with app.app_context():
     import models  # noqa: F401
-    # db.create_all()  # Ensure all tables are created, including routine_tasks
     logging.info("Database tables created")
 
 def nl2br(value):
@@ -177,13 +178,10 @@ def nl2br(value):
 
 app.jinja_env.filters['nl2br'] = nl2br
 
-# Add get_locale to template context
 app.jinja_env.globals['get_locale'] = get_locale
 
-## Import routes to register them
 import routes
 
-# Register API namespaces
 from api.auth_api import ns as auth_ns
 from api.dashboard_api import ns as dashboard_ns
 from api.chatbot_api import ns as chatbot_ns
@@ -217,6 +215,3 @@ api.add_namespace(activity_ns, path='/activity')
 api.add_namespace(mentor_ns, path='/mentor')
 
 ## Removed inkblot_bp blueprint registration; now using direct route in routes.py
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)

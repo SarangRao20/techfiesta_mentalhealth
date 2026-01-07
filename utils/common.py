@@ -286,9 +286,10 @@ def generate_analysis(assessment_type, score):
 @celery.task
 def sync_streak_to_db(user_id, streak_count):
     """Sync Redis streak count to database"""
-    from app import app, db
-    from models import User
-    with app.app_context():
+    from database import db
+    import app as flask_app
+    from db_models import User
+    with flask_app.app.app_context():
         user = User.query.get(user_id)
         if user:
             user.login_streak = streak_count

@@ -1,8 +1,7 @@
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from app import cache, r_streaks
-from database import db
-from models import User, RoutineTask, Assessment, MeditationSession, ChatSession, ConsultationRequest
+from database import db, cache, r_streaks
+from db_models import User, RoutineTask, Assessment, MeditationSession, ChatSession, ConsultationRequest
 from datetime import datetime, timedelta
 from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
@@ -61,8 +60,7 @@ def get_dashboard_summary(user):
         Assessment.completed_at.desc()
     ).limit(5).all()
     
-    # Update Streak in Redis
-    from app import r_streaks
+    # Update Streak in Redis (r_streaks is imported globally from database)
     streak_count = update_user_streak(r_streaks, user)
     
     return {
@@ -109,9 +107,15 @@ from utils.common import celery
 @celery.task
 def precalculate_dashboard_task(user_id):
     """Background task to pre-calculate dashboard stats and store in Redis"""
-    from app import app, cache
-    from models import User
-    with app.app_context():
+    import sys
+    import os
+    # Ensure root directory is in sys.path
+    if os.getcwd() not in sys.path:
+        sys.path.append(os.getcwd())
+    import app as flask_app
+    from database import cache
+    from db_models import User
+    with flask_app.app.app_context():
         user = User.query.get(user_id)
         if user:
             summary = get_dashboard_summary(user)
@@ -119,7 +123,7 @@ def precalculate_dashboard_task(user_id):
 
 def invalidate_dashboard_cache(user_id, proactive=True):
     """Invalidate cache and optionally trigger background re-calculation"""
-    from app import cache
+    # cache is imported globally from database
     cache.delete(f"dashboard_user_{user_id}")
     if proactive:
         precalculate_dashboard_task.delay(user_id)

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ollama import Client
 from pydantic import BaseModel
 import json as jsonlib
-from json_sanitizer import extract_json
+from .json_sanitizer import extract_json
 client = Client(host='http://localhost:11434')
 intent_classifier = 'intent_classifier:latest' 
 convo_LLM = 'convo_LLM:latest'

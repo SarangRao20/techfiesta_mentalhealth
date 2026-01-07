@@ -1,8 +1,8 @@
 
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from models import AvailabilitySlot, ConsultationRequest, User
-from app import db
+from db_models import AvailabilitySlot, ConsultationRequest, User
+from database import db
 from datetime import datetime
 from utils.email_service import send_consultation_request_email, send_consultation_status_email
 
@@ -64,7 +64,7 @@ class CreateRequest(Resource):
             db.session.add(req)
             
             # Universal Activity Log
-            from models import UserActivityLog
+            from db_models import UserActivityLog
             log = UserActivityLog(
                 user_id=current_user.id,
                 activity_type='consultation',
