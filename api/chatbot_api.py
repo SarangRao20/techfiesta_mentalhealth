@@ -2,7 +2,7 @@ from flask import request
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
 from models import ChatSession, ChatMessage
-from app import db
+from database import db
 import requests
 from ollama import Client
 import json
@@ -19,7 +19,8 @@ from utils.common import update_user_streak
 
 @celery.task
 def save_chat_message(session_id, message_type, content, crisis_detected=False):
-    from app import app, db
+    from app import app
+    from database import db
     with app.app_context():
         msg = ChatMessage(session_id=session_id, message_type=message_type, content=content)
         db.session.add(msg)
@@ -39,7 +40,10 @@ chat_message_model = ns.model('ChatMessage', {
 chat_response_model = ns.model('ChatResponse', {
     'bot_message': fields.String(),
     'crisis_detected': fields.Boolean(),
-    'assessment_suggestion': fields.Raw(),
+    'sos': fields.Boolean(description='Emergency SOS flag when crisis detected'),
+    'intent_json': fields.String(description='Intent classification JSON from FastAPI'),
+    'suggested_feature': fields.String(description='Suggested meditation/venting feature from catalog'),
+    'suggested_assessment': fields.String(description='Suggested assessment (PHQ-9, GAD-7, GHQ, Inkblot)'),
     'session_id': fields.Integer()
 })
 
@@ -87,109 +91,103 @@ class Chat(Resource):
         
         bot_message = "I'm here to listen."
         crisis_detected = False
-        assessment_suggestion = None
+        suggested_feature = None  # Feature from catalog (breathing, venting, etc.)
+        suggested_assessment = None  # Assessment type (PHQ-9, GAD-7, GHQ, Inkblot)
+        intent_json_str = '{}' # Store intent JSON for response
 
-        # Fallback helper for Ollama
+        # Fallback helper for Ollama (when FastAPI unavailable)
         def call_ollama(msg, hist):
             ollama_client = Client(host='http://localhost:11434')
-            system_prompt = """You are a compassionate mental health assistant. 
-
-STRICT FEATURE CATALOG (ONLY suggest features from this list by number):
-1. 1/2-Minute Breathing Exercise - Quick anxiety relief, panic attacks
-2. Body Scan Meditation - Physical tension, grounding, body awareness
-3. Mindfulness Meditation - Overthinking, mental clarity, present moment
-4. Nature Sounds - Background calm, relaxation, sleep
-5. Piano Relaxation - Gentle stress relief, focus
-6. Ocean Waves - Deep relaxation, sleep preparation
-7. AR Breathing - Interactive breathing, tech-assisted calm
-8. Text Venting - Need to write/express feelings, organize thoughts, rant
-9. Sound Venting - Need to speak out loud, voice emotions, verbal release
-10. VR Meditation - Immersive experience, escape, deep meditation
-
-FEATURE SELECTION GUIDE (Use variety, not just breathing!):
-
-VENTING (angry/frustrated/need to express): 8 or 9
-- "everything is pissing me off" → 8 or 9
-- "I feel like screaming" → 9 (voice)
-- "I just want to rant" → 8 (text)
-- "let me complain" → 8 (text)
-- "don't tell me what to do" → 8 or 9
-- "dimag ka dahi ho gaya hai" → 8 (text)
-- "sab irritate kar rahe hain" → 9 (voice)
-- "I need to let this out" → 8 (text) or 9 (voice)
-- "can I just say things" → 8 or 9
-
-OVERTHINKING (thoughts won't stop): 3, 2, or 4
-- "my thoughts won't shut up" → 3
-- "stuck in my own thoughts" → 3 or 2
-- "head is too loud" → 3 or 4
-- "can't focus" → 3
-- "thinking about everything at once" → 3
-
-LOW/EMPTY/NUMB (sad but not crying): 4, 5, 6, or 2
-- "I feel blank" → 4 or 6
-- "nothing excites me" → 5 or 6
-- "just existing" → 2 or 4
-- "mann bohot bhara hua hai" → 6
-- "don't feel like talking" → 6 or 4
-
-ANXIOUS/STRESSED (panic, overwhelm): 1 or 7
-- "anxious for no reason" → 1 or 7
-- "my brain is buffering" → 1
-- "mentally on 1% battery" → 7 or 1
-
-CALM SEEKING (escape, quiet): 10, 6, or 4
-- "I just want some quiet" → 6 or 4
-- "take me somewhere peaceful" → 10
-- "switch my mind off" → 10 or 6
-- "bas shaant hona hai" → 10 or 6
-
-CRISIS (self-harm ideation): TRIGGER self_harm_crisis = true
-- "jeevan khatam kardu" → self_harm_crisis: true
-- "mar jaun" → self_harm_crisis: true
-- "khudkushi" → self_harm_crisis: true
-- "end my life" → self_harm_crisis: true
-- "want to die" → self_harm_crisis: true
-- "suicide" → self_harm_crisis: true
-
-IMPORTANT: 
-- Use features 8 (TEXT) and 9 (VOICE) when user wants to EXPRESS/RANT/TALK
-- Feature 8 for written expression, Feature 9 for verbal expression
-- Don't suggest breathing for everything!
-- Match emotional state to appropriate feature
-
-RETURN A VALID JSON WITHOUT ANY MARKUPS:
-
-{
-  "intent_analysis": {
-    "emotional_state": "<calm|neutral|low|sad|anxious|stressed|overwhelmed|frustrated|angry|numb>",
-    "intent_type": "<venting|reassurance|advice|grounding|reflection|action_planning|informational|casual_chat>",
-    "cognitive_load": "<low|medium|high>",
-    "emotional_intensity": "<mild|moderate|high|critical>",
-    "help_receptivity": "<resistant|passive|open|seeking>",
-    "time_focus": "<past|present|future|mixed>",
-    "context_dependency": "<standalone|session_dependent>",
-    "self_harm_crisis": "<true|false>"
-  },
-  "response": "<Your compassionate response here>",
-  "suggested_feature": "<1-10 or none>"
-}
-
-Analyze the user's message and provide appropriate emotional support."""
-            msgs = [{'role': 'system', 'content': system_prompt}]
-            for h in hist: msgs.append({'role': 'assistant' if h['role'] == 'bot' else 'user', 'content': h['content']})
-            msgs.append({'role': 'user', 'content': msg})
             
-            res = ollama_client.chat(model='llama3.2:3b', messages=msgs)
-            text = res['message']['content'].strip()
-            
+            # STEP 1: Intent Classification
+            intent_prompt = f"""Classify this mental health message into JSON format.
+
+User message: "{msg}"
+
+Return ONLY valid JSON (no explanation, no markdown):
+{{
+  "emotional_state": "calm|neutral|low|sad|anxious|stressed|overwhelmed|frustrated|angry|numb",
+  "intent_type": "venting|reassurance|advice|grounding|reflection|action_planning|informational|casual_chat",
+  "cognitive_load": "low|medium|high",
+  "emotional_intensity": "mild|moderate|high|critical",
+  "help_receptivity": "resistant|passive|open|seeking",
+  "time_focus": "past|present|future|mixed",
+  "context_dependency": "standalone|session_dependent",
+  "self_harm_crisis": "true|false"
+}}"""
+
             try:
-                start = text.find('{')
-                end = text.rfind('}')
+                intent_res = ollama_client.generate(model='llama3.2:3b', prompt=intent_prompt)
+                intent_text = intent_res['response'].strip()
+                
+                # Extract JSON from response
+                start = intent_text.find('{')
+                end = intent_text.rfind('}')
                 if start != -1 and end != -1:
-                    return json.loads(text[start:end+1])
-            except: pass
-            return {"response": text}
+                    intent_analysis = json.loads(intent_text[start:end+1])
+                else:
+                    raise ValueError("No JSON found in intent response")
+            except Exception as e:
+                print(f"DEBUG: Intent classification failed: {e}")
+                # Keyword-based fallback
+                msg_lower = msg.lower()
+                if any(w in msg_lower for w in ['sad', 'low', 'nahi lagra', 'bad', 'udaas', 'depressed']):
+                    intent_analysis = {"emotional_state": "low", "intent_type": "reassurance", "emotional_intensity": "moderate", "help_receptivity": "open", "cognitive_load": "medium", "self_harm_crisis": "false"}
+                elif any(w in msg_lower for w in ['anxious', 'panic', 'nervous', 'ghabrahat', 'tension']):
+                    intent_analysis = {"emotional_state": "anxious", "intent_type": "grounding", "emotional_intensity": "moderate", "help_receptivity": "seeking", "cognitive_load": "high", "self_harm_crisis": "false"}
+                elif any(w in msg_lower for w in ['angry', 'frustrated', 'irritate', 'gussa']):
+                    intent_analysis = {"emotional_state": "frustrated", "intent_type": "venting", "emotional_intensity": "moderate", "help_receptivity": "resistant", "cognitive_load": "high", "self_harm_crisis": "false"}
+                else:
+                    intent_analysis = {"emotional_state": "neutral", "intent_type": "casual_chat", "emotional_intensity": "mild", "help_receptivity": "open", "cognitive_load": "low", "self_harm_crisis": "false"}
+            
+            # STEP 2: Generate Response with Feature Suggestion
+            convo_prompt = f"""You are a compassionate mental health assistant. User speaks in English/Hinglish.
+
+User message: "{msg}"
+Intent analysis: {json.dumps(intent_analysis)}
+
+Based on the intent, suggest ONE feature:
+- Text Venting (for writing feelings)
+- Sound Venting (for verbal expression)
+- AR Breathing (high anxiety/panic)
+- 1/2-Minute Breathing Exercise (quick calm)
+- Body Scan Meditation (physical tension)
+- Mindfulness Meditation (overthinking)
+- Nature Sounds (background calm)
+- Piano Relaxation (gentle mood lift)
+- Ocean Waves (deep relaxation)
+- VR Meditation (intense escape/immersion)
+
+Return ONLY valid JSON:
+{{
+  "response": "Your empathetic response in user's language (English/Hinglish)",
+  "suggested_feature": "Feature name or none"
+}}"""
+
+            try:
+                convo_res = ollama_client.generate(model='llama3.2:3b', prompt=convo_prompt)
+                convo_text = convo_res['response'].strip()
+                
+                # Extract JSON
+                start = convo_text.find('{')
+                end = convo_text.rfind('}')
+                if start != -1 and end != -1:
+                    convo_data = json.loads(convo_text[start:end+1])
+                    response_text = convo_data.get('response', convo_text)
+                    suggested_feature = convo_data.get('suggested_feature', None)
+                else:
+                    response_text = convo_text
+                    suggested_feature = None
+            except Exception as e:
+                print(f"DEBUG: Conversation generation failed: {e}")
+                response_text = "I'm here to listen and support you."
+                suggested_feature = None
+            
+            return {
+                "response": response_text,
+                "intent_analysis": intent_analysis,
+                "suggested_feature": suggested_feature
+            }
 
         # Main Logic: FastAPI -> Ollama
         try:
@@ -199,25 +197,111 @@ Analyze the user's message and provide appropriate emotional support."""
                 timeout=10
             )
             fastapi_data = fastapi_response.json()
-            bot_message = fastapi_data.get('reply', '...')
-            crisis_detected = fastapi_data.get('self_harm_crisis') == 'true'
-            # (Suggestion logic...)
+            
+            # FastAPI returns: reply, intent_json, self_harm_crisis
             intent_json_str = fastapi_data.get('intent_json', '{}')
+            crisis_detected = fastapi_data.get('self_harm_crisis') == 'true'
+            reply_text = fastapi_data.get('reply', 'I am here to listen.')
+            
+            print(f"DEBUG FastAPI reply_text: {reply_text[:200]}...")  # Debug
+            
+            # Parse reply_text to extract response and suggested_feature
+            # FastAPI convo_LLM returns JSON: {"response": "...", "suggested_feature": "..."}
+            try:
+                # Try to parse as JSON
+                reply_json = json.loads(reply_text)
+                bot_message = reply_json.get('response', reply_text)
+                suggested_feature = reply_json.get('suggested_feature', None)
+                print(f"DEBUG: Parsed reply JSON, feature={suggested_feature}")  # Debug
+            except json.JSONDecodeError as e:
+                # If reply is not JSON, use it as-is
+                print(f"DEBUG: Reply not JSON, using as plain text: {e}")  # Debug
+                bot_message = reply_text
+                suggested_feature = None
+            
+            # Parse intent_json to suggest assessment
             try:
                 intent_data = json.loads(intent_json_str)
-                suggested_assessment = intent_data.get('suggested_assessment', 'none')
-                if suggested_assessment != 'none':
-                    assessment_suggestion = {'suggested_assessment': suggested_assessment, 'reason': f"Based on our talk, {suggested_assessment} might help."}
-            except: pass
-        except:
-            # Fallback to direct Ollama
+                emotional_state = intent_data.get('emotional_state', 'neutral')
+                emotional_intensity = intent_data.get('emotional_intensity', 'mild')
+                help_receptivity = intent_data.get('help_receptivity', 'passive')
+                intent_type = intent_data.get('intent_type', 'casual_chat')
+                cognitive_load = intent_data.get('cognitive_load', 'medium')
+                
+                # ASSESSMENT SUGGESTION LOGIC
+                # PHQ-9: Depression screening (sad, low, numb)
+                if emotional_state in ['sad', 'numb', 'low'] and emotional_intensity in ['moderate', 'high']:
+                    suggested_assessment = 'PHQ-9'
+                # GAD-7: Anxiety screening (anxious, stressed, overwhelmed)
+                elif emotional_state in ['anxious', 'stressed', 'overwhelmed'] and emotional_intensity in ['moderate', 'high']:
+                    suggested_assessment = 'GAD-7'
+                # GHQ: General health for critical cases
+                elif emotional_intensity == 'critical':
+                    suggested_assessment = 'GHQ'
+                # Inkblot: For emotional numbness, dissociation, difficulty expressing, complex trauma
+                elif (emotional_state == 'numb' and emotional_intensity in ['moderate', 'high']) or \
+                     (help_receptivity == 'resistant' and emotional_intensity == 'high') or \
+                     (intent_type in ['reflection', 'venting'] and emotional_state in ['numb', 'frustrated', 'angry'] and cognitive_load == 'high'):
+                    suggested_assessment = 'Inkblot'
+            except Exception as e:
+                print(f"Error parsing intent_json from FastAPI: {e}")
+                
+        except Exception as fastapi_error:
+            # Fallback to direct Ollama if FastAPI fails
+            print(f"FastAPI unavailable, using Ollama fallback: {fastapi_error}")
             unified_data = call_ollama(user_message, chat_history)
             bot_message = unified_data.get('response', 'I am here to listen.')
             intent_analysis = unified_data.get('intent_analysis', {})
+            
+            # If intent_analysis is empty, set defaults based on message keywords
+            if not intent_analysis:
+                print("DEBUG: Intent analysis empty, using keyword-based fallback")
+                msg_lower = user_message.lower()
+                
+                # Simple keyword-based classification
+                if any(word in msg_lower for word in ['anxious', 'anxiety', 'panic', 'nervous', 'ghabrahat']):
+                    intent_analysis = {
+                        'emotional_state': 'anxious',
+                        'intent_type': 'grounding',
+                        'emotional_intensity': 'moderate',
+                        'help_receptivity': 'seeking',
+                        'cognitive_load': 'medium'
+                    }
+                elif any(word in msg_lower for word in ['sad', 'depressed', 'low', 'nahi lagra', 'bad', 'udaas']):
+                    intent_analysis = {
+                        'emotional_state': 'low',
+                        'intent_type': 'reassurance',
+                        'emotional_intensity': 'moderate',
+                        'help_receptivity': 'open',
+                        'cognitive_load': 'medium'
+                    }
+                elif any(word in msg_lower for word in ['angry', 'frustrated', 'irritate', 'gussa']):
+                    intent_analysis = {
+                        'emotional_state': 'frustrated',
+                        'intent_type': 'venting',
+                        'emotional_intensity': 'moderate',
+                        'help_receptivity': 'resistant',
+                        'cognitive_load': 'high'
+                    }
+                else:
+                    intent_analysis = {
+                        'emotional_state': 'neutral',
+                        'intent_type': 'casual_chat',
+                        'emotional_intensity': 'mild',
+                        'help_receptivity': 'open',
+                        'cognitive_load': 'low'
+                    }
+            
             crisis_detected = str(intent_analysis.get('self_harm_crisis', 'false')).lower() == 'true'
             
-            # Map feature number to feature name
-            feature_catalog = {
+            # Store intent_analysis as JSON string for response
+            intent_json_str = json.dumps(intent_analysis) if intent_analysis else '{}'
+            
+            # Get suggested_feature from Ollama response (could be name or number)
+            suggested_feature_raw = unified_data.get('suggested_feature', 'none')
+            
+            # Feature mapping (if Ollama returns number instead of name)
+            feature_map = {
                 '1': '1/2-Minute Breathing Exercise',
                 '2': 'Body Scan Meditation',
                 '3': 'Mindfulness Meditation',
@@ -230,15 +314,68 @@ Analyze the user's message and provide appropriate emotional support."""
                 '10': 'VR Meditation'
             }
             
-            feat = unified_data.get('suggested_feature', 'none')
-            if feat and feat != 'none':
-                # Convert number to feature name
-                feature_name = feature_catalog.get(str(feat), None)
-                if feature_name:
-                    assessment_suggestion = {
-                        'suggested_assessment': feature_name, 
-                        'reason': f"I think {feature_name} might help you right now."
-                    }
+            # Check if it's a number or already a feature name
+            if suggested_feature_raw and suggested_feature_raw != 'none':
+                if suggested_feature_raw in feature_map:
+                    suggested_feature = feature_map[suggested_feature_raw]
+                elif suggested_feature_raw in feature_map.values():
+                    suggested_feature = suggested_feature_raw
+                else:
+                    # Fallback to intent-based suggestion
+                    suggested_feature = None
+            
+            # If no valid feature from Ollama, determine from intent
+            if not suggested_feature:
+                # Get emotional parameters
+                emotional_state = intent_analysis.get('emotional_state', 'neutral')
+                emotional_intensity = intent_analysis.get('emotional_intensity', 'mild')
+                intent_type = intent_analysis.get('intent_type', 'casual_chat')
+                help_receptivity = intent_analysis.get('help_receptivity', 'passive')
+                cognitive_load = intent_analysis.get('cognitive_load', 'medium')
+                
+                # FEATURE SUGGESTION (same logic as FastAPI path)
+                if intent_type == 'venting':
+                    suggested_feature = 'Text Venting' if help_receptivity in ['resistant', 'passive'] else 'Sound Venting'
+                elif emotional_state in ['anxious', 'stressed', 'overwhelmed']:
+                    if cognitive_load == 'high' or emotional_intensity == 'high':
+                        suggested_feature = 'AR Breathing'
+                    else:
+                        suggested_feature = '1/2-Minute Breathing Exercise'
+                elif emotional_state in ['sad', 'low', 'numb']:
+                    if emotional_state == 'numb':
+                        suggested_feature = 'Ocean Waves'
+                    else:
+                        suggested_feature = 'Piano Relaxation'
+                elif intent_type == 'grounding':
+                    suggested_feature = 'Body Scan Meditation'
+                elif emotional_state in ['frustrated', 'angry']:
+                    suggested_feature = 'Sound Venting'
+                elif intent_type == 'reflection':
+                    suggested_feature = 'Mindfulness Meditation'
+                elif emotional_intensity == 'critical':
+                    suggested_feature = 'VR Meditation'
+                else:
+                    suggested_feature = 'Nature Sounds'
+            
+            # Get emotional parameters for assessment
+            emotional_state = intent_analysis.get('emotional_state', 'neutral')
+            emotional_intensity = intent_analysis.get('emotional_intensity', 'mild')
+            intent_type = intent_analysis.get('intent_type', 'casual_chat')
+            help_receptivity = intent_analysis.get('help_receptivity', 'passive')
+            cognitive_load = intent_analysis.get('cognitive_load', 'medium')
+            
+            # ASSESSMENT SUGGESTION
+            if emotional_state in ['sad', 'numb', 'low'] and emotional_intensity in ['moderate', 'high']:
+                suggested_assessment = 'PHQ-9'
+            elif emotional_state in ['anxious', 'stressed', 'overwhelmed'] and emotional_intensity in ['moderate', 'high']:
+                suggested_assessment = 'GAD-7'
+            elif emotional_intensity == 'critical':
+                suggested_assessment = 'GHQ'
+            # Inkblot: For numb, resistant, complex emotional states
+            elif (emotional_state == 'numb' and emotional_intensity in ['moderate', 'high']) or \
+                 (help_receptivity == 'resistant' and emotional_intensity == 'high') or \
+                 (intent_type in ['reflection', 'venting'] and emotional_state in ['numb', 'frustrated', 'angry'] and cognitive_load == 'high'):
+                suggested_assessment = 'Inkblot'
 
         # Save bot message asynchronously
         save_chat_message.delay(session_id, 'bot', bot_message, crisis_detected)
@@ -251,7 +388,10 @@ Analyze the user's message and provide appropriate emotional support."""
         return {
             'bot_message': bot_message,
             'crisis_detected': crisis_detected,
-            'assessment_suggestion': assessment_suggestion,
+            'sos': crisis_detected,  # SOS flag mirrors crisis detection
+            'intent_json': intent_json_str,  # Include intent classification JSON
+            'suggested_feature': suggested_feature,  # Feature from catalog (breathing, venting, etc.)
+            'suggested_assessment': suggested_assessment,  # Assessment type (PHQ-9, GAD-7, GHQ)
             'session_id': session_id
         }
 
