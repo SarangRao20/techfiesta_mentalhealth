@@ -16,46 +16,25 @@ import SplitText from './animation/SplitText.jsx';
 const FeatureRenderer = ({ feature, onClose }) => {
     switch (feature) {
         case "1/2-Minute Breathing Exercise":
-            return (
-                <BreathingExercise onClose={onClose} />
-            );
+            return <BreathingExercise onClose={onClose} />;
         case "Body Scan Meditation":
-            return (
-                <BodyScanMeditation onClose={onClose} />
-            );
+            return <BodyScanMeditation onClose={onClose} />;
         case "Mindfulness Meditation":
-            return (
-                <MindfulnessMeditation onClose={onClose} />
-            );
+            return <MindfulnessMeditation onClose={onClose} />;
         case "Nature Sounds":
-            return (
-                <NatureSounds onClose={onClose} />
-            );
+            return <NatureSounds onClose={onClose} />;
         case "Ocean Waves":
-            return (
-                <OceanWaves onClose={onClose} />
-            );
+            return <OceanWaves onClose={onClose} />;
         case "Piano Relaxation":
-            return (
-                <PianoRelaxation onClose={onClose} />
-            );
+            return <PianoRelaxation onClose={onClose} />;
         case "AR Breathing":
-            return (
-                <Ar_breathing onClose={onClose} />
-            );
+            return <Ar_breathing onClose={onClose} />;
         case "Text Venting":
-            return (
-                <TextVenting onClose={onClose} />
-            );
+            return <TextVenting onClose={onClose} />;
         case "Sound Venting":
-            return (
-                <SoundVenting onClose={onClose} />
-            );
+            return <SoundVenting onClose={onClose} />;
         case "VR Meditation":
-            return (
-                <VrMeditation onClose={onClose} />
-            );
-
+            return <VrMeditation onClose={onClose} />;
         default:
             return (
                 <div className="p-6 text-white h-full">
@@ -87,7 +66,7 @@ const Chat = () => {
 
     // Voice Mode State
     const [isVoiceMode, setIsVoiceMode] = useState(false);
-    const [voiceStatus, setVoiceStatus] = useState('idle'); // idle, listening, processing, speaking
+    const [voiceStatus, setVoiceStatus] = useState('idle');
     const [transcript, setTranscript] = useState('');
 
     // Voice Refs
@@ -95,7 +74,7 @@ const Chat = () => {
     const synthesisRef = useRef(window.speechSynthesis);
     const silenceTimerRef = useRef(null);
     const isSpeakingRef = useRef(false);
-    const isVoiceModeRef = useRef(false); // Ref to track voice mode for event handlers
+    const isVoiceModeRef = useRef(false);
 
     const messagesEndRef = useRef(null);
     const sosTimerRef = useRef(null);
@@ -105,7 +84,6 @@ const Chat = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    // Keep ref in sync with state
     useEffect(() => {
         isVoiceModeRef.current = isVoiceMode;
     }, [isVoiceMode]);
@@ -116,24 +94,16 @@ const Chat = () => {
         }
     }, [messages]);
 
-    // Cleanup timers on unmount
     useEffect(() => {
         return () => {
-            if (sosTimerRef.current) {
-                clearTimeout(sosTimerRef.current);
-            }
-            if (sosCountdownRef.current) {
-                clearInterval(sosCountdownRef.current);
-            }
+            if (sosTimerRef.current) clearTimeout(sosTimerRef.current);
+            if (sosCountdownRef.current) clearInterval(sosCountdownRef.current);
         };
     }, []);
 
-    // Heuristic crisis detection - immediate response
     const detectCrisisHeuristic = (message) => {
         const lowerMsg = message.toLowerCase().trim();
-
         const crisisKeywords = [
-            // English
             'kill myself', 'end my life', 'want to die', 'wanna die',
             'suicide', 'suicidal', 'end it all', 'better off dead',
             'no reason to live', 'cant go on', "can't go on",
@@ -142,102 +112,28 @@ const Chat = () => {
             'not worth living', 'end the pain', 'give up on life',
             'life is meaningless', 'no point in living', 'want it to end',
             'planning to die', 'take my life', 'commit suicide',
-            // Hindi/Hinglish
             'jeevan khatam', 'zindagi khatam', 'mar jaun', 'marna chahta',
             'marna chahti', 'khudkushi', 'suicide kar', 'khatam kar',
             'jaan de', 'jaan lelu', 'jee ke kya faida', 'jeene ka mann nahi',
-            'mar jaana chahta', 'khud ko maar', 'खुदकुशी', 'मर जाऊं'
+            'mar jaana chahta', 'khud ko maar'
         ];
-
         return crisisKeywords.some(keyword => lowerMsg.includes(keyword));
     };
 
     const formatMessage = (content) => {
         if (!content) return '';
-
-        // Feature list mapping
-        const featureMap = {
-            '1': '1/2-Minute Breathing Exercise',
-            '2': 'Body Scan Meditation',
-            '3': 'Mindfulness Meditation',
-            '4': 'Nature Sounds',
-            '5': 'Piano Relaxation',
-            '6': 'Ocean Waves',
-            '7': 'AR Breathing',
-            '8': 'Sound Venting Hall',
-            '9': 'Private Venting Room',
-            '10': 'VR Meditation'
-        };
-
-        // Check if content contains a numbered feature list (with markdown bold pattern)
-        const featureListRegex = /(?:^|\n)(\d+)\.\s*\*\*(.+?)\*\*:\s*(.+?)(?=\n\d+\.\s*\*\*|$)/gms;
-        const matches = [...content.matchAll(featureListRegex)];
-        
-        if (matches.length >= 2) {
-            // This looks like a feature list with markdown, render as buttons
-            const textBeforeList = content.substring(0, matches[0].index).trim();
-            const textAfterList = content.substring(matches[matches.length - 1].index + matches[matches.length - 1][0].length).trim();
-            
-            return (
-                <div>
-                    {textBeforeList && (
-                        <div className="mb-3" dangerouslySetInnerHTML={{ __html: textBeforeList.replace(/\n/g, '<br />') }} />
-                    )}
-                    <div className="grid grid-cols-2 gap-2 mt-3">
-                        {matches.map((match) => {
-                            const featureNum = match[1];
-                            const featureName = match[2].trim(); // Extract name from markdown **name**
-                            const mappedFeature = featureMap[featureNum] || featureName;
-                            return (
-                                <button
-                                    key={featureNum}
-                                    onClick={() => handleFeatureClick(mappedFeature)}
-                                    className="px-3 py-2 rounded-lg bg-[#8D2EF2]/20 hover:bg-[#8D2EF2] text-white text-sm transition-all border border-[#8D2EF2]/30 text-left group"
-                                >
-                                    <div className="font-semibold">{featureName}</div>
-                                    <div className="text-xs text-white/60 mt-1 line-clamp-2 group-hover:text-white/80">{match[3].trim()}</div>
-                                </button>
-                            );
-                        })}
-                    </div>
-                    {textAfterList && (
-                        <div className="mt-3" dangerouslySetInnerHTML={{ __html: textAfterList.replace(/\n/g, '<br />') }} />
-                    )}
-                </div>
-            );
-        }
-
-        // Regular message formatting (no feature list)
-        // 1. Convert URLs to links
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        let formatted = content.replace(urlRegex, (url) => {
-            return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-400 underline hover:text-blue-300">${url}</a>`;
-        });
-
-        // 2. Bold keywords
-        const keywords = ['important', 'urgent', 'crisis', 'emergency', 'help', 'concerned', 'safety'];
-        keywords.forEach(word => {
-            const regex = new RegExp(`\\b${word}\\b`, 'gi');
-            formatted = formatted.replace(regex, (match) => `<strong class="text-white font-bold">${match}</strong>`);
-        });
-
-        // 3. Newlines to breaks
-        formatted = formatted.replace(/\n/g, '<br />');
-
-        return <span dangerouslySetInnerHTML={{ __html: formatted }} />;
+        return <span className="whitespace-pre-wrap">{content}</span>;
     };
 
     const handleSend = async () => {
         if (!input.trim()) return;
 
-        // IMMEDIATE HEURISTIC CHECK
         const userMessage = input.trim();
         const isCrisisDetected = detectCrisisHeuristic(userMessage);
 
         const userMsg = { role: 'user', content: userMessage };
         setMessages(prev => [...prev, userMsg]);
 
-        // If crisis detected, immediately show crisis response
         if (isCrisisDetected) {
             const crisisMsg = {
                 role: 'bot',
@@ -256,88 +152,39 @@ const Chat = () => {
         setIsLoading(true);
 
         try {
-            let data;
+            const res = await fetch('http://localhost:8000/send-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_message: userMessage })
+            });
 
-            // Try FastAPI first
-            try {
-                const res = await fetch('http://localhost:8000/send-message', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_message: userMessage
-                    }),
-                    signal: AbortSignal.timeout(5000) // 5s timeout
-                });
-                data = await res.json();
-                console.log('FastAPI Response:', data);
-            } catch (fastApiError) {
-                // Fallback to Flask
-                console.log('FastAPI unavailable, falling back to Flask');
-                const res = await fetch('http://localhost:2323/api/chatbot/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        message: userMessage
-                    })
-                });
-                const flaskData = await res.json();
-                // Convert Flask response format to FastAPI format
-                data = {
-                    reply: flaskData.bot_message,
-                    self_harm_crisis: flaskData.crisis_detected ? 'true' : 'false',
-                    suggested_feature: flaskData.assessment_suggestion ? flaskData.assessment_suggestion.suggested_assessment : null
-                };
-                console.log('Flask Response:', data);
-            }
+            const data = await res.json();
+            console.log('API Response:', data);
 
-            // FIXED: Parse the reply properly with robust error handling
+            // Parse the reply field (it's a stringified dict)
             let replyContent = '';
-            let suggestedFeature = data.suggested_feature || null;
+            let suggestedFeature = null;
 
+            // SAFELY extract fields from Python-dict-like string
             if (typeof data.reply === 'string') {
-                const reply = data.reply.trim();
+                const matchResponse = data.reply.match(
+                    /'response':\s*"([\s\S]*?)",\s*'suggested_feature'/
+                );
 
-                // Helper to extract JSON from text even if surrounded by other characters
-                const extractJson = (text) => {
-                    try {
-                        const start = text.indexOf('{');
-                        const end = text.lastIndexOf('}');
-                        if (start !== -1 && end !== -1) {
-                            return JSON.parse(text.substring(start, end + 1));
-                        }
-                    } catch (e) {
-                        console.error('JSON Extraction failed:', e);
-                    }
-                    return null;
-                };
+                const matchFeature = data.reply.match(
+                    /'suggested_feature':\s*'([^']*)'/
+                );
 
-                const parsed = extractJson(reply);
-                if (parsed && (parsed.response || parsed.bot_message)) {
-                    replyContent = parsed.response || parsed.bot_message;
-                    suggestedFeature = parsed.suggested_feature || null;
-                } else {
-                    // Fallback: If not JSON or no response field, use raw text but CLEAN IT
-                    // Remove common intent markers if they leaked
-                    replyContent = reply
-                        .replace(/\{.*\}/s, '') // Remove everything inside curly braces
-                        .replace(/intent_analysis.*/si, '')
-                        .replace(/intent:.*/si, '')
-                        .replace(/emotional_state:.*/si, '')
-                        .replace(/suggested_feature:.*/si, '')
-                        .replace(/```json|```/g, '')
-                        .trim();
-
-                    // If after cleaning it's empty, use original but avoid showing json
-                    if (!replyContent) replyContent = reply.split('\n')[0];
-                }
-            } else {
-                replyContent = String(data.reply);
+                replyContent = matchResponse ? matchResponse[1] : data.reply;
+                suggestedFeature = matchFeature ? matchFeature[1] : null;
+            } else if (typeof data.reply === 'object' && data.reply !== null) {
+                // future-proof: if backend sends real JSON later
+                replyContent = data.reply.response || '';
+                suggestedFeature = data.reply.suggested_feature || null;
             }
 
             const isCrisis = data.self_harm_crisis === "true";
 
-            // If crisis, override suggested feature
             if (isCrisis) {
                 suggestedFeature = "CALL";
             }
@@ -349,10 +196,8 @@ const Chat = () => {
                 isCrisis: isCrisis
             };
 
-            console.log('Bot Message:', botMsg);
             setMessages(prev => [...prev, botMsg]);
 
-            // Start SOS timer if crisis detected
             if (isCrisis) {
                 startSosTimer();
             }
@@ -370,15 +215,9 @@ const Chat = () => {
     const startSosTimer = () => {
         setSosCountdown(5);
 
-        // Clear any existing timers
-        if (sosTimerRef.current) {
-            clearTimeout(sosTimerRef.current);
-        }
-        if (sosCountdownRef.current) {
-            clearInterval(sosCountdownRef.current);
-        }
+        if (sosTimerRef.current) clearTimeout(sosTimerRef.current);
+        if (sosCountdownRef.current) clearInterval(sosCountdownRef.current);
 
-        // Countdown interval
         let count = 5;
         sosCountdownRef.current = setInterval(() => {
             count -= 1;
@@ -388,23 +227,15 @@ const Chat = () => {
             }
         }, 1000);
 
-        // Navigate after 5 seconds
         sosTimerRef.current = setTimeout(() => {
             navigate('/app/ar-breathing');
         }, 5000);
     };
 
     const handleSosClick = () => {
-        // Clear timers when user clicks SOS
-        if (sosTimerRef.current) {
-            clearTimeout(sosTimerRef.current);
-        }
-        if (sosCountdownRef.current) {
-            clearInterval(sosCountdownRef.current);
-        }
+        if (sosTimerRef.current) clearTimeout(sosTimerRef.current);
+        if (sosCountdownRef.current) clearInterval(sosCountdownRef.current);
         setSosCountdown(5);
-
-        // Handle SOS action
         window.location.href = 'tel:988';
     };
 
@@ -415,9 +246,6 @@ const Chat = () => {
         }
     };
 
-    // --- Voice Logic ---
-
-    // Initialize Speech Recognition
     const setupSpeechRecognition = () => {
         if (!('webkitSpeechRecognition' in window)) {
             alert('Speech recognition is not supported in this browser. Please use Chrome or Edge.');
@@ -425,9 +253,9 @@ const Chat = () => {
         }
 
         const recognition = new window.webkitSpeechRecognition();
-        recognition.continuous = true; // Keep listening
+        recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = 'en-IN'; // Hinglish support
+        recognition.lang = 'en-IN';
         recognition.maxAlternatives = 1;
 
         recognition.onstart = () => {
@@ -436,7 +264,6 @@ const Chat = () => {
         };
 
         recognition.onresult = (event) => {
-            // STRICT GUARD: If bot is speaking or about to speak, ignore EVERYTHING.
             if (isSpeakingRef.current) {
                 console.log('Ignored input while speaking');
                 return;
@@ -458,22 +285,16 @@ const Chat = () => {
                 handleVoiceInput(finalTranscript);
             } else if (interimTranscript) {
                 setTranscript(interimTranscript);
-                // Only reset timer if we are actually listening properly
                 if (!isSpeakingRef.current) resetSilenceTimer();
             }
         };
 
         recognition.onerror = (event) => {
             console.error('Speech recognition error', event.error);
-            if (event.error === 'no-speech') {
-                return; // Ignore no-speech errors
+            if (event.error === 'no-speech' || event.error === 'aborted') {
+                return;
             }
-            if (event.error === 'aborted') {
-                return; // Ignore manual aborts
-            }
-            // Attempt restart if active
             if (isVoiceModeRef.current && !isSpeakingRef.current) {
-                // Short delay before restart
                 setTimeout(() => {
                     try { recognition.start(); } catch (e) { }
                 }, 1000);
@@ -482,7 +303,6 @@ const Chat = () => {
 
         recognition.onend = () => {
             console.log('Voice recognition ended');
-            // Auto-restart if still in voice mode and not speaking
             if (isVoiceModeRef.current && !isSpeakingRef.current) {
                 console.log('Restarting recognition...');
                 try {
@@ -499,23 +319,19 @@ const Chat = () => {
     };
 
     const handleVoiceInput = async (text) => {
-        // Prevent processing if we are already handling something or speaking
         if (isSpeakingRef.current) return;
 
         setVoiceStatus('processing');
-        // Stop recognition temporarily while processing/speaking
         if (recognitionRef.current) {
             recognitionRef.current.stop();
         }
 
-        // Use existing handleSend logic but with voice input
         const userMessage = text.trim();
         const isCrisisDetected = detectCrisisHeuristic(userMessage);
 
         const userMsg = { role: 'user', content: userMessage };
         setMessages(prev => [...prev, userMsg]);
 
-        // If crisis detected, immediately show crisis response
         if (isCrisisDetected) {
             const crisisMsg = {
                 role: 'bot',
@@ -529,71 +345,35 @@ const Chat = () => {
         }
 
         try {
-            let data;
+            const res = await fetch('http://localhost:8000/send-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_message: userMessage })
+            });
 
-            // Try FastAPI first
-            try {
-                const res = await fetch('http://localhost:8000/send-message', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_message: userMessage
-                    }),
-                    signal: AbortSignal.timeout(5000) // 5s timeout
-                });
-                data = await res.json();
-            } catch (fastApiError) {
-                // Fallback to Flask
-                console.log('Voice: FastAPI unavailable, falling back to Flask');
-                const res = await fetch('http://localhost:2323/api/chatbot/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        message: userMessage
-                    })
-                });
-                const flaskData = await res.json();
-                // Convert Flask response format to FastAPI format
-                data = {
-                    reply: flaskData.bot_message,
-                    self_harm_crisis: flaskData.crisis_detected ? 'true' : 'false',
-                    suggested_feature: flaskData.assessment_suggestion ? flaskData.assessment_suggestion.suggested_assessment : null
-                };
-            }
+            const data = await res.json();
 
             let replyContent = '';
-            let suggestedFeature = data.suggested_feature || null;
+            let suggestedFeature = null;
 
+            // SAFELY extract fields from Python-dict-like string
             if (typeof data.reply === 'string') {
-                const reply = data.reply.trim();
+                const matchResponse = data.reply.match(
+                    /'response':\s*"([\s\S]*?)",\s*'suggested_feature'/
+                );
 
-                const extractJson = (text) => {
-                    try {
-                        const start = text.indexOf('{');
-                        const end = text.lastIndexOf('}');
-                        if (start !== -1 && end !== -1) {
-                            return JSON.parse(text.substring(start, end + 1));
-                        }
-                    } catch (e) { }
-                    return null;
-                };
+                const matchFeature = data.reply.match(
+                    /'suggested_feature':\s*'([^']*)'/
+                );
 
-                const parsed = extractJson(reply);
-                if (parsed && (parsed.response || parsed.bot_message)) {
-                    replyContent = parsed.response || parsed.bot_message;
-                    suggestedFeature = parsed.suggested_feature || null;
-                } else {
-                    replyContent = reply
-                        .replace(/\{.*\}/s, '')
-                        .replace(/intent_analysis.*/si, '')
-                        .replace(/```json|```/g, '')
-                        .trim();
-                    if (!replyContent) replyContent = reply.split('\n')[0];
-                }
-            } else {
-                replyContent = String(data.reply);
+                replyContent = matchResponse ? matchResponse[1] : data.reply;
+                suggestedFeature = matchFeature ? matchFeature[1] : null;
+            } else if (typeof data.reply === 'object' && data.reply !== null) {
+                // future-proof: if backend sends real JSON later
+                replyContent = data.reply.response || '';
+                suggestedFeature = data.reply.suggested_feature || null;
             }
+
 
             const isCrisis = data.self_harm_crisis === "true";
 
@@ -625,15 +405,12 @@ const Chat = () => {
     const speakResponse = (text) => {
         if (!text || !isVoiceMode) return;
 
-        // CRITICAL FIX: Abort recognition IMMEDIATELY. 
-        // stop() is too slow and might return a result. abort() kills it.
         if (recognitionRef.current) {
             recognitionRef.current.abort();
         }
-        isSpeakingRef.current = true; // Set flag immediately
+        isSpeakingRef.current = true;
         setVoiceStatus('speaking');
 
-        // Clean text (remove markdown etc - basic cleanup)
         const cleanText = text.replace(/[*#`]/g, '');
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -641,34 +418,28 @@ const Chat = () => {
         utterance.rate = 0.9;
         utterance.pitch = 1;
 
-        // Find a female voice or Hindi voice if available
         const voices = window.speechSynthesis.getVoices();
         const preferredVoice = voices.find(v => v.lang.includes('hi') || v.name.includes('India') || v.name.includes('Female'));
         if (preferredVoice) utterance.voice = preferredVoice;
 
         utterance.onstart = () => {
-            // Redundant safety check
             if (recognitionRef.current) recognitionRef.current.abort();
             setVoiceStatus('speaking');
             isSpeakingRef.current = true;
         };
 
         utterance.onend = () => {
-            // Add a small delay before listening again to avoid "echo" of the last word
             setTimeout(() => {
                 isSpeakingRef.current = false;
                 setVoiceStatus('listening');
-                setTranscript(''); // Clear transcript
+                setTranscript('');
 
-                // Restart recognition
                 if (isVoiceModeRef.current && recognitionRef.current) {
                     try {
                         recognitionRef.current.start();
-                    } catch (e) {
-                        // Might be already started
-                    }
+                    } catch (e) { }
                 }
-            }, 300); // 300ms delay helps clear the audio buffer
+            }, 300);
         };
 
         utterance.onerror = () => {
@@ -676,26 +447,21 @@ const Chat = () => {
             setVoiceStatus('listening');
         };
 
-        // Cancel any current speaking
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(utterance);
     };
 
-    // Effect to toggle Voice Mode
     useEffect(() => {
         if (isVoiceMode) {
-            // Start
             if (!recognitionRef.current) {
                 recognitionRef.current = setupSpeechRecognition();
             }
             try {
                 recognitionRef.current?.start();
             } catch (e) { console.log('Already started'); }
-
         } else {
-            // Stop
             if (recognitionRef.current) {
-                recognitionRef.current.abort(); // Uses abort instead of stop for immediate effect
+                recognitionRef.current.abort();
             }
             window.speechSynthesis.cancel();
             setVoiceStatus('idle');
@@ -703,13 +469,11 @@ const Chat = () => {
         }
 
         return () => {
-            // Cleanup on unmount or mode switch
             if (recognitionRef.current) recognitionRef.current.abort();
             window.speechSynthesis.cancel();
         };
     }, [isVoiceMode]);
 
-    // Effect to auto-speak bot messages in Voice Mode
     useEffect(() => {
         if (isVoiceMode && messages.length > 0) {
             const lastMsg = messages[messages.length - 1];
@@ -721,10 +485,7 @@ const Chat = () => {
 
     const resetSilenceTimer = () => {
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-        silenceTimerRef.current = setTimeout(() => {
-            // Silence timeout logic - maybe stop listening or prompt?
-            // For now, let's just let it stay listening as 'continuous' handles a lot.
-        }, 8000);
+        silenceTimerRef.current = setTimeout(() => { }, 8000);
     };
 
     const toggleVoiceMode = () => {
@@ -738,9 +499,7 @@ const Chat = () => {
 
     return (
         <div className="flex h-screen bg-[#0f131c] text-white relative overflow-hidden">
-            {/* Main Chat Section */}
             <div className={`flex flex-col transition-all duration-500 ${activeFeature ? 'w-[45%]' : 'w-full'}`}>
-                {/* Header */}
                 <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-[#0f131c]">
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 bg-[#8e74ff] rounded-xl flex items-center justify-center">
@@ -764,39 +523,37 @@ const Chat = () => {
                     </button>
                 </div>
 
-                {/* Chat Area */}
                 <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
                     {messages.map((msg, idx) => (
-                        <div key={idx}>
+                        <div key={idx} className="space-y-3">
+                            {/* Message bubble */}
                             <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`
-                                    max-w-[75%] px-4 py-3 rounded-2xl
-                                    ${msg.role === 'user'
+                                max-w-[75%] px-4 py-3 rounded-2xl
+                                ${msg.role === 'user'
                                         ? 'bg-[#8e74ff] text-white rounded-tr-md'
-                                        : ' text-white '}
-                                `}>
-                                    {formatMessage(msg.content)}
+                                        : 'text-white'}
+                            `}>
+                                    {msg.content}
                                 </div>
                             </div>
 
+                            {/* Crisis CTA */}
                             {msg.role === 'bot' && msg.isCrisis && (
-                                <div className="flex justify-start mt-3">
-                                    <button
-                                        onClick={handleSosClick}
-                                        className="group relative px-8 py-4 rounded-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-bold text-lg transition-all duration-300 shadow-[0_0_30px_rgba(239,68,68,0.5)] hover:shadow-[0_0_40px_rgba(239,68,68,0.7)] animate-pulse-urgent flex items-center gap-3"
-                                    >
+                                <div className="flex justify-start">
+                                    <button onClick={handleSosClick} className="...">
                                         <Phone className="w-6 h-6 animate-bounce" />
                                         <span>Call SOS ({sosCountdown}s)</span>
-                                        <div className="absolute inset-0 rounded-full bg-white/20 blur-xl group-hover:bg-white/30 transition-all" />
                                     </button>
                                 </div>
                             )}
 
+                            {/* Feature CTA */}
                             {msg.role === 'bot' && msg.suggestedFeature && msg.suggestedFeature !== 'CALL' && (
-                                <div className="flex justify-start mt-2">
+                                <div className="flex justify-start">
                                     <button
                                         onClick={() => handleFeatureClick(msg.suggestedFeature)}
-                                        className="px-4 py-3 ml-4 rounded-xl bg-[#8D2EF2] hover:bg-[#9d3fff] text-white text-md transition-colors"
+                                        className="px-4 py-3 ml-3 rounded-xl bg-[#8D2EF2] hover:bg-[#9d3fff] text-white text-sm font-medium transition-colors"
                                     >
                                         {msg.suggestedFeature}
                                     </button>
@@ -816,7 +573,6 @@ const Chat = () => {
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input Area */}
                 <div className="px-6 py-4 border-t border-white/5 bg-[#0f131c]">
                     <div className="flex items-center gap-3">
                         <input
@@ -838,7 +594,6 @@ const Chat = () => {
                 </div>
             </div>
 
-            {/* Feature Panel */}
             <div className={`
                 transition-all duration-500 ease-in-out
                 ${activeFeature ? 'w-[55%] opacity-100' : 'w-0 opacity-0'}
@@ -854,7 +609,6 @@ const Chat = () => {
                 )}
             </div>
 
-            {/* VOICE MODE OVERLAY */}
             {isVoiceMode && (
                 <div className="fixed inset-0 z-50 bg-[#0a0d14]/95 backdrop-blur-xl flex flex-col items-center justify-center">
                     <button
