@@ -11,7 +11,7 @@ import Ar_breathing from './Features/Ar_breathing.jsx';
 import VrMeditation from './Features/VrMeditation.jsx';
 import TextVenting from './Features/TextVenting.jsx';
 import SoundVenting from './Features/SoundVenting.jsx';
-
+import { calculateConfidenceScore } from './score_calculator.js';
 
 const FeatureRenderer = ({ feature, onClose }) => {
     switch (feature) {
@@ -150,12 +150,12 @@ const Chat = () => {
 
         setInput('');
         setIsLoading(true);
-
+        const beforeMood = localStorage.getItem("mood");
         try {
             const res = await fetch('http://localhost:8000/send-message', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_message: userMessage })
+                body: JSON.stringify({ user_message: userMessage+" My mood before chatting was "+beforeMood })
             });
 
             const data = await res.json();
@@ -183,6 +183,31 @@ const Chat = () => {
                 suggestedFeature = data.reply.suggested_feature || null;
             }
 
+            let intentData = null;
+
+            if (typeof data.intent_json === 'string') {
+                try {
+                    intentData = JSON.parse(data.intent_json);
+                } catch (e) {
+                    console.error('Failed to parse intent_json:', e);
+                }
+            }
+            console.log('Parsed intent data:', intentData);
+
+            if (intentData) {
+                const get = localStorage.getItem("intent_data")
+                const array = get ? JSON.parse(intentData) : []
+
+                array.push(
+                    {
+                        ...intentData,
+                        timestamp: Date.now(),
+                        confidence_score: calculateConfidenceScore(intentData)  
+                    }
+                );
+
+                localStorage.setItem('intent_history', JSON.stringify(array));
+            }
             const isCrisis = data.self_harm_crisis === "true";
 
             if (isCrisis) {
