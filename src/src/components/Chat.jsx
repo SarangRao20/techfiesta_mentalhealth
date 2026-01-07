@@ -716,7 +716,7 @@ const Chat = () => {
                                     max-w-[75%] px-4 py-3 rounded-2xl
                                     ${msg.role === 'user'
                                         ? 'bg-[#8e74ff] text-white rounded-tr-md'
-                                        : ' text-white/70 '}
+                                        : ' text-white '}
                                 `}>
                                     {formatMessage(msg.content)}
                                 </div>
