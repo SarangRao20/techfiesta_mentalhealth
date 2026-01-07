@@ -1,8 +1,8 @@
 from flask import request
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from models import UserActivityLog
-from app import db
+from db_models import UserActivityLog
+from database import db
 from datetime import datetime
 
 ns = Namespace('activity', description='Universal Activity Logging')

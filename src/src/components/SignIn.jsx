@@ -37,7 +37,13 @@ const SignIn = () => {
         if (data.user.initial_dash) {
           localStorage.setItem("initial_dash", JSON.stringify(data.user.initial_dash));
         }
-        navigate("/app/dashboard");
+        if (['teacher', 'mentor'].includes(data.user.role.toLowerCase())) {
+          navigate("/app/mentor");
+        } else if (['counsellor', 'counselor'].includes(data.user.role.toLowerCase())) {
+          navigate("/app/counselor-dashboard");
+        } else {
+          navigate("/app/dashboard");
+        }
       } else {
         alert(data.message || "Login failed. Please check your credentials.");
       }

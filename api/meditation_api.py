@@ -1,7 +1,7 @@
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from models import MeditationSession
-from app import db
+from db_models import MeditationSession
+from database import db
 from utils import get_meditation_content
 from datetime import datetime, timedelta
 from sqlalchemy import func
@@ -44,7 +44,7 @@ class CompleteMeditation(Resource):
         db.session.add(session)
         
         # Universal Activity Log
-        from models import UserActivityLog
+        from db_models import UserActivityLog
         log = UserActivityLog(
             user_id=current_user.id,
             activity_type='meditation',

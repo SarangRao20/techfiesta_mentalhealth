@@ -14,10 +14,12 @@ export default function Profile() {
     student_id: "",
     accommodation_type: "",
     bio: "",
-    profile_picture: null
+    profile_picture: null,
+    organization_name: ""
   });
-  
+
   const [previewImage, setPreviewImage] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Mock progress data - replace with actual data from your backend
@@ -46,7 +48,7 @@ export default function Profile() {
       const res = await fetch(`${API_URL}/api/auth/profile`, {
         credentials: 'include'
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setProfileData({
@@ -57,7 +59,8 @@ export default function Profile() {
           student_id: data.student_id || "",
           accommodation_type: data.accommodation_type || "",
           bio: data.bio || "",
-          profile_picture: data.profile_picture || null
+          profile_picture: data.profile_picture || null,
+          organization_name: data.organization_name || ""
         });
         if (data.profile_picture) {
           setPreviewImage(data.profile_picture);
@@ -75,10 +78,11 @@ export default function Profile() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setSelectedFile(file);
+      // Preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewImage(reader.result);
-        setProfileData(prev => ({ ...prev, profile_picture: reader.result }));
       };
       reader.readAsDataURL(file);
     }
@@ -91,10 +95,23 @@ export default function Profile() {
 
   const handleSave = async () => {
     try {
+      const formData = new FormData();
+
+      // Append text fields
+      Object.keys(profileData).forEach(key => {
+        if (key !== 'profile_picture' && profileData[key] !== null) {
+          formData.append(key, profileData[key]);
+        }
+      });
+
+      // Append file if selected
+      if (selectedFile) {
+        formData.append('profile_picture', selectedFile);
+      }
+
       const res = await fetch(`${API_URL}/api/auth/profile`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profileData),
+        body: formData, // No Content-Type header needed for FormData
         credentials: 'include'
       });
 
@@ -221,6 +238,11 @@ export default function Profile() {
                 <span className="mt-2 px-3 py-1 rounded-full bg-purple-600/20 text-purple-400 text-xs capitalize">
                   {profileData.role}
                 </span>
+                {profileData.organization_name && (
+                  <span className="mt-1 px-3 py-1 rounded-full bg-teal-500/20 text-teal-400 text-xs font-semibold">
+                    {profileData.organization_name}
+                  </span>
+                )}
               </div>
 
               {/* Bio */}
@@ -265,7 +287,7 @@ export default function Profile() {
             {/* Personal Information */}
             <div className="rounded-xl border border-white/10 bg-[#1a1f2e] p-6">
               <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-white/60 mb-2">Full Name</label>
@@ -367,13 +389,13 @@ export default function Profile() {
               <h3 className="text-lg font-semibold mb-4">Weekly Progress</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={weeklyProgress}>
-                  <XAxis 
-                    dataKey="day" 
-                    stroke="#ffffff40" 
+                  <XAxis
+                    dataKey="day"
+                    stroke="#ffffff40"
                     tick={{ fill: '#ffffff80' }}
                   />
-                  <YAxis 
-                    stroke="#ffffff40" 
+                  <YAxis
+                    stroke="#ffffff40"
                     tick={{ fill: '#ffffff80' }}
                   />
                   <Tooltip

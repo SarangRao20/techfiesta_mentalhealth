@@ -1,8 +1,8 @@
 from flask import request
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from models import Assessment, User
-from app import db
+from db_models import Assessment, User
+from database import db
 from utils import get_assessment_questions, get_assessment_options, calculate_phq9_score, calculate_gad7_score, calculate_ghq_score, generate_analysis
 import json
 from datetime import datetime
@@ -60,7 +60,7 @@ class Assessments(Resource):
         db.session.add(assessment)
         
         # Universal Activity Log
-        from models import UserActivityLog
+        from db_models import UserActivityLog
         log = UserActivityLog(
             user_id=current_user.id,
             activity_type='assessment',

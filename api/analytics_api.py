@@ -1,6 +1,6 @@
 from flask_restx import Namespace, Resource
 from flask_login import login_required, current_user
-from models import User, ChatSession
+from db_models import User, ChatSession
 from sqlalchemy import and_
 from datetime import datetime, timedelta
 from database import db
@@ -12,7 +12,7 @@ class UserTrends(Resource):
     @login_required
     def get(self):
         """Get mood and activity trends for the current user"""
-        from models import UserActivityLog, Assessment
+        from db_models import UserActivityLog, Assessment
         from sqlalchemy import func
         
         # Last 7 days activity counts
