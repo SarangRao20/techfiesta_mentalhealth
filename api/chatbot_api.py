@@ -93,19 +93,89 @@ class Chat(Resource):
         def call_ollama(msg, hist):
             ollama_client = Client(host='http://localhost:11434')
             system_prompt = """You are a compassionate mental health assistant. 
-            FEATURES:
-            1. 1/2-Minute Breathing Exercise
-            2. Body Scan Meditation
-            3. Mindfulness Meditation
-            4. Nature Sounds
-            5. Piano Relaxation
-            6. Ocean Waves
-            7. AR Breathing
-            8. Sound Venting Hall
-            9. Private Venting Room
-            10. VR Meditation
-            
-            Return JSON: { intent_analysis: { emotional_state, intent_type, self_harm_crisis }, response, suggested_feature }."""
+
+STRICT FEATURE CATALOG (ONLY suggest features from this list by number):
+1. 1/2-Minute Breathing Exercise - Quick anxiety relief, panic attacks
+2. Body Scan Meditation - Physical tension, grounding, body awareness
+3. Mindfulness Meditation - Overthinking, mental clarity, present moment
+4. Nature Sounds - Background calm, relaxation, sleep
+5. Piano Relaxation - Gentle stress relief, focus
+6. Ocean Waves - Deep relaxation, sleep preparation
+7. AR Breathing - Interactive breathing, tech-assisted calm
+8. Text Venting - Need to write/express feelings, organize thoughts, rant
+9. Sound Venting - Need to speak out loud, voice emotions, verbal release
+10. VR Meditation - Immersive experience, escape, deep meditation
+
+FEATURE SELECTION GUIDE (Use variety, not just breathing!):
+
+VENTING (angry/frustrated/need to express): 8 or 9
+- "everything is pissing me off" → 8 or 9
+- "I feel like screaming" → 9 (voice)
+- "I just want to rant" → 8 (text)
+- "let me complain" → 8 (text)
+- "don't tell me what to do" → 8 or 9
+- "dimag ka dahi ho gaya hai" → 8 (text)
+- "sab irritate kar rahe hain" → 9 (voice)
+- "I need to let this out" → 8 (text) or 9 (voice)
+- "can I just say things" → 8 or 9
+
+OVERTHINKING (thoughts won't stop): 3, 2, or 4
+- "my thoughts won't shut up" → 3
+- "stuck in my own thoughts" → 3 or 2
+- "head is too loud" → 3 or 4
+- "can't focus" → 3
+- "thinking about everything at once" → 3
+
+LOW/EMPTY/NUMB (sad but not crying): 4, 5, 6, or 2
+- "I feel blank" → 4 or 6
+- "nothing excites me" → 5 or 6
+- "just existing" → 2 or 4
+- "mann bohot bhara hua hai" → 6
+- "don't feel like talking" → 6 or 4
+
+ANXIOUS/STRESSED (panic, overwhelm): 1 or 7
+- "anxious for no reason" → 1 or 7
+- "my brain is buffering" → 1
+- "mentally on 1% battery" → 7 or 1
+
+CALM SEEKING (escape, quiet): 10, 6, or 4
+- "I just want some quiet" → 6 or 4
+- "take me somewhere peaceful" → 10
+- "switch my mind off" → 10 or 6
+- "bas shaant hona hai" → 10 or 6
+
+CRISIS (self-harm ideation): TRIGGER self_harm_crisis = true
+- "jeevan khatam kardu" → self_harm_crisis: true
+- "mar jaun" → self_harm_crisis: true
+- "khudkushi" → self_harm_crisis: true
+- "end my life" → self_harm_crisis: true
+- "want to die" → self_harm_crisis: true
+- "suicide" → self_harm_crisis: true
+
+IMPORTANT: 
+- Use features 8 (TEXT) and 9 (VOICE) when user wants to EXPRESS/RANT/TALK
+- Feature 8 for written expression, Feature 9 for verbal expression
+- Don't suggest breathing for everything!
+- Match emotional state to appropriate feature
+
+RETURN A VALID JSON WITHOUT ANY MARKUPS:
+
+{
+  "intent_analysis": {
+    "emotional_state": "<calm|neutral|low|sad|anxious|stressed|overwhelmed|frustrated|angry|numb>",
+    "intent_type": "<venting|reassurance|advice|grounding|reflection|action_planning|informational|casual_chat>",
+    "cognitive_load": "<low|medium|high>",
+    "emotional_intensity": "<mild|moderate|high|critical>",
+    "help_receptivity": "<resistant|passive|open|seeking>",
+    "time_focus": "<past|present|future|mixed>",
+    "context_dependency": "<standalone|session_dependent>",
+    "self_harm_crisis": "<true|false>"
+  },
+  "response": "<Your compassionate response here>",
+  "suggested_feature": "<1-10 or none>"
+}
+
+Analyze the user's message and provide appropriate emotional support."""
             msgs = [{'role': 'system', 'content': system_prompt}]
             for h in hist: msgs.append({'role': 'assistant' if h['role'] == 'bot' else 'user', 'content': h['content']})
             msgs.append({'role': 'user', 'content': msg})
@@ -145,9 +215,30 @@ class Chat(Resource):
             bot_message = unified_data.get('response', 'I am here to listen.')
             intent_analysis = unified_data.get('intent_analysis', {})
             crisis_detected = str(intent_analysis.get('self_harm_crisis', 'false')).lower() == 'true'
+            
+            # Map feature number to feature name
+            feature_catalog = {
+                '1': '1/2-Minute Breathing Exercise',
+                '2': 'Body Scan Meditation',
+                '3': 'Mindfulness Meditation',
+                '4': 'Nature Sounds',
+                '5': 'Piano Relaxation',
+                '6': 'Ocean Waves',
+                '7': 'AR Breathing',
+                '8': 'Text Venting',
+                '9': 'Sound Venting',
+                '10': 'VR Meditation'
+            }
+            
             feat = unified_data.get('suggested_feature', 'none')
-            if feat != 'none':
-                assessment_suggestion = {'suggested_assessment': feat, 'reason': 'Recommended for you.'}
+            if feat and feat != 'none':
+                # Convert number to feature name
+                feature_name = feature_catalog.get(str(feat), None)
+                if feature_name:
+                    assessment_suggestion = {
+                        'suggested_assessment': feature_name, 
+                        'reason': f"I think {feature_name} might help you right now."
+                    }
 
         # Save bot message asynchronously
         save_chat_message.delay(session_id, 'bot', bot_message, crisis_detected)

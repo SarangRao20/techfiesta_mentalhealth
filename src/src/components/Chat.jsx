@@ -8,9 +8,9 @@ import NatureSounds from './Features/NatureSounds.jsx';
 import OceanWaves from './Features/OceanWaves.jsx';
 import PianoRelaxation from './Features/PianoRelaxation.jsx';
 import Ar_breathing from './Features/Ar_breathing.jsx';
-import PrivateVentingRoom from './PrivateVentingRoom.jsx';
-import VrMeditation from './VrMeditation.jsx';
-import Community from './Community.jsx';
+import VrMeditation from './Features/VrMeditation.jsx';
+import TextVenting from './Features/TextVenting.jsx';
+import SoundVenting from './Features/SoundVenting.jsx';
 import SplitText from './animation/SplitText.jsx';
 
 const FeatureRenderer = ({ feature, onClose }) => {
@@ -43,15 +43,13 @@ const FeatureRenderer = ({ feature, onClose }) => {
             return (
                 <Ar_breathing onClose={onClose} />
             );
-        case "Sound Venting Hall":
-        case "Venting Hall":
-        case "Community":
+        case "Text Venting":
             return (
-                <Community onClose={onClose} />
+                <TextVenting onClose={onClose} />
             );
-        case "Private Venting Room":
+        case "Sound Venting":
             return (
-                <PrivateVentingRoom onClose={onClose} />
+                <SoundVenting onClose={onClose} />
             );
         case "VR Meditation":
             return (
@@ -135,6 +133,7 @@ const Chat = () => {
         const lowerMsg = message.toLowerCase().trim();
 
         const crisisKeywords = [
+            // English
             'kill myself', 'end my life', 'want to die', 'wanna die',
             'suicide', 'suicidal', 'end it all', 'better off dead',
             'no reason to live', 'cant go on', "can't go on",
@@ -142,7 +141,12 @@ const Chat = () => {
             "don't want to live", 'harm myself', 'hurt myself',
             'not worth living', 'end the pain', 'give up on life',
             'life is meaningless', 'no point in living', 'want it to end',
-            'planning to die', 'take my life', 'commit suicide'
+            'planning to die', 'take my life', 'commit suicide',
+            // Hindi/Hinglish
+            'jeevan khatam', 'zindagi khatam', 'mar jaun', 'marna chahta',
+            'marna chahti', 'khudkushi', 'suicide kar', 'khatam kar',
+            'jaan de', 'jaan lelu', 'jee ke kya faida', 'jeene ka mann nahi',
+            'mar jaana chahta', 'khud ko maar', 'खुदकुशी', 'मर जाऊं'
         ];
 
         return crisisKeywords.some(keyword => lowerMsg.includes(keyword));
@@ -386,7 +390,7 @@ const Chat = () => {
 
         // Navigate after 5 seconds
         sosTimerRef.current = setTimeout(() => {
-            navigate('/app/ar_breathing');
+            navigate('/app/ar-breathing');
         }, 5000);
     };
 
