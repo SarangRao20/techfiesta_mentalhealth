@@ -15,10 +15,10 @@ export default function Dashboard() {
   const [ignite, setIgnite] = useState(false);
   const [moodIndex, setMoodIndex] = useState(1);
   const [loading, setLoading] = useState(true);
-
+  const[mood,setMood]=useState();
   const moods = ["😔", "🙂", "😄", "🤩"];
   const moodLabels = ["Low", "Okay", "Happy", "Great"];
-
+  localStorage.setItem("mood",mood);
   useEffect(() => {
     // Fire ignites on page refresh
     setTimeout(() => setIgnite(true), 300);
@@ -38,7 +38,7 @@ export default function Dashboard() {
       });
       setLoading(false);
     }
-
+    
     // Fetch dashboard data
     const fetchDashboardData = async () => {
       try {
@@ -114,7 +114,7 @@ export default function Dashboard() {
             </button>
 
             <div className="text-center">
-              <div className="text-6xl mb-2">{moods[moodIndex]}</div>
+              <div onClick={() => setMood(moodLabels[moodIndex])} className="text-6xl mb-2 cursor-pointer">{moods[moodIndex]}</div>
               <p className="text-white/70">{moodLabels[moodIndex]}</p>
             </div>
 

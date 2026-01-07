@@ -33,7 +33,7 @@ function App() {
       element:
         <div>
           <LandingPage />
-
+          <Kalpvriksha />
         </div>
     },
 
