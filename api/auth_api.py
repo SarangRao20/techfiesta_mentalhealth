@@ -33,6 +33,7 @@ user_model = ns.model('User', {
     'full_name': fields.String(),
     'role': fields.String(),
     'login_streak': fields.Integer(),
+    'profile_picture': fields.String(),
     'organization_id': fields.Integer(),
     'organization_name': fields.String(attribute=lambda x: x.organization.name if x.organization else None)
 })

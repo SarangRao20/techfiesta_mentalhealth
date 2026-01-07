@@ -158,7 +158,7 @@ export default function Profile() {
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/app')}
+              onClick={() => navigate('/app/dashboard')}
               className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
               title="Back to Dashboard"
             >

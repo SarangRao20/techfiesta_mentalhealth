@@ -143,11 +143,21 @@ const MentorDashboard = () => {
                             >
                                 <div className="flex justify-between items-start relative z-10">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${student.has_risk ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/50' : 'bg-gray-700 text-gray-300'
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden border border-white/10 relative ${student.has_risk ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/50' : 'bg-gray-700 text-gray-300'
                                             }`}>
-                                            {student.full_name.charAt(0)}
+                                            {student.profile_picture ? (
+                                                <img
+                                                    src={student.profile_picture}
+                                                    alt={student.full_name}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('fallback-icon'); }}
+                                                />
+                                            ) : null}
+                                            <span className={`${student.profile_picture ? 'hidden fallback-icon:block' : ''}`}>
+                                                {student.full_name.charAt(0)}
+                                            </span>
                                             {student.has_risk && (
-                                                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-[#161b26] animate-pulse"></span>
+                                                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-[#161b26] animate-pulse z-20"></span>
                                             )}
                                         </div>
                                         <div>
