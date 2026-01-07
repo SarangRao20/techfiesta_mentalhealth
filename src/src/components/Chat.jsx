@@ -133,6 +133,7 @@ const Chat = () => {
         const lowerMsg = message.toLowerCase().trim();
 
         const crisisKeywords = [
+            // English
             'kill myself', 'end my life', 'want to die', 'wanna die',
             'suicide', 'suicidal', 'end it all', 'better off dead',
             'no reason to live', 'cant go on', "can't go on",
@@ -140,7 +141,12 @@ const Chat = () => {
             "don't want to live", 'harm myself', 'hurt myself',
             'not worth living', 'end the pain', 'give up on life',
             'life is meaningless', 'no point in living', 'want it to end',
-            'planning to die', 'take my life', 'commit suicide'
+            'planning to die', 'take my life', 'commit suicide',
+            // Hindi/Hinglish
+            'jeevan khatam', 'zindagi khatam', 'mar jaun', 'marna chahta',
+            'marna chahti', 'khudkushi', 'suicide kar', 'khatam kar',
+            'jaan de', 'jaan lelu', 'jee ke kya faida', 'jeene ka mann nahi',
+            'mar jaana chahta', 'khud ko maar', 'खुदकुशी', 'मर जाऊं'
         ];
 
         return crisisKeywords.some(keyword => lowerMsg.includes(keyword));
@@ -384,7 +390,7 @@ const Chat = () => {
 
         // Navigate after 5 seconds
         sosTimerRef.current = setTimeout(() => {
-            navigate('/app/ar_breathing');
+            navigate('/app/ar-breathing');
         }, 5000);
     };
 
