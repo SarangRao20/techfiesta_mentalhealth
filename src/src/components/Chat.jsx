@@ -434,6 +434,11 @@ const Chat = () => {
                 setVoiceStatus('listening');
                 setTranscript('');
 
+                const featureBtn = document.getElementById('feature-cta');
+                if (featureBtn) {
+                    featureBtn.click();
+                }
+
                 if (isVoiceModeRef.current && recognitionRef.current) {
                     try {
                         recognitionRef.current.start();
@@ -540,10 +545,14 @@ const Chat = () => {
 
                             {/* Crisis CTA */}
                             {msg.role === 'bot' && msg.isCrisis && (
-                                <div className="flex justify-start">
-                                    <button onClick={handleSosClick} className="...">
+                                <div className="flex justify-start mt-3">
+                                    <button
+                                        onClick={handleSosClick}
+                                        className="group relative px-8 py-4 rounded-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-bold text-lg transition-all duration-300 shadow-[0_0_30px_rgba(239,68,68,0.5)] hover:shadow-[0_0_40px_rgba(239,68,68,0.7)] animate-pulse-urgent flex items-center gap-3"
+                                    >
                                         <Phone className="w-6 h-6 animate-bounce" />
                                         <span>Call SOS ({sosCountdown}s)</span>
+                                        <div className="absolute inset-0 rounded-full bg-white/20 blur-xl group-hover:bg-white/30 transition-all" />
                                     </button>
                                 </div>
                             )}
@@ -554,6 +563,7 @@ const Chat = () => {
                                     <button
                                         onClick={() => handleFeatureClick(msg.suggestedFeature)}
                                         className="px-4 py-3 ml-3 rounded-xl bg-[#8D2EF2] hover:bg-[#9d3fff] text-white text-sm font-medium transition-colors"
+                                        id="feature-cta"
                                     >
                                         {msg.suggestedFeature}
                                     </button>
@@ -610,7 +620,9 @@ const Chat = () => {
             </div>
 
             {isVoiceMode && (
-                <div className="fixed inset-0 z-50 bg-[#0a0d14]/95 backdrop-blur-xl flex flex-col items-center justify-center">
+                <div className={` flex flex-col items-center justify-center fixed inset-0 z-50 bg-[#0a0d14]/95 
+                backdrop-blur-xl 
+                 ${activeFeature ? 'w-[55%]' : 'w-full'}`}>
                     <button
                         onClick={toggleVoiceMode}
                         className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center"
