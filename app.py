@@ -34,7 +34,7 @@ logging.getLogger('comtypes._comobject').setLevel(logging.WARNING)
 class Base(DeclarativeBase):
     pass
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='old_tries/templates', static_folder='old_tries/static')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 

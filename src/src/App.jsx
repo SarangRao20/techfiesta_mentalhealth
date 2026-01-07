@@ -111,15 +111,16 @@ function App() {
           path: "resources",
           element: <Resources />
         },
-        {
-          path: "counselor-dashboard",
-          element: <CounselorDashboard />
-        },
-        {
-          path: "mentor",
-          element: <MentorDashboard />
-        }
+
       ]
+    },
+    {
+      path: "counselor-dashboard",
+      element: <CounselorDashboard />
+    },
+    {
+      path: "mentor",
+      element: <MentorDashboard />
     }
   ])
 

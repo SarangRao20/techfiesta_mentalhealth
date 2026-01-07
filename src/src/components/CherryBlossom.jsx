@@ -3,7 +3,7 @@ export function CherryBlossom({ x, y, visible, delay = 0, size = 'medium' }) {
 
   const sizes = {
     small: 0.8,
-    medium: 0.85,
+    medium: 0.93,
     large: 1.2,
   };
 
