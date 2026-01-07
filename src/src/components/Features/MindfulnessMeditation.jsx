@@ -58,7 +58,7 @@ const MindfulnessMeditation = ({ onComplete, onExit }) => {
           if (guide) speak(guide.text);
           if (next >= duration) {
             clearInterval(intervalRef.current);
-            onComplete(duration, 'meditation');
+            if (onComplete) onComplete(duration, 'meditation');
           }
           return next;
         });
@@ -66,10 +66,17 @@ const MindfulnessMeditation = ({ onComplete, onExit }) => {
     }, 1000);
     return () => {
       if (audioRef.current) audioRef.current.stop();
-      clearInterval(intervalRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
       window.speechSynthesis.cancel();
     };
   }, [isPaused, isMuted]);
+
+  const handleExit = () => {
+    if (audioRef.current) audioRef.current.stop();
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    window.speechSynthesis.cancel();
+    if (onExit) onExit();
+  };
 
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
@@ -102,7 +109,7 @@ const MindfulnessMeditation = ({ onComplete, onExit }) => {
           <button onClick={() => setIsPaused(!isPaused)} className="p-4 bg-cyan-600 rounded-full hover:scale-110 transition-transform">
             {isPaused ? <Play fill="white" /> : <Pause fill="white" />}
           </button>
-          <button onClick={onExit} className="p-4 bg-slate-700 rounded-full hover:bg-red-500 transition-colors">
+          <button onClick={handleExit} className="p-4 bg-slate-700 rounded-full hover:bg-red-500 transition-colors">
             <X className="text-white" />
           </button>
         </div>
