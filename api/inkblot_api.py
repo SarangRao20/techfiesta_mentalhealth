@@ -79,6 +79,13 @@ class CompleteInkblot(Resource):
             'result_id': result.id
         }, 201
 
+@ns.route('/finish')
+class FinishInkblot(Resource):
+    @login_required
+    def post(self):
+        """Alias for /complete endpoint"""
+        return CompleteInkblot().post()
+
 @ns.route('/results')
 class AllResults(Resource):
     @login_required
