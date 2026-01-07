@@ -1,9 +1,9 @@
 from flask import request, session
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_user, logout_user, login_required, current_user
-from models import User
+from db_models import User, Organization
 from datetime import datetime, timedelta
-from app import db, r_streaks, r_sessions
+from database import db, r_streaks, r_sessions
 from utils.common import update_user_streak
 import json
 
@@ -21,7 +21,9 @@ register_model = ns.model('Register', {
     'full_name': fields.String(required=True),
     'role': fields.String(default='student'),
     'student_id': fields.String(),
-    'accommodation_type': fields.String()
+    'accommodation_type': fields.String(),
+    'organization_id': fields.Integer(),
+    'new_organization_name': fields.String()
 })
 
 user_model = ns.model('User', {
@@ -30,7 +32,9 @@ user_model = ns.model('User', {
     'email': fields.String(),
     'full_name': fields.String(),
     'role': fields.String(),
-    'login_streak': fields.Integer()
+    'login_streak': fields.Integer(),
+    'organization_id': fields.Integer(),
+    'organization_name': fields.String(attribute=lambda x: x.organization.name if x.organization else None)
 })
 
 @ns.route('/login')
@@ -73,7 +77,10 @@ class Login(Resource):
                 'username': user.username,
                 'role': user.role,
                 'full_name': user.full_name,
-                'login_streak': streak_count
+                'full_name': user.full_name,
+                'login_streak': streak_count,
+                'organization_id': user.organization_id,
+                'organization_name': user.organization.name if user.organization else None
             }}, 200
         return {'message': 'Invalid credentials'}, 401
 
@@ -95,6 +102,22 @@ class Register(Resource):
             role=data.get('role', 'student'),
             accommodation_type=data.get('accommodation_type')
         )
+        
+        # Organization Logic
+        org_id = data.get('organization_id')
+        new_org_name = data.get('new_organization_name')
+        
+        if new_org_name:
+            # Check if exists
+            org = Organization.query.filter_by(name=new_org_name).first()
+            if not org:
+                org = Organization(name=new_org_name)
+                db.session.add(org)
+                db.session.commit()
+            user.organization_id = org.id
+        elif org_id:
+            user.organization_id = org_id
+            
         if data.get('student_id'):
             user.set_student_id(data['student_id'])
         user.set_password(data['password'])
@@ -110,6 +133,13 @@ class Logout(Resource):
         logout_user()
         return {'message': 'Logout successful'}, 200
 
+@ns.route('/organizations')
+class OrganizationList(Resource):
+    def get(self):
+        """List all organizations"""
+        orgs = Organization.query.all()
+        return [{'id': o.id, 'name': o.name} for o in orgs], 200
+
 @ns.route('/me')
 class CurrentUser(Resource):
     @login_required
@@ -124,29 +154,84 @@ class Profile(Resource):
     def get(self):
         """Get full profile details"""
         user = current_user
-        return {
-            'username': user.username,
-            'email': user.email,
-            'full_name': user.full_name,
-            'role': user.role,
-            'student_id': user.student_id,
-            'accommodation_type': user.accommodation_type,
-            'bio': user.bio,
-            'profile_picture': user.profile_picture
-        }, 200
+        try:
+            print(f"DEBUG: Fetching profile for {user.username}")
+            org_name = user.organization.name if user.organization else None
+            return {
+                'username': user.username,
+                'email': user.email,
+                'full_name': user.full_name,
+                'role': user.role,
+                'student_id': user.student_id,
+                'accommodation_type': user.accommodation_type,
+                'bio': user.bio,
+                'profile_picture': user.profile_picture,
+                'organization_name': org_name,
+                'organization_id': user.organization_id
+            }, 200
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {'message': f'Internal Error: {str(e)}'}, 500
 
     @login_required
     def put(self):
-        """Update profile details"""
-        data = request.get_json()
+        """Update profile details (supports JSON or Multipart)"""
         user = current_user
+        data = {}
         
+        # Handle both JSON and Multipart/Form-data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+        
+        # Handle Image Upload
+        if 'profile_picture' in request.files:
+            file = request.files['profile_picture']
+            if file and file.filename != '':
+                try:
+                    from utils.supabase_client import supabase
+                    import uuid
+                    
+                    if not supabase:
+                        return {'message': 'Image upload unavailable (Server Config Error)'}, 500
+                        
+                    # Generate unique filename
+                    file_ext = file.filename.split('.')[-1]
+                    filename = f"{user.id}_{uuid.uuid4()}.{file_ext}"
+                    file_content = file.read()
+                    
+                    # Upload to Supabase 'avatars' bucket
+                    bucket_name = "avatars" 
+                    # Ensure you have created this bucket in Supabase and made it public!
+                    
+                    res = supabase.storage.from_(bucket_name).upload(
+                        path=filename,
+                        file=file_content,
+                        file_options={"content-type": file.content_type}
+                    )
+                    
+                    # Get Public URL
+                    public_url = supabase.storage.from_(bucket_name).get_public_url(filename)
+                    user.profile_picture = public_url
+                    print(f"INFO: Uploaded avatar for {user.username} -> {public_url}")
+                    
+                except Exception as e:
+                    print(f"ERROR: Image upload failed: {e}")
+                    return {'message': f'Image upload failed: {str(e)}'}, 500
+
+        # Update text fields
         if 'full_name' in data:
             user.full_name = data['full_name']
         if 'bio' in data:
             user.bio = data['bio']
-        if 'profile_picture' in data:
-            user.profile_picture = data['profile_picture']
+        # Only update profile_picture from text if NOT uploaded as file (e.g. clearing it)
+        if 'profile_picture' in data and 'profile_picture' not in request.files:
+             # If user sends null/empty string to remove image
+             if not data['profile_picture']:
+                 user.profile_picture = None
+
         if 'student_id' in data:
             user.student_id = data['student_id']
         if 'accommodation_type' in data:
@@ -166,5 +251,7 @@ class Profile(Resource):
             'student_id': user.student_id,
             'accommodation_type': user.accommodation_type,
             'bio': user.bio,
-            'profile_picture': user.profile_picture
+            'profile_picture': user.profile_picture,
+            'organization_name': user.organization.name if user.organization else None,
+            'organization_id': user.organization_id
         }, 200

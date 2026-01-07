@@ -1,8 +1,8 @@
 from flask import request
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from models import VentingPost, VentingResponse, SoundVentingSession, User
-from app import db, cache
+from db_models import VentingPost, VentingResponse, SoundVentingSession, User
+from database import db, cache
 from datetime import datetime
 
 ns = Namespace('venting', description='Venting wall and emotional expression')
@@ -60,7 +60,7 @@ class Posts(Resource):
         db.session.add(post)
         
         # Universal Activity Log
-        from models import UserActivityLog
+        from db_models import UserActivityLog
         log = UserActivityLog(
             user_id=current_user.id,
             activity_type='venting',
@@ -120,7 +120,7 @@ class SoundSession(Resource):
         db.session.add(session)
         
         # Universal Activity Log
-        from models import UserActivityLog
+        from db_models import UserActivityLog
         log = UserActivityLog(
             user_id=current_user.id,
             activity_type='venting',

@@ -1,8 +1,8 @@
 from flask import request
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from models import User, UserActivityLog, Assessment
-from app import db
+from db_models import User, UserActivityLog, Assessment, ChatSession
+from database import db
 
 ns = Namespace('mentor', description='Mentor and Student Management')
 
@@ -14,14 +14,30 @@ class MentorStudents(Resource):
         if current_user.role not in ['teacher', 'admin']:
             return {'message': 'Unauthorized'}, 403
             
-        students = User.query.filter_by(mentor_id=current_user.id).all()
+        from sqlalchemy import or_
+        
+        query = User.query.filter(User.role == 'student')
+        conditions = [User.mentor_id == current_user.id]
+        
+        if current_user.organization_id:
+            print(f"DEBUG: Filtering by Org ID: {current_user.organization_id}")
+            conditions.append(User.organization_id == current_user.organization_id)
+        else:
+            print("DEBUG: No Org ID found for current_user")
+            
+        students = query.filter(or_(*conditions)).all()
+        print(f"DEBUG: Found {len(students)} students")
+        for s in students:
+            print(f" - Found: {s.username} (Org: {s.organization_id})")
+            
         return [
             {
                 'id': s.id,
                 'full_name': s.full_name,
                 'username': s.username,
                 'email': s.email,
-                'login_streak': s.login_streak
+                'login_streak': s.login_streak,
+                'has_risk': ChatSession.query.filter_by(user_id=s.id, crisis_flag=True).count() > 0
             } for s in students
         ], 200
 
@@ -34,7 +50,10 @@ class StudentInsights(Resource):
             return {'message': 'Unauthorized'}, 403
             
         student = User.query.get_or_404(student_id)
-        if student.mentor_id != current_user.id and current_user.role != 'admin':
+        is_connected = student.mentor_id == current_user.id
+        is_same_org = (student.organization_id == current_user.organization_id) and (current_user.organization_id is not None)
+        
+        if not is_connected and not is_same_org and current_user.role != 'admin':
             return {'message': 'Forbidden: Student not connected to you'}, 403
             
         # Get recent assessments (basic info)
@@ -42,11 +61,22 @@ class StudentInsights(Resource):
         
         # Get recent activity logs
         logs = UserActivityLog.query.filter_by(user_id=student.id).order_by(UserActivityLog.timestamp.desc()).limit(20).all()
+
+        # Get crisis flags (last 30 days)
+        crisis_sessions = ChatSession.query.filter_by(user_id=student.id, crisis_flag=True).count()
         
+        # Calculate consistency manually or use streak
+        engagement_level = "Low"
+        if student.login_streak > 5: engagement_level = "Medium"
+        if student.login_streak > 15: engagement_level = "High"
+
         return {
             'student_info': {
                 'name': student.full_name,
                 'streak': student.login_streak,
+                'email': student.email,
+                'crisis_flags': crisis_sessions,
+                'engagement': engagement_level
             },
             'recent_assessments': [
                 {

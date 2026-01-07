@@ -1,14 +1,35 @@
 import { API_URL } from "../config";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 export default function Register() {
   const navigate = useNavigate();
-  const { register, handleSubmit, watch } = useForm({
+  const { register, handleSubmit, watch, setValue } = useForm({
     defaultValues: { role: "student" },
   });
 
   const role = watch("role");
+  const [orgs, setOrgs] = useState([]);
+  const [isOtherOrg, setIsOtherOrg] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/auth/organizations`)
+      .then((res) => res.json())
+      .then((data) => setOrgs(data))
+      .catch((err) => console.error("Failed to fetch orgs", err));
+  }, []);
+
+  const handleOrgChange = (e) => {
+    const val = e.target.value;
+    if (val === "other") {
+      setIsOtherOrg(true);
+      setValue("organization_id", null);
+    } else {
+      setIsOtherOrg(false);
+      setValue("organization_id", val);
+    }
+  };
 
   const onSubmit = async (data) => {
     const send = await fetch(`${API_URL}/api/auth/register`, {
@@ -107,6 +128,36 @@ export default function Register() {
                   </p>
                 </div>
               )}
+              {(role === "student" || role === "teacher") && (
+                <div className="md:col-span-2">
+                  <label className="block text-xs text-gray-300 mb-1">
+                    Organization
+                  </label>
+                  <select
+                    className={selectClass}
+                    onChange={handleOrgChange}
+                    defaultValue=""
+                    required={role === "student"}
+                  >
+                    <option value="" disabled>Select Organization</option>
+                    {orgs.map((o) => (
+                      <option key={o.id} value={o.id}>{o.name}</option>
+                    ))}
+                    {role === "teacher" && <option value="other">+ Add New Organization</option>}
+                  </select>
+                </div>
+              )}
+
+              {isOtherOrg && role === "teacher" && (
+                <div className="md:col-span-2">
+                  <label className="block text-xs text-gray-300 mb-1">
+                    New Organization Name
+                  </label>
+                  <input {...register("new_organization_name", { required: true })} className={inputClass} placeholder="Enter organization name" />
+                </div>
+              )}
+
+
             </div>
 
             {/* Accommodation */}

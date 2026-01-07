@@ -1,7 +1,7 @@
 from flask import request
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from models import ChatSession, ChatMessage
+from db_models import ChatSession, ChatMessage
 from database import db
 import requests
 from ollama import Client

@@ -1,8 +1,8 @@
 from flask import session, request, send_file
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from models import InkblotResult, UserActivityLog
-from app import db
+from db_models import InkblotResult, UserActivityLog
+from database import db
 import json
 import os
 from io import BytesIO
