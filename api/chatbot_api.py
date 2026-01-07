@@ -110,23 +110,28 @@ FEATURE SELECTION GUIDE (Use variety, not just breathing!):
 
 VENTING (angry/frustrated/need to express): 8 or 9
 - "everything is pissing me off" → 8 or 9
-- "I feel like screaming" → 9
-- "I just want to rant" → 8
+- "I feel like screaming" → 9 (voice)
+- "I just want to rant" → 8 (text)
+- "let me complain" → 8 (text)
 - "don't tell me what to do" → 8 or 9
-- "dimag ka dahi ho gaya hai" → 8
-- "sab irritate kar rahe hain" → 9
+- "dimag ka dahi ho gaya hai" → 8 (text)
+- "sab irritate kar rahe hain" → 9 (voice)
+- "I need to let this out" → 8 (text) or 9 (voice)
+- "can I just say things" → 8 or 9
 
 OVERTHINKING (thoughts won't stop): 3, 2, or 4
 - "my thoughts won't shut up" → 3
 - "stuck in my own thoughts" → 3 or 2
 - "head is too loud" → 3 or 4
 - "can't focus" → 3
+- "thinking about everything at once" → 3
 
 LOW/EMPTY/NUMB (sad but not crying): 4, 5, 6, or 2
 - "I feel blank" → 4 or 6
 - "nothing excites me" → 5 or 6
 - "just existing" → 2 or 4
 - "mann bohot bhara hua hai" → 6
+- "don't feel like talking" → 6 or 4
 
 ANXIOUS/STRESSED (panic, overwhelm): 1 or 7
 - "anxious for no reason" → 1 or 7
@@ -139,8 +144,17 @@ CALM SEEKING (escape, quiet): 10, 6, or 4
 - "switch my mind off" → 10 or 6
 - "bas shaant hona hai" → 10 or 6
 
+CRISIS (self-harm ideation): TRIGGER self_harm_crisis = true
+- "jeevan khatam kardu" → self_harm_crisis: true
+- "mar jaun" → self_harm_crisis: true
+- "khudkushi" → self_harm_crisis: true
+- "end my life" → self_harm_crisis: true
+- "want to die" → self_harm_crisis: true
+- "suicide" → self_harm_crisis: true
+
 IMPORTANT: 
-- Use features 8 and 9 when user wants to EXPRESS/RANT/TALK
+- Use features 8 (TEXT) and 9 (VOICE) when user wants to EXPRESS/RANT/TALK
+- Feature 8 for written expression, Feature 9 for verbal expression
 - Don't suggest breathing for everything!
 - Match emotional state to appropriate feature
 
