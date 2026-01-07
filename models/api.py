@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ollama import Client
 from pydantic import BaseModel
 import json as jsonlib
+from json_sanitizer import extract_json
 client = Client(host='http://localhost:11434')
 intent_classifier = 'intent_classifier:latest' 
 convo_LLM = 'convo_LLM:latest'
@@ -40,6 +41,8 @@ app.add_middleware(
 #   "context_dependency": "<value>",
 #   "self_harm_crisis": "<value>"
 # }
+
+
 @app.get("/")
 def root():
     return "hello world"
@@ -55,27 +58,38 @@ def send_message(req: ChatRequest):
     )
 
     intent_raw = intent_resp["response"]          # STRING
-    intent_json = jsonlib.loads(intent_raw)       # DICT
+    intent_json = jsonlib.loads(intent_raw)          # DICT
 
     # -------- Conversation model --------
     convo_resp = client.generate(
         model=convo_LLM,
         prompt=user_message + "\n" + intent_raw,
         stream=False
-    )
+    )["response"]
+        # STRING
+    parsed = extract_json(convo_resp)
 
-    reply_text = convo_resp["response"]           # STRING
+    replied_text = None
+    suggested_feature = None
 
-    # -------- Business logic --------
+    if parsed:
+        replied_text = parsed.get("response") or parsed.get("bot_message")
+        suggested_feature = parsed.get("suggested_feature")
+
+    reply_text = {
+        "response":replied_text,
+        "suggested_feature":suggested_feature
+    }
+
     self_harm_crisis = "false"
-
     if intent_json.get("self_harm_crisis") == "true":
         self_harm_crisis = "true"
         # you can act on this later
 
     # -------- Return (must match ChatResponse) --------
+    print(str(reply_text))
     return {
         "intent_json": intent_raw,   # keep as string (your model expects str)
-        "reply": reply_text,
+        "reply": str(reply_text),
         "self_harm_crisis": self_harm_crisis
     }
