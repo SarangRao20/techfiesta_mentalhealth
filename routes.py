@@ -1694,7 +1694,10 @@ def inject_user():
 
 @app.errorhandler(404)
 def not_found(error):
-    return render_template('404.html'), 404
+    # Return JSON for API requests, simple message for others
+    if request.path.startswith('/api/'):
+        return {'error': 'Not found', 'message': str(error)}, 404
+    return '<h1>404 Not Found</h1><p>The requested URL was not found on the server.</p>', 404
 
 @app.errorhandler(500)
 def internal_error(error):
