@@ -78,6 +78,7 @@ class Assessments(Resource):
         
         return {
             'id': assessment.id,
+            'assessment_type': a_type,
             'score': score,
             'analysis': analysis
         }, 201
@@ -86,11 +87,14 @@ class Assessments(Resource):
 class ExportAssessmentPDF(Resource):
     @login_required
     def get(self, assessment_id):
-        """Export assessment result as PDF"""
+        """Export assessment result as PDF with counsellor-detailed analysis"""
         from io import BytesIO
         from flask import send_file
         from reportlab.lib.pagesizes import letter
         from reportlab.pdfgen import canvas
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.platypus import Paragraph
+        from reportlab.lib.enums import TA_LEFT
         
         assessment = Assessment.query.get_or_404(assessment_id)
         if assessment.user_id != current_user.id and current_user.role != 'counsellor':
@@ -100,32 +104,117 @@ class ExportAssessmentPDF(Resource):
         p = canvas.Canvas(buffer, pagesize=letter)
         p.setTitle(f"Assessment Report - {assessment.user.full_name}")
         
+        # Header
         p.setFont("Helvetica-Bold", 16)
         p.drawString(100, 750, f"{assessment.assessment_type} Assessment Report")
         p.setFont("Helvetica", 12)
-        p.drawString(100, 730, f"User: {assessment.user.full_name}")
+        p.drawString(100, 730, f"Patient: {assessment.user.full_name}")
         p.drawString(100, 715, f"Date: {assessment.completed_at.strftime('%Y-%m-%d %H:%M')}")
-        p.line(100, 705, 500, 705)
+        p.drawString(100, 700, f"Report For: Mental Health Professional")
+        p.line(100, 690, 500, 690)
         
-        p.drawString(100, 680, f"Score: {assessment.score}")
-        p.drawString(100, 665, f"Severity: {assessment.severity_level}")
+        # Basic scores
+        p.setFont("Helvetica-Bold", 13)
+        p.drawString(100, 665, "Assessment Scores")
+        p.setFont("Helvetica", 11)
+        p.drawString(120, 645, f"Score: {assessment.score}")
+        p.drawString(120, 630, f"Severity: {assessment.severity_level}")
         
+        # Get counsellor-detailed analysis
         analysis = assessment.recommendations or generate_analysis(assessment.assessment_type, assessment.score)
         detail = analysis.get('counsellor_detailed', {})
         
-        y = 640
-        p.setFont("Helvetica-Bold", 12)
-        p.drawString(100, y, "Clinical Summary:")
-        p.setFont("Helvetica", 11)
+        y = 605
+        
+        # Clinical Interpretation
+        p.setFont("Helvetica-Bold", 13)
+        p.drawString(100, y, "Clinical Interpretation")
         y -= 20
-        p.drawString(120, y, f"Urgency Level: {detail.get('urgency_level', 'N/A')}")
-        y -= 15
-        p.drawString(120, y, f"Professional Help Recommended: {'Yes' if detail.get('professional_help_recommended') else 'No'}")
+        p.setFont("Helvetica", 10)
+        
+        clinical_text = detail.get('clinical_interpretation', 'N/A')
+        if len(clinical_text) > 80:
+            # Word wrap for long text
+            words = clinical_text.split()
+            lines = []
+            current_line = []
+            for word in words:
+                current_line.append(word)
+                if len(' '.join(current_line)) > 80:
+                    lines.append(' '.join(current_line[:-1]))
+                    current_line = [current_line[-1]]
+            if current_line:
+                lines.append(' '.join(current_line))
+            
+            for line in lines[:3]:  # Limit to 3 lines
+                p.drawString(120, y, line)
+                y -= 12
+        else:
+            p.drawString(120, y, clinical_text)
+            y -= 15
+        
+        y -= 10
+        
+        # Risk Assessment
+        p.setFont("Helvetica-Bold", 13)
+        p.drawString(100, y, "Risk Assessment")
+        y -= 18
+        p.setFont("Helvetica", 10)
+        risk = detail.get('risk_assessment', {})
+        p.drawString(120, y, f"Suicide Risk: {risk.get('suicide_risk', 'N/A')}")
+        y -= 13
+        p.drawString(120, y, f"Functional Impairment: {risk.get('functional_impairment', 'N/A')}")
+        y -= 13
+        p.drawString(120, y, f"Treatment Urgency: {risk.get('treatment_urgency', 'N/A')}")
+        y -= 13
+        p.drawString(120, y, f"Professional Help: {'Required' if detail.get('professional_help_recommended') else 'Optional'}")
+        y -= 20
+        
+        # Key Clinical Insights
+        p.setFont("Helvetica-Bold", 13)
+        p.drawString(100, y, "Key Clinical Insights")
+        y -= 18
+        p.setFont("Helvetica", 10)
+        insights = detail.get('key_insights', [])
+        for i, insight in enumerate(insights[:4], 1):  # Limit to 4 insights
+            p.drawString(120, y, f"{i}. {insight[:75]}{'...' if len(insight) > 75 else ''}")
+            y -= 13
+        
+        y -= 10
+        
+        # Treatment Recommendations
+        p.setFont("Helvetica-Bold", 13)
+        p.drawString(100, y, "Treatment Recommendations")
+        y -= 18
+        p.setFont("Helvetica", 10)
+        treatments = detail.get('treatment_recommendations', [])
+        for i, treatment in enumerate(treatments[:4], 1):  # Limit to 4 recommendations
+            p.drawString(120, y, f"{i}. {treatment[:75]}{'...' if len(treatment) > 75 else ''}")
+            y -= 13
+        
+        y -= 10
+        
+        # Differential Considerations (if space allows)
+        if y > 150:
+            p.setFont("Helvetica-Bold", 13)
+            p.drawString(100, y, "Differential Considerations")
+            y -= 18
+            p.setFont("Helvetica", 10)
+            differentials = detail.get('differential_considerations', [])
+            for i, diff in enumerate(differentials[:3], 1):  # Limit to 3
+                if y > 120:
+                    p.drawString(120, y, f"{i}. {diff[:70]}{'...' if len(diff) > 70 else ''}")
+                    y -= 13
+        
+        # Footer
+        p.setFont("Helvetica-Oblique", 9)
+        p.drawString(100, 50, "CONFIDENTIAL - For Mental Health Professional Use Only")
+        p.drawString(100, 35, f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}")
         
         p.showPage()
         p.save()
         buffer.seek(0)
-        return send_file(buffer, as_attachment=True, download_name=f"Assessment_{assessment_id}.pdf", mimetype='application/pdf')
+        return send_file(buffer, as_attachment=True, download_name=f"Assessment_{assessment_id}_Professional.pdf", mimetype='application/pdf')
 
 @ns.route('/questions/<string:assessment_type>')
 class Questions(Resource):
@@ -151,10 +240,21 @@ class AssessmentResult(Resource):
         """Get detailed results for a specific assessment"""
         assessment = Assessment.query.get_or_404(assessment_id)
         
-        if assessment.user_id != current_user.id and current_user.role != 'counsellor':
+        if assessment.user_id != current_user.id and current_user.role not in ['counsellor', 'mentor']:
             return {'message': 'Unauthorized'}, 403
             
-        analysis = assessment.recommendations if assessment.recommendations else generate_analysis(assessment.assessment_type, assessment.score)
+        full_analysis = assessment.recommendations if assessment.recommendations else generate_analysis(assessment.assessment_type, assessment.score)
+        
+        # Filter analysis based on user role
+        if current_user.role == 'counsellor':
+            # Counsellors get full detailed clinical analysis
+            analysis = full_analysis.get('counsellor_detailed', {})
+        elif current_user.role == 'mentor':
+            # Mentors get actionable guidance for supporting student
+            analysis = full_analysis.get('mentor_view', {})
+        else:
+            # Students get safe, encouraging view
+            analysis = full_analysis.get('user_safe', {})
         
         return {
             'id': assessment.id,
@@ -162,5 +262,6 @@ class AssessmentResult(Resource):
             'score': assessment.score,
             'severity': assessment.severity_level,
             'date': assessment.completed_at.isoformat(),
-            'analysis': analysis
+            'analysis': analysis,
+            'viewer_role': current_user.role
         }, 200
