@@ -191,6 +191,7 @@ def get_meditation_content():
 
     }
 
+@celery.task
 def generate_analysis(assessment_type, score):
     """
     Generate three-tier assessment analysis using Groq API:

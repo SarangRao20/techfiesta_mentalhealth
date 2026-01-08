@@ -15,4 +15,15 @@ def test_email():
         return 'Failed to send test email. Check your SMTP settings and logs.'
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=2323, debug=True)
+    # Exclude site-packages from file watcher to prevent unnecessary reloads
+    import sys
+    extra_files = []
+    extra_dirs = []
+    
+    app.run(
+        host="0.0.0.0", 
+        port=2323, 
+        debug=True,
+        use_reloader=True,
+        reloader_type='stat'  # Use stat instead of watchdog for more stable reloading
+    )

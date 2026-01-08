@@ -5,6 +5,7 @@ from db_models import User, Organization
 from datetime import datetime, timedelta
 from database import db, r_streaks, r_sessions
 from utils.common import update_user_streak
+from utils.upload_service import upload_profile_picture
 import json
 
 ns = Namespace('auth', description='Authentication operations')
@@ -187,40 +188,32 @@ class Profile(Resource):
         else:
             data = request.form.to_dict()
         
-        # Handle Image Upload
+        # Handle Image Upload - Async with Celery
         if 'profile_picture' in request.files:
             file = request.files['profile_picture']
             if file and file.filename != '':
                 try:
-                    from utils.supabase_client import supabase
                     import uuid
                     
-                    if not supabase:
-                        return {'message': 'Image upload unavailable (Server Config Error)'}, 500
-                        
                     # Generate unique filename
                     file_ext = file.filename.split('.')[-1]
                     filename = f"{user.id}_{uuid.uuid4()}.{file_ext}"
                     file_content = file.read()
                     
-                    # Upload to Supabase 'avatars' bucket
-                    bucket_name = "avatars" 
-                    # Ensure you have created this bucket in Supabase and made it public!
-                    
-                    res = supabase.storage.from_(bucket_name).upload(
-                        path=filename,
-                        file=file_content,
-                        file_options={"content-type": file.content_type}
+                    # Queue upload task in background
+                    upload_profile_picture.delay(
+                        user_id=user.id,
+                        file_content=file_content,
+                        filename=filename,
+                        content_type=file.content_type
                     )
                     
-                    # Get Public URL
-                    public_url = supabase.storage.from_(bucket_name).get_public_url(filename)
-                    user.profile_picture = public_url
-                    print(f"INFO: Uploaded avatar for {user.username} -> {public_url}")
+                    print(f"INFO: Profile picture upload queued for {user.username}")
+                    # Don't wait for upload to complete - user can leave page
                     
                 except Exception as e:
-                    print(f"ERROR: Image upload failed: {e}")
-                    return {'message': f'Image upload failed: {str(e)}'}, 500
+                    print(f"ERROR: Failed to queue upload task: {e}")
+                    return {'message': f'Upload queue failed: {str(e)}'}, 500
 
         # Update text fields
         if 'full_name' in data:

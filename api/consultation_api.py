@@ -75,15 +75,15 @@ class CreateRequest(Resource):
             db.session.add(log)
             db.session.commit()
             
-            # Trigger Email
+            # Trigger Email asynchronously with Celery
             try:
                 counsellor = User.query.get(data.get('counsellor_id'))
                 if counsellor:
                     # Provide explicit formatted time to email
                     time_display = p_time.strftime('%Y-%m-%d %H:%M') if p_time else p_time_str
-                    send_consultation_request_email(counsellor.email, current_user.full_name, time_display, data.get('urgency'))
+                    send_consultation_request_email.delay(counsellor.email, current_user.full_name, time_display, data.get('urgency'))
             except Exception as e:
-                print(f"Email trigger failed: {e}")
+                print(f"Email task queue failed: {e}")
 
             return {'message': 'Consultation request submitted', 'id': req.id}, 201
         except Exception as e:
@@ -249,13 +249,13 @@ class RequestAction(Resource):
             
         db.session.commit()
         
-        # Trigger Email
+        # Trigger Email asynchronously with Celery
         if email_action_status:
             try:
                 counsellor_name = current_user.full_name
-                send_consultation_status_email(req.user.email, email_action_status, counsellor_name, req.time_slot)
+                send_consultation_status_email.delay(req.user.email, email_action_status, counsellor_name, req.time_slot)
             except Exception as e:
-                 print(f"Email trigger failed: {e}")
+                 print(f"Email task queue failed: {e}")
 
         return {'message': f'Request {action}ed'}, 200
 
