@@ -15,7 +15,7 @@ export default function Consultant() {
   const [timeHour, setTimeHour] = useState("09");
   const [timeMinute, setTimeMinute] = useState("00");
   const [timeAmPm, setTimeAmPm] = useState("AM");
-  
+
   // Custom Picker Visibility & Calendar State
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -25,27 +25,27 @@ export default function Consultant() {
   // Calendar Helpers
   const daysInMonth = (month, year) => new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = (month, year) => new Date(year, month, 1).getDay();
-  
+
   const handleDateSelect = (day) => {
-     const monthStr = (calMonth + 1).toString().padStart(2, '0');
-     const dayStr = day.toString().padStart(2, '0');
-     setDateInput(`${calYear}-${monthStr}-${dayStr}`);
-     setShowDatePicker(false);
+    const monthStr = (calMonth + 1).toString().padStart(2, '0');
+    const dayStr = day.toString().padStart(2, '0');
+    setDateInput(`${calYear}-${monthStr}-${dayStr}`);
+    setShowDatePicker(false);
   };
 
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   const changeMonth = (offset) => {
-     let newMonth = calMonth + offset;
-     let newYear = calYear;
-     if (newMonth > 11) { newMonth = 0; newYear++; }
-     if (newMonth < 0) { newMonth = 11; newYear--; }
-     setCalMonth(newMonth);
-     setCalYear(newYear);
+    let newMonth = calMonth + offset;
+    let newYear = calYear;
+    if (newMonth > 11) { newMonth = 0; newYear++; }
+    if (newMonth < 0) { newMonth = 11; newYear--; }
+    setCalMonth(newMonth);
+    setCalYear(newYear);
   };
 
   const [start, setStart] = useState("");
-  
+
   const [formData, setFormData] = useState({
     counsellor_id: "",
     urgency: "",
@@ -133,7 +133,7 @@ export default function Consultant() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Show confirmation dialog first
     setModalView("confirm");
   };
@@ -142,27 +142,27 @@ export default function Consultant() {
     // Combine date and time from custom picker
     let preferred_time = "";
     if (dateInput) {
-       // Convert 12h to 24h for storage/API
-       let hour = parseInt(timeHour, 10);
-       if (timeAmPm === "PM" && hour < 12) hour += 12;
-       if (timeAmPm === "AM" && hour === 12) hour = 0;
-       
-       const hourStr = hour.toString().padStart(2, '0');
-       preferred_time = `${dateInput}T${hourStr}:${timeMinute}`;
+      // Convert 12h to 24h for storage/API
+      let hour = parseInt(timeHour, 10);
+      if (timeAmPm === "PM" && hour < 12) hour += 12;
+      if (timeAmPm === "AM" && hour === 12) hour = 0;
+
+      const hourStr = hour.toString().padStart(2, '0');
+      preferred_time = `${dateInput}T${hourStr}:${timeMinute}`;
     }
 
     // Process attachments - send all attachments as an array
     let finalNotes = formData.notes;
     if (formData.attachments.length > 0) {
-       const attachmentText = formData.attachments.map(a => `[Attached: ${a.label}]`).join(", ");
-       finalNotes = `${finalNotes}\n\n${attachmentText}`;
+      const attachmentText = formData.attachments.map(a => `[Attached: ${a.label}]`).join(", ");
+      finalNotes = `${finalNotes}\n\n${attachmentText}`;
     }
 
     const payload = {
-       ...formData,
-       preferred_time,
-       notes: finalNotes,
-       attachments: formData.attachments.map(a => ({ type: a.type, id: parseInt(a.id) }))
+      ...formData,
+      preferred_time,
+      notes: finalNotes,
+      attachments: formData.attachments.map(a => ({ type: a.type, id: parseInt(a.id) }))
     };
 
     try {
@@ -200,35 +200,35 @@ export default function Consultant() {
   };
 
   const addAttachment = (e) => {
-     const val = e.target.value;
-     if (!val) return;
-     const [type, id] = val.split(':');
-     const exists = formData.attachments.find(a => a.type === type && a.id === id);
-     if (exists) return;
-     
-     // Find label
-     let label = "Report";
-     if (type === 'assessment') {
-        const item = assessmentHistory.find(a => a.id.toString() === id);
-        if (item) label = `Assessment ${item.date}`;
-     } else if (type === 'inkblot') {
-        const item = inkblotHistory.find(i => i.id.toString() === id);
-        if (item) label = `Inkblot ${new Date(item.date).toLocaleDateString()}`;
-     }
+    const val = e.target.value;
+    if (!val) return;
+    const [type, id] = val.split(':');
+    const exists = formData.attachments.find(a => a.type === type && a.id === id);
+    if (exists) return;
 
-     setFormData(prev => ({
-        ...prev,
-        attachments: [...prev.attachments, { type, id, label }]
-     }));
-     // Reset select
-     e.target.value = "";
+    // Find label
+    let label = "Report";
+    if (type === 'assessment') {
+      const item = assessmentHistory.find(a => a.id.toString() === id);
+      if (item) label = `Assessment ${item.date}`;
+    } else if (type === 'inkblot') {
+      const item = inkblotHistory.find(i => i.id.toString() === id);
+      if (item) label = `Inkblot ${new Date(item.date).toLocaleDateString()}`;
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      attachments: [...prev.attachments, { type, id, label }]
+    }));
+    // Reset select
+    e.target.value = "";
   };
 
   const removeAttachment = (idx) => {
-     setFormData(prev => ({
-        ...prev,
-        attachments: prev.attachments.filter((_, i) => i !== idx)
-     }));
+    setFormData(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, i) => i !== idx)
+    }));
   };
 
   const bookSlot = async (slotId) => {
@@ -408,19 +408,19 @@ export default function Consultant() {
       {openModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4"> {/* High z-index */}
           <div className="bg-[#141923] rounded-2xl w-full max-w-3xl border border-white/20 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"> {/* Constrained height & overflow hidden for container */}
-            
+
             {/* Modal Header - Sticky */}
             <div className="flex justify-between items-center p-5 border-b border-white/10 shrink-0 bg-[#141923] z-10">
               <div>
                 <h3 className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent flex items-center gap-2">
-                  {modalView === 'form' ? 'Request Consultation' : 
-                   modalView === 'confirm' ? 'Confirm Your Request' : 
-                   'Request Submitted!'}
+                  {modalView === 'form' ? 'Request Consultation' :
+                    modalView === 'confirm' ? 'Confirm Your Request' :
+                      'Request Submitted!'}
                 </h3>
                 <p className="text-xs text-white/50 mt-1">
-                  {modalView === 'form' ? 'Book a session with our mental health pros' : 
-                   modalView === 'confirm' ? 'Please review your booking details before submitting' :
-                   'Your request has been sent successfully'}
+                  {modalView === 'form' ? 'Book a session with our mental health pros' :
+                    modalView === 'confirm' ? 'Please review your booking details before submitting' :
+                      'Your request has been sent successfully'}
                 </p>
               </div>
               <button
@@ -442,468 +442,420 @@ export default function Consultant() {
             <div className="overflow-y-auto custom-scrollbar grow relative">
               {modalView === 'form' ? (
                 <div className="p-6 space-y-8">
-                    
-                    {/* Top Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                          Select Counsellor <span className="text-red-400">*</span>
-                        </label>
-                        <div className="relative">
-                          <select
-                            name="counsellor_id"
-                            value={formData.counsellor_id}
-                            onChange={handleInputChange}
-                            className="w-full bg-[#0f131c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition appearance-none"
-                            required
-                          >
-                            <option value="">Choose expert...</option>
-                            {counsellors.map(c => (
-                              <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                          </select>
-                          <div className="absolute right-4 top-3.5 pointer-events-none text-white/30">▼</div>
-                        </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                          Urgency Level <span className="text-red-400">*</span>
-                        </label>
-                        <div className="relative">
-                          <select
-                            name="urgency"
-                            value={formData.urgency}
-                            onChange={handleInputChange}
-                            className="w-full bg-[#0f131c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition appearance-none"
-                            required
-                          >
-                            <option value="">Select level...</option>
-                            <option value="low">Low (General)</option>
-                            <option value="medium">Medium (Moderate)</option>
-                            <option value="high">High (Immediate)</option>
-                          </select>
-                          <div className="absolute right-4 top-3.5 pointer-events-none text-white/30">▼</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Second Row: Contact & Time */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                          Contact Method <span className="text-red-400">*</span>
-                        </label>
-                        <div className="flex gap-2">
-                          {['video', 'phone', 'email'].map((method) => (
-                            <button
-                              key={method}
-                              type="button"
-                              onClick={() => setFormData({ ...formData, contact_preference: method })}
-                              className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-all ${
-                                formData.contact_preference === method
-                                  ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
-                                  : 'bg-[#0f131c] border-white/10 text-white/60 hover:border-white/20'
-                              }`}
-                            >
-                              {method === 'video' && '🎥 Video'}
-                              {method === 'phone' && '📞 Phone'}
-                              {method === 'email' && '✉️ Email'}
-                            </button>
+                  {/* Top Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Select Counsellor <span className="text-red-400">*</span>
+                      </label>
+                      <div className="relative">
+                        <select
+                          name="counsellor_id"
+                          value={formData.counsellor_id}
+                          onChange={handleInputChange}
+                          className="w-full bg-[#0f131c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition appearance-none"
+                          required
+                        >
+                          <option value="">Choose expert...</option>
+                          {counsellors.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
                           ))}
-                        </div>
-                      </div>
-
-                       <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                          Preferred Time <span className="text-red-400">*</span>
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                           {/* CUSTOM DATE PICKER */}
-                           <div className="relative">
-                              <div 
-                                 onClick={() => { setShowDatePicker(!showDatePicker); setShowTimePicker(false); }}
-                                 className={`w-full bg-[#0f131c] border ${showDatePicker ? 'border-indigo-500 ring-1 ring-indigo-500' : 'border-white/10'} rounded-xl px-4 py-3 text-sm text-white flex justify-between items-center cursor-pointer hover:border-indigo-500 transition group`}
-                              >
-                                 <span className={dateInput ? "text-white" : "text-white/40"}>
-                                    {dateInput ? new Date(dateInput).toLocaleDateString('en-GB') : "dd-mm-yyyy"}
-                                 </span>
-                                 <span className="text-white/30 group-hover:text-white/60">📅</span>
-                              </div>
-
-                              {showDatePicker && (
-                                 <>
-                                    <div className="fixed inset-0 z-[100]" onClick={() => setShowDatePicker(false)} />
-                                    <div className="absolute top-full left-0 mt-2 w-64 bg-[#1a202c] border border-white/20 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] z-[101] p-4 animate-in fade-in zoom-in-95 duration-200">
-                                       {/* Calendar Header */}
-                                       <div className="flex justify-between items-center mb-4">
-                                          <button onClick={(e) => { e.stopPropagation(); changeMonth(-1); }} className="p-1 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition">◀</button>
-                                          <span className="font-semibold text-sm">{months[calMonth]} {calYear}</span>
-                                          <button onClick={(e) => { e.stopPropagation(); changeMonth(1); }} className="p-1 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition">▶</button>
-                                       </div>
-                                       {/* Days Header */}
-                                       <div className="grid grid-cols-7 text-center text-xs text-white/40 mb-2 font-medium">
-                                          {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d}>{d}</div>)}
-                                       </div>
-                                       {/* Days Grid */}
-                                       <div className="grid grid-cols-7 gap-1">
-                                          {Array.from({ length: firstDayOfMonth(calMonth, calYear) }).map((_, i) => (
-                                             <div key={`empty-${i}`} />
-                                          ))}
-                                          {Array.from({ length: daysInMonth(calMonth, calYear) }).map((_, i) => {
-                                             const day = i + 1;
-                                             const isSelected = dateInput === `${calYear}-${(calMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                                             return (
-                                                <div 
-                                                   key={day}
-                                                   onClick={(e) => { e.stopPropagation(); handleDateSelect(day); }}
-                                                   className={`h-8 w-8 flex items-center justify-center rounded-lg text-xs cursor-pointer transition-all ${
-                                                      isSelected 
-                                                      ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-900/50' 
-                                                      : 'text-white/80 hover:bg-white/10 hover:text-white'
-                                                   }`}
-                                                >
-                                                   {day}
-                                                </div>
-                                             );
-                                          })}
-                                       </div>
-                                    </div>
-                                 </>
-                              )}
-                           </div>
-                           
-                           {/* CUSTOM TIME PICKER (Matches Pic 2 Specifics) */}
-                           <div className="relative">
-                              <div 
-                                onClick={() => { setShowTimePicker(!showTimePicker); setShowDatePicker(false); }}
-                                className={`w-full bg-[#0f131c] border ${showTimePicker ? 'border-indigo-500 ring-1 ring-indigo-500' : 'border-white/10'} rounded-xl px-4 py-3 text-sm text-white flex justify-between items-center cursor-pointer hover:border-indigo-500 transition group`}
-                              >
-                                 <span className="font-mono tracking-wider font-medium text-lg">
-                                    {timeHour}:{timeMinute} {timeAmPm}
-                                 </span>
-                                 <div className="text-white/30 group-hover:text-white/60">🕒</div>
-                              </div>
-
-                              {showTimePicker && (
-                                 <>
-                                    <div className="fixed inset-0 z-[100]" onClick={() => setShowTimePicker(false)} />
-                                    <div className="absolute top-full right-0 mt-2 w-[280px] bg-[#0f131c] border border-white/20 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] z-[101] overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-4">
-                                       
-                                       {/* Header - Solid Blue Blocks (Pic 2) */}
-                                       <div className="flex justify-between gap-2 mb-4">
-                                          <div className="flex-1 bg-blue-600 text-white font-bold rounded-lg py-2 text-center text-lg shadow-lg shadow-blue-900/40">{timeHour}</div>
-                                          <div className="flex-1 bg-blue-600 text-white font-bold rounded-lg py-2 text-center text-lg shadow-lg shadow-blue-900/40">{timeMinute}</div>
-                                          <div className="flex-1 bg-blue-600 text-white font-bold rounded-lg py-2 text-center text-lg shadow-lg shadow-blue-900/40">{timeAmPm}</div>
-                                       </div>
-
-                                       <div className="flex h-48 gap-2">
-                                          {/* Hours Column */}
-                                          <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#141923] rounded-lg border border-white/5">
-                                             <div className="py-2 px-1">
-                                                {Array.from({length: 12}, (_, i) => (i + 1).toString().padStart(2, '0')).map(h => (
-                                                   <div 
-                                                      key={h}
-                                                      onClick={(e) => { e.stopPropagation(); setTimeHour(h); }}
-                                                      className={`py-2 my-1 rounded-md text-center text-sm font-medium cursor-pointer transition-all ${
-                                                         timeHour === h ? 'bg-white/20 text-white' : 'text-white/40 hover:text-white hover:bg-white/5'
-                                                      }`}
-                                                   >
-                                                      {h}
-                                                   </div>
-                                                ))}
-                                             </div>
-                                          </div>
-
-                                          {/* Minutes Column */}
-                                          <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#141923] rounded-lg border border-white/5">
-                                             <div className="py-2 px-1">
-                                                {Array.from({length: 60}, (_, i) => i.toString().padStart(2, '0')).map(m => (
-                                                   <div 
-                                                      key={m}
-                                                      onClick={(e) => { e.stopPropagation(); setTimeMinute(m); }}
-                                                      className={`py-2 my-1 rounded-md text-center text-sm font-medium cursor-pointer transition-all ${
-                                                         timeMinute === m ? 'bg-white/20 text-white' : 'text-white/40 hover:text-white hover:bg-white/5'
-                                                      }`}
-                                                   >
-                                                      {m}
-                                                   </div>
-                                                ))}
-                                             </div>
-                                          </div>
-
-                                          {/* AM/PM Column */}
-                                          <div className="flex-1 flex flex-col gap-2">
-                                             <div 
-                                                onClick={(e) => { e.stopPropagation(); setTimeAmPm('AM'); }}
-                                                className={`flex-1 flex items-center justify-center rounded-lg border border-white/5 cursor-pointer transition-all font-bold ${
-                                                   timeAmPm === 'AM' ? 'bg-blue-600 text-white shadow-lg' : 'bg-[#141923] text-white/40 hover:bg-white/5'
-                                                }`}
-                                             >
-                                                AM
-                                             </div>
-                                             <div 
-                                                onClick={(e) => { e.stopPropagation(); setTimeAmPm('PM'); }}
-                                                className={`flex-1 flex items-center justify-center rounded-lg border border-white/5 cursor-pointer transition-all font-bold ${
-                                                   timeAmPm === 'PM' ? 'bg-blue-600 text-white shadow-lg' : 'bg-[#141923] text-white/40 hover:bg-white/5'
-                                                }`}
-                                             >
-                                                PM
-                                             </div>
-                                          </div>
-                                       </div>
-                                    </div>
-                                 </>
-                              )}
-                           </div>
-                        </div>
+                        </select>
+                        <div className="absolute right-4 top-3.5 pointer-events-none text-white/30">▼</div>
                       </div>
                     </div>
 
-                    {/* Attachments */}
-                    <div className="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-4">
-                       <div>
-                          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 block">
-                            Attach Clinical Reports <span className="text-white/30 font-normal normal-case">(Multi-select enabled)</span>
-                          </label>
-                          <div className="relative">
-                            <select
-                              onChange={addAttachment}
-                              className="w-full bg-[#0f131c] border border-white/10 rounded-xl px-4 py-3 text-xs text-white/80 appearance-none"
-                            >
-                              <option value="">Select a report to attach...</option>
-                              <optgroup label="Assessments">
-                                {assessmentHistory.map(a => (
-                                  <option key={a.id} value={`assessment:${a.id}`}>
-                                    Result ({a.date}) - {a.clinical_analysis?.severity_level}
-                                  </option>
-                                ))}
-                              </optgroup>
-                              <optgroup label="Inkblot Tests">
-                                {inkblotHistory.map(i => (
-                                  <option key={i.id} value={`inkblot:${i.id}`}>
-                                    Inkblot Test ({new Date(i.date).toLocaleDateString()}) - {i.blot_count} plates
-                                  </option>
-                                ))}
-                              </optgroup>
-                            </select>
-                            <div className="absolute right-4 top-3.5 pointer-events-none text-white/30">▼</div>
-                          </div>
-                          
-                          {/* Tags Display */}
-                          <div className="flex flex-wrap gap-2 mt-4">
-                             {formData.attachments.map((att, idx) => (
-                                <div key={`${att.type}-${att.id}`} className="bg-indigo-500/20 border border-indigo-500/30 text-indigo-200 px-3 py-1.5 rounded-full text-xs flex items-center gap-2 animate-in zoom-in-90 duration-200">
-                                   <span>📎 {att.label}</span>
-                                   <button 
-                                      onClick={() => removeAttachment(idx)}
-                                      className="hover:text-white w-4 h-4 flex items-center justify-center rounded-full hover:bg-white/20"
-                                   >×</button>
-                                </div>
-                             ))}
-                             {formData.attachments.length === 0 && (
-                                <span className="text-white/20 text-xs italic ml-1">No reports attached</span>
-                             )}
-                          </div>
-                       </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Urgency Level <span className="text-red-400">*</span>
+                      </label>
+                      <div className="relative">
+                        <select
+                          name="urgency"
+                          value={formData.urgency}
+                          onChange={handleInputChange}
+                          className="w-full bg-[#0f131c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition appearance-none"
+                          required
+                        >
+                          <option value="">Select level...</option>
+                          <option value="low">Low (General)</option>
+                          <option value="medium">Medium (Moderate)</option>
+                          <option value="high">High (Immediate)</option>
+                        </select>
+                        <div className="absolute right-4 top-3.5 pointer-events-none text-white/30">▼</div>
+                      </div>
                     </div>
+                  </div>
 
-                    {/* Quick Slot Booking - Vertical List (Targeting Pic 2 style) */}
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-end">
-                         <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                           Available Slots <span className="text-white/30 font-normal normal-case ml-1">(Click to book instantly)</span>
-                         </label>
-                         <button 
-                            type="button" onClick={loadSlots}
-                            className="text-indigo-400 text-xs hover:text-indigo-300 hover:underline"
+                  {/* Second Row: Contact & Time */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Contact Method <span className="text-red-400">*</span>
+                      </label>
+                      <div className="flex gap-2">
+                        {['video', 'phone', 'email'].map((method) => (
+                          <button
+                            key={method}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, contact_preference: method })}
+                            className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-all ${formData.contact_preference === method
+                              ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
+                              : 'bg-[#0f131c] border-white/10 text-white/60 hover:border-white/20'
+                              }`}
                           >
-                            Refresh List
+                            {method === 'video' && '🎥 Video'}
+                            {method === 'phone' && '📞 Phone'}
+                            {method === 'email' && '✉️ Email'}
                           </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Preferred Time <span className="text-red-400">*</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* CUSTOM DATE PICKER */}
+                        <div className="relative">
+                          <div
+                            onClick={() => { setShowDatePicker(!showDatePicker); setShowTimePicker(false); }}
+                            className={`w-full bg-[#0f131c] border ${showDatePicker ? 'border-indigo-500 ring-1 ring-indigo-500' : 'border-white/10'} rounded-xl px-4 py-3 text-sm text-white flex justify-between items-center cursor-pointer hover:border-indigo-500 transition group`}
+                          >
+                            <span className={dateInput ? "text-white" : "text-white/40"}>
+                              {dateInput ? new Date(dateInput).toLocaleDateString('en-GB') : "dd-mm-yyyy"}
+                            </span>
+                            <span className="text-white/30 group-hover:text-white/60">📅</span>
+                          </div>
+
+                          {showDatePicker && (
+                            <>
+                              <div className="fixed inset-0 z-[100]" onClick={() => setShowDatePicker(false)} />
+                              <div className="absolute top-full left-0 mt-2 w-64 bg-[#1a202c] border border-white/20 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] z-[101] p-4 animate-in fade-in zoom-in-95 duration-200">
+                                {/* Calendar Header */}
+                                <div className="flex justify-between items-center mb-4">
+                                  <button onClick={(e) => { e.stopPropagation(); changeMonth(-1); }} className="p-1 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition">◀</button>
+                                  <span className="font-semibold text-sm">{months[calMonth]} {calYear}</span>
+                                  <button onClick={(e) => { e.stopPropagation(); changeMonth(1); }} className="p-1 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition">▶</button>
+                                </div>
+                                {/* Days Header */}
+                                <div className="grid grid-cols-7 text-center text-xs text-white/40 mb-2 font-medium">
+                                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => <div key={d}>{d}</div>)}
+                                </div>
+                                {/* Days Grid */}
+                                <div className="grid grid-cols-7 gap-1">
+                                  {Array.from({ length: firstDayOfMonth(calMonth, calYear) }).map((_, i) => (
+                                    <div key={`empty-${i}`} />
+                                  ))}
+                                  {Array.from({ length: daysInMonth(calMonth, calYear) }).map((_, i) => {
+                                    const day = i + 1;
+                                    const isSelected = dateInput === `${calYear}-${(calMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                                    return (
+                                      <div
+                                        key={day}
+                                        onClick={(e) => { e.stopPropagation(); handleDateSelect(day); }}
+                                        className={`h-8 w-8 flex items-center justify-center rounded-lg text-xs cursor-pointer transition-all ${isSelected
+                                          ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-900/50'
+                                          : 'text-white/80 hover:bg-white/10 hover:text-white'
+                                          }`}
+                                      >
+                                        {day}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        <div className="w-full bg-[#0f131c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white flex justify-between items-center cursor-pointer hover:border-indigo-500 transition group">
+                          <input
+                            type="time"
+                            value={start}
+                            onChange={e => setStart(e.target.value)}
+                            style={{ colorScheme: "dark" }}
+                          />
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Attachments */}
+                  <div className="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-4">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 block">
+                        Attach Clinical Reports <span className="text-white/30 font-normal normal-case">(Multi-select enabled)</span>
+                      </label>
+                      <div className="relative">
+                        <select
+                          onChange={addAttachment}
+                          className="w-full bg-[#0f131c] border border-white/10 rounded-xl px-4 py-3 text-xs text-white/80 appearance-none"
+                        >
+                          <option value="">Select a report to attach...</option>
+                          <optgroup label="Assessments">
+                            {assessmentHistory.map(a => (
+                              <option key={a.id} value={`assessment:${a.id}`}>
+                                Result ({a.date}) - {a.clinical_analysis?.severity_level}
+                              </option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Inkblot Tests">
+                            {inkblotHistory.map(i => (
+                              <option key={i.id} value={`inkblot:${i.id}`}>
+                                Inkblot Test ({new Date(i.date).toLocaleDateString()}) - {i.blot_count} plates
+                              </option>
+                            ))}
+                          </optgroup>
+                        </select>
+                        <div className="absolute right-4 top-3.5 pointer-events-none text-white/30">▼</div>
                       </div>
 
-                      <div className="border border-white/10 rounded-xl overflow-hidden max-h-[180px] overflow-y-auto custom-scrollbar">
-                         {openSlots.length > 0 ? (
-                           <div className="divide-y divide-white/5">
-                             {openSlots.map(slot => (
-                               <div key={slot.id} className="p-3 hover:bg-white/5 transition flex items-center justify-between group">
+                      {/* Tags Display */}
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        {formData.attachments.map((att, idx) => (
+                          <div key={`${att.type}-${att.id}`} className="bg-indigo-500/20 border border-indigo-500/30 text-indigo-200 px-3 py-1.5 rounded-full text-xs flex items-center gap-2 animate-in zoom-in-90 duration-200">
+                            <span>📎 {att.label}</span>
+                            <button
+                              onClick={() => removeAttachment(idx)}
+                              className="hover:text-white w-4 h-4 flex items-center justify-center rounded-full hover:bg-white/20"
+                            >×</button>
+                          </div>
+                        ))}
+                        {formData.attachments.length === 0 && (
+                          <span className="text-white/20 text-xs italic ml-1">No reports attached</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Slot Booking - Vertical List (Pic 2 Style) */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-lg">📅</span>
+                      <label className="text-sm font-medium text-white/90">
+                        Or pick an available slot <span className="text-white/40">(Optional)</span>
+                      </label>
+                    </div>
+
+                    {/* Filter and Refresh Row */}
+                    <div className="flex gap-3">
+                      <div className="flex-1 relative">
+                        <select
+                          value={selectedSlotCounsellor}
+                          onChange={(e) => setSelectedSlotCounsellor(e.target.value)}
+                          className="w-full bg-[#0f131c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition appearance-none"
+                        >
+                          <option value="">All counsellors</option>
+                          {counsellors.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                        <div className="absolute right-4 top-3.5 pointer-events-none text-white/30">▼</div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={loadSlots}
+                        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+                      >
+                        🔄 Refresh
+                      </button>
+                    </div>
+
+                    {/* Slots List */}
+                    <div className="border border-white/10 rounded-xl overflow-hidden">
+                      {openSlots.filter(slot => !selectedSlotCounsellor || slot.counsellor_id?.toString() === selectedSlotCounsellor).length > 0 ? (
+                        <div className="divide-y divide-white/5">
+                          {openSlots
+                            .filter(slot => !selectedSlotCounsellor || slot.counsellor_id?.toString() === selectedSlotCounsellor)
+                            .map(slot => {
+                              const startDate = new Date(slot.start);
+                              const endDate = new Date(slot.end);
+                              const dateTimeStr = `${startDate.toLocaleDateString('en-US')}, ${startDate.toLocaleTimeString('en-US')} - ${endDate.toLocaleTimeString('en-US')}`;
+
+                              return (
+                                <div key={slot.id} className="p-4 bg-[#0f131c] hover:bg-[#141923] transition flex items-center justify-between border border-white/10 rounded-lg m-3">
                                   <div>
-                                    <div className="font-medium text-sm text-white/90">
+                                    <div className="font-semibold text-base text-white mb-1">
                                       {slot.counsellor?.full_name || 'Counsellor'}
                                     </div>
-                                    <div className="text-xs text-white/50 flex gap-2 mt-1">
-                                      <span>📅 {new Date(slot.start).toLocaleDateString()}</span>
-                                      <span>⏰ {new Date(slot.start).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                                    <div className="text-sm text-indigo-300/80">
+                                      {dateTimeStr}
                                     </div>
                                   </div>
                                   <button
+                                    type="button"
                                     onClick={() => bookSlot(slot.id)}
-                                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-lg shadow-lg shadow-indigo-500/20 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0"
+                                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition shadow-lg shadow-indigo-500/30"
                                   >
                                     Book
                                   </button>
-                               </div>
-                             ))}
-                           </div>
-                         ) : (
-                           <div className="p-8 text-center text-white/30 text-xs italic">
-                              No slots available right now.
-                           </div>
-                         )}
-                      </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center text-white/30 text-sm">
+                          No slots available right now.
+                        </div>
+                      )}
                     </div>
+                  </div>
 
-                    {/* Notes */}
-                    <div className="space-y-2 pb-4">
-                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Additional Notes
-                      </label>
-                      <textarea
-                        name="notes"
-                        value={formData.notes}
-                        onChange={handleInputChange}
-                        rows={3}
-                        className="w-full bg-[#0f131c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition resize-none"
-                        placeholder="Briefly describe what you'd like to discuss..."
-                        maxLength={500}
-                      />
-                    </div>
+                  {/* Notes */}
+                  <div className="space-y-2 pb-4">
+                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Additional Notes
+                    </label>
+                    <textarea
+                      name="notes"
+                      value={formData.notes}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full bg-[#0f131c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition resize-none"
+                      placeholder="Briefly describe what you'd like to discuss..."
+                      maxLength={500}
+                    />
+                  </div>
                 </div>
               ) : modalView === 'confirm' ? (
                 /* Confirmation View - Are you sure? */
                 <div className="p-8 grow flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-300">
-                   <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(245,158,11,0.3)]">
-                      <span className="text-4xl">⚠️</span>
-                   </div>
-                   
-                   <h2 className="text-2xl font-bold text-white mb-3">Confirm Your Booking</h2>
-                   <p className="text-white/60 max-w-md mb-8 text-sm leading-relaxed">
-                      Once you confirm, we'll send an email to the counsellor and process your request. 
-                      Please make sure all details are correct.
-                   </p>
+                  <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(245,158,11,0.3)]">
+                    <span className="text-4xl">⚠️</span>
+                  </div>
 
-                   {/* Booking Summary */}
-                   <div className="w-full max-w-lg bg-[#0f131c] border border-white/10 rounded-xl p-6 text-left space-y-4 mb-8">
-                      <h3 className="text-sm font-semibold text-indigo-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                        📋 Booking Summary
-                      </h3>
-                      
-                      <div className="space-y-3 text-sm">
-                        <div className="flex justify-between items-start">
-                          <span className="text-white/50">Counsellor:</span>
-                          <span className="text-white font-medium text-right">
-                            {counsellors.find(c => c.id.toString() === formData.counsellor_id)?.name || 'Not selected'}
-                          </span>
-                        </div>
-                        
-                        <div className="flex justify-between items-start">
-                          <span className="text-white/50">Urgency:</span>
-                          <span className={`font-medium text-right px-2 py-0.5 rounded ${
-                            formData.urgency === 'high' ? 'bg-red-500/20 text-red-300' :
-                            formData.urgency === 'medium' ? 'bg-yellow-500/20 text-yellow-300' :
+                  <h2 className="text-2xl font-bold text-white mb-3">Confirm Your Booking</h2>
+                  <p className="text-white/60 max-w-md mb-8 text-sm leading-relaxed">
+                    Once you confirm, we'll send an email to the counsellor and process your request.
+                    Please make sure all details are correct.
+                  </p>
+
+                  {/* Booking Summary */}
+                  <div className="w-full max-w-lg bg-[#0f131c] border border-white/10 rounded-xl p-6 text-left space-y-4 mb-8">
+                    <h3 className="text-sm font-semibold text-indigo-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                      📋 Booking Summary
+                    </h3>
+
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between items-start">
+                        <span className="text-white/50">Counsellor:</span>
+                        <span className="text-white font-medium text-right">
+                          {counsellors.find(c => c.id.toString() === formData.counsellor_id)?.name || 'Not selected'}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-start">
+                        <span className="text-white/50">Urgency:</span>
+                        <span className={`font-medium text-right px-2 py-0.5 rounded ${formData.urgency === 'high' ? 'bg-red-500/20 text-red-300' :
+                          formData.urgency === 'medium' ? 'bg-yellow-500/20 text-yellow-300' :
                             'bg-green-500/20 text-green-300'
                           }`}>
-                            {formData.urgency ? formData.urgency.charAt(0).toUpperCase() + formData.urgency.slice(1) : 'Not set'}
-                          </span>
-                        </div>
-                        
-                        <div className="flex justify-between items-start">
-                          <span className="text-white/50">Contact:</span>
-                          <span className="text-white font-medium text-right">
-                            {formData.contact_preference ? formData.contact_preference.charAt(0).toUpperCase() + formData.contact_preference.slice(1) : 'Not set'}
-                          </span>
-                        </div>
-                        
-                        <div className="flex justify-between items-start">
-                          <span className="text-white/50">Preferred Time:</span>
-                          <span className="text-white font-medium text-right">
-                            {dateInput && timeHour && timeMinute ? 
-                              `${dateInput} at ${timeHour}:${timeMinute} ${timeAmPm}` : 
-                              'Flexible'}
-                          </span>
-                        </div>
-                        
-                        {formData.attachments.length > 0 && (
-                          <div className="flex justify-between items-start">
-                            <span className="text-white/50">Attachments:</span>
-                            <span className="text-white font-medium text-right">
-                              {formData.attachments.length} report{formData.attachments.length > 1 ? 's' : ''}
-                            </span>
-                          </div>
-                        )}
-                        
-                        {formData.notes && (
-                          <div className="pt-2 border-t border-white/10">
-                            <span className="text-white/50 block mb-2">Notes:</span>
-                            <p className="text-white/70 text-xs bg-white/5 rounded-lg p-3 italic">
-                              "{formData.notes.substring(0, 100)}{formData.notes.length > 100 ? '...' : ''}"
-                            </p>
-                          </div>
-                        )}
+                          {formData.urgency ? formData.urgency.charAt(0).toUpperCase() + formData.urgency.slice(1) : 'Not set'}
+                        </span>
                       </div>
-                   </div>
 
-                   {/* Action Buttons */}
-                   <div className="flex gap-4 w-full max-w-md">
-                      <button
-                         onClick={handleCancelConfirmation}
-                         className="flex-1 px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white transition font-medium border border-white/20"
-                      >
-                         ← Go Back
-                      </button>
-                      <button
-                         onClick={handleConfirmSubmit}
-                         className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white transition font-bold shadow-lg shadow-indigo-500/30"
-                      >
-                         ✓ Confirm & Send
-                      </button>
-                   </div>
-                   
-                   <p className="text-xs text-white/40 mt-6">
-                      By confirming, you agree that this information will be shared with your selected counsellor.
-                   </p>
+                      <div className="flex justify-between items-start">
+                        <span className="text-white/50">Contact:</span>
+                        <span className="text-white font-medium text-right">
+                          {formData.contact_preference ? formData.contact_preference.charAt(0).toUpperCase() + formData.contact_preference.slice(1) : 'Not set'}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-start">
+                        <span className="text-white/50">Preferred Time:</span>
+                        <span className="text-white font-medium text-right">
+                          {dateInput && timeHour && timeMinute ?
+                            `${dateInput} at ${timeHour}:${timeMinute} ${timeAmPm}` :
+                            'Flexible'}
+                        </span>
+                      </div>
+
+                      {formData.attachments.length > 0 && (
+                        <div className="flex justify-between items-start">
+                          <span className="text-white/50">Attachments:</span>
+                          <span className="text-white font-medium text-right">
+                            {formData.attachments.length} report{formData.attachments.length > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
+
+                      {formData.notes && (
+                        <div className="pt-2 border-t border-white/10">
+                          <span className="text-white/50 block mb-2">Notes:</span>
+                          <p className="text-white/70 text-xs bg-white/5 rounded-lg p-3 italic">
+                            "{formData.notes.substring(0, 100)}{formData.notes.length > 100 ? '...' : ''}"
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-4 w-full max-w-md">
+                    <button
+                      onClick={handleCancelConfirmation}
+                      className="flex-1 px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white transition font-medium border border-white/20"
+                    >
+                      ← Go Back
+                    </button>
+                    <button
+                      onClick={handleConfirmSubmit}
+                      className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white transition font-bold shadow-lg shadow-indigo-500/30"
+                    >
+                      ✓ Confirm & Send
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-white/40 mt-6">
+                    By confirming, you agree that this information will be shared with your selected counsellor.
+                  </p>
                 </div>
               ) : (
                 /* Success View */
                 <div className="p-8 grow flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-300">
-                   <div className="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
-                      <span className="text-5xl">✅</span>
-                   </div>
-                   
-                   <h2 className="text-3xl font-bold text-white mb-2">Request Sent!</h2>
-                   <p className="text-white/60 max-w-sm mb-10 text-sm leading-relaxed">
-                      We have received your consultation request using the credentials provided. A counsellor will review it and confirm your slot shortly via email.
-                   </p>
+                  <div className="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+                    <span className="text-5xl">✅</span>
+                  </div>
 
-                   {/* Info Alerts moved here with better styling */}
-                   <div className="w-full space-y-4 text-left max-w-md">
-                      <div className="bg-[#1a2130] border-l-4 border-blue-500 rounded-r-xl p-4 shadow-lg">
-                        <h6 className="font-semibold text-sm mb-2 flex items-center gap-2 text-blue-400">
-                          ℹ️ Before Your Session
-                        </h6>
-                        <ul className="text-xs space-y-2 text-white/70 list-disc list-inside">
-                          <li>Check your email for the meeting link</li>
-                          <li>Find a quiet, private space</li>
-                          <li>Test your microphone and camera beforehand</li>
-                        </ul>
-                      </div>
+                  <h2 className="text-3xl font-bold text-white mb-2">Request Sent!</h2>
+                  <p className="text-white/60 max-w-sm mb-10 text-sm leading-relaxed">
+                    We have received your consultation request using the credentials provided. A counsellor will review it and confirm your slot shortly via email.
+                  </p>
 
-                      <div className="bg-[#1a2130] border-l-4 border-yellow-500 rounded-r-xl p-4 shadow-lg">
-                        <h6 className="font-semibold text-sm mb-2 flex items-center gap-2 text-yellow-400">
-                          ⚠️ In Crisis?
-                        </h6>
-                        <p className="text-xs text-white/70 leading-relaxed">
-                          If this is an emergency, please call <strong>988</strong> or text <strong>HOME</strong> to <strong>741741</strong> immediately.
-                        </p>
-                      </div>
-                   </div>
+                  {/* Info Alerts moved here with better styling */}
+                  <div className="w-full space-y-4 text-left max-w-md">
+                    <div className="bg-[#1a2130] border-l-4 border-blue-500 rounded-r-xl p-4 shadow-lg">
+                      <h6 className="font-semibold text-sm mb-2 flex items-center gap-2 text-blue-400">
+                        ℹ️ Before Your Session
+                      </h6>
+                      <ul className="text-xs space-y-2 text-white/70 list-disc list-inside">
+                        <li>Check your email for the meeting link</li>
+                        <li>Find a quiet, private space</li>
+                        <li>Test your microphone and camera beforehand</li>
+                      </ul>
+                    </div>
 
-                   <button
-                      onClick={() => setOpenModal(false)}
-                      className="mt-10 px-10 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition font-medium border border-white/10"
-                   >
-                      Close Window
-                   </button>
+                    <div className="bg-[#1a2130] border-l-4 border-yellow-500 rounded-r-xl p-4 shadow-lg">
+                      <h6 className="font-semibold text-sm mb-2 flex items-center gap-2 text-yellow-400">
+                        ⚠️ In Crisis?
+                      </h6>
+                      <p className="text-xs text-white/70 leading-relaxed">
+                        If this is an emergency, please call <strong>988</strong> or text <strong>HOME</strong> to <strong>741741</strong> immediately.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setOpenModal(false)}
+                    className="mt-10 px-10 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition font-medium border border-white/10"
+                  >
+                    Close Window
+                  </button>
                 </div>
               )}
             </div>
@@ -911,10 +863,10 @@ export default function Consultant() {
             {/* Modal Footer - Sticky */}
             {modalView === 'form' && (
               <div className="p-5 border-t border-white/10 bg-[#141923] shrink-0 flex justify-between items-center z-10 rounded-b-2xl">
-                 <div className="text-[10px] text-white/40 max-w-[200px] hidden md:block">
-                    Your request is confidential and secure.
-                 </div>
-                 <div className="flex gap-3 w-full md:w-auto">
+                <div className="text-[10px] text-white/40 max-w-[200px] hidden md:block">
+                  Your request is confidential and secure.
+                </div>
+                <div className="flex gap-3 w-full md:w-auto">
                   <button
                     type="button"
                     onClick={() => setOpenModal(false)}
@@ -931,7 +883,7 @@ export default function Consultant() {
                 </div>
               </div>
             )}
-            
+
           </div>
         </div>
       )}
