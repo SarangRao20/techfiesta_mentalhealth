@@ -12,7 +12,7 @@ import VrMeditation from './Features/VrMeditation.jsx';
 import TextVenting from './Features/TextVenting.jsx';
 import SoundVenting from './Features/SoundVenting.jsx';
 import { calculateConfidenceScore } from './score_calculator.js';
-
+import { API_URL } from '../config.js';
 const FeatureRenderer = ({ feature, onClose }) => {
     switch (feature) {
         case "1/2-Minute Breathing Exercise":
@@ -154,10 +154,14 @@ const Chat = () => {
         setIsLoading(true);
         const beforeMood = localStorage.getItem("mood");
         try {
-            const res = await fetch('http://localhost:8000/send-message', {
+            const res = await fetch(`${API_URL}/api/chatbot/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_message: userMessage+" My mood before chatting was "+beforeMood })
+                body: JSON.stringify({ 
+                    message: userMessage+" My mood before chatting was "+beforeMood,
+                    session_id:null
+                }),
+                credentials: 'include'
             });
 
             const data = await res.json();
@@ -168,7 +172,7 @@ const Chat = () => {
             let suggestedFeature = null;
 
             // SAFELY extract fields from Python-dict-like string
-            if (typeof data.reply === 'string') {
+            if (typeof data === 'string') {
                 const matchResponse = data.reply.match(
                     /'response':\s*"([\s\S]*?)",\s*'suggested_feature'/
                 );
@@ -177,12 +181,19 @@ const Chat = () => {
                     /'suggested_feature':\s*'([^']*)'/
                 );
 
-                replyContent = matchResponse ? matchResponse[1] : data.reply;
+                replyContent = matchResponse ? matchResponse[1] : data;
+                console.log(replyContent)
+                if(replyContent){
+                    console.log("yes")
+                }
+                if(!replyContent){
+                    console.log("nah")
+                }
                 suggestedFeature = matchFeature ? matchFeature[1] : null;
-            } else if (typeof data.reply === 'object' && data.reply !== null) {
+            } else if (typeof data === 'object' && data!== null) {
                 // future-proof: if backend sends real JSON later
-                replyContent = data.reply.response || '';
-                suggestedFeature = data.reply.suggested_feature || null;
+                replyContent = data.response || '';
+                suggestedFeature = data.suggested_feature || null;
             }
 
             let intentData = null;
@@ -215,7 +226,9 @@ const Chat = () => {
             if (isCrisis) {
                 suggestedFeature = "CALL";
             }
-
+            console.log(replyContent)
+            console.log(suggestedFeature)
+            console.log(isCrisis)
             const botMsg = {
                 role: 'bot',
                 content: replyContent,
