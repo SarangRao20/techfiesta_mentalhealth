@@ -6,6 +6,7 @@ from database import db
 from utils import get_assessment_questions, get_assessment_options, calculate_phq9_score, calculate_gad7_score, calculate_ghq_score, generate_analysis
 import json
 from datetime import datetime
+from utils.common import generate_analysis
 
 ns = Namespace('assessments', description='Mental health assessments and results')
 
@@ -46,7 +47,7 @@ class Assessments(Resource):
             score, severity = calculate_ghq_score(responses)
         else:
             return {'message': 'Invalid assessment type'}, 400
-            
+
         analysis = generate_analysis(a_type, score)
         
         assessment = Assessment(
@@ -121,6 +122,7 @@ class ExportAssessmentPDF(Resource):
         p.drawString(120, 630, f"Severity: {assessment.severity_level}")
         
         # Get counsellor-detailed analysis
+        from utils.common import generate_analysis
         analysis = assessment.recommendations or generate_analysis(assessment.assessment_type, assessment.score)
         detail = analysis.get('counsellor_detailed', {})
         
@@ -243,6 +245,8 @@ class AssessmentResult(Resource):
         if assessment.user_id != current_user.id and current_user.role not in ['counsellor', 'mentor']:
             return {'message': 'Unauthorized'}, 403
             
+        # Get analysis - regenerate if not cached
+        from utils.common import generate_analysis
         full_analysis = assessment.recommendations if assessment.recommendations else generate_analysis(assessment.assessment_type, assessment.score)
         
         # Filter analysis based on user role

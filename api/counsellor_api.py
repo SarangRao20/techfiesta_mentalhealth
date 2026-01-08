@@ -78,32 +78,32 @@ class InboxAction(Resource):
                 except:
                     pass
             
-            # Send email notification
+            # Send email notification asynchronously
             from utils.email_service import send_consultation_status_email
             try:
-                send_consultation_status_email(
+                send_consultation_status_email.delay(
                     req.user.email, 
                     'accepted', 
                     current_user.full_name, 
                     req.time_slot or 'TBD'
                 )
             except Exception as e:
-                print(f"Email error: {e}")
+                print(f"Email task queue error: {e}")
                 
         elif action == 'reject':
             req.status = 'rejected'
             
-            # Send email notification
+            # Send email notification asynchronously
             from utils.email_service import send_consultation_status_email
             try:
-                send_consultation_status_email(
+                send_consultation_status_email.delay(
                     req.user.email, 
                     'rejected', 
                     current_user.full_name, 
                     req.time_slot or 'N/A'
                 )
             except Exception as e:
-                print(f"Email error: {e}")
+                print(f"Email task queue error: {e}")
         else:
             return {'message': 'Invalid action'}, 400
         

@@ -21,6 +21,7 @@ export default function Profile() {
   const [previewImage, setPreviewImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [uploadInProgress, setUploadInProgress] = useState(false);
 
   // Mock progress data - replace with actual data from your backend
   const weeklyProgress = [
@@ -41,9 +42,21 @@ export default function Profile() {
 
   useEffect(() => {
     fetchProfile();
-  }, []);
+    
+    // Poll for profile updates every 5 seconds if upload in progress
+    let pollInterval;
+    if (uploadInProgress) {
+      pollInterval = setInterval(() => {
+        fetchProfile(true); // Silent fetch
+      }, 5000);
+    }
+    
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [uploadInProgress]);
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (silent = false) => {
     try {
       const res = await fetch(`${API_URL}/api/auth/profile`, {
         credentials: 'include'
@@ -51,6 +64,8 @@ export default function Profile() {
 
       if (res.ok) {
         const data = await res.json();
+        const previousPic = profileData.profile_picture;
+        
         setProfileData({
           full_name: data.full_name || "",
           username: data.username || "",
@@ -62,8 +77,17 @@ export default function Profile() {
           profile_picture: data.profile_picture || null,
           organization_name: data.organization_name || ""
         });
+        
         if (data.profile_picture) {
           setPreviewImage(data.profile_picture);
+          
+          // If picture URL changed and we were uploading, upload is complete
+          if (uploadInProgress && data.profile_picture !== previousPic) {
+            setUploadInProgress(false);
+            if (!silent) {
+              console.log("Profile picture upload completed!");
+            }
+          }
         }
       } else {
         console.error("Failed to fetch profile");
@@ -104,9 +128,13 @@ export default function Profile() {
         }
       });
 
-      // Append file if selected
+      // Optimistic update for image preview if file selected
+      let tempPreviewUrl = null;
       if (selectedFile) {
         formData.append('profile_picture', selectedFile);
+        // Show preview immediately (optimistic UI)
+        tempPreviewUrl = URL.createObjectURL(selectedFile);
+        setPreviewImage(tempPreviewUrl);
       }
 
       const res = await fetch(`${API_URL}/api/auth/profile`, {
@@ -127,14 +155,39 @@ export default function Profile() {
           bio: updated.bio || "",
           profile_picture: updated.profile_picture || null
         });
+        
+        // If image was uploaded, show success message but don't wait for upload
+        if (selectedFile) {
+          setUploadInProgress(true); // Start polling
+          alert("Profile saved! Your picture is uploading in the background.");
+          // Keep the preview - actual URL will be updated when background task completes
+        } else {
+          alert("Profile updated successfully!");
+        }
+        
         setIsEditing(false);
-        alert("Profile updated successfully!");
+        setSelectedFile(null);
+        
+        // Clean up temporary URL if created
+        if (tempPreviewUrl) {
+          URL.revokeObjectURL(tempPreviewUrl);
+        }
       } else {
-        alert("Failed to update profile");
+        const errorData = await res.json().catch(() => ({}));
+        alert(`Failed to update profile: ${errorData.message || 'Unknown error'}`);
+        // Revert preview if upload failed
+        if (tempPreviewUrl) {
+          setPreviewImage(profileData.profile_picture);
+          URL.revokeObjectURL(tempPreviewUrl);
+        }
       }
     } catch (err) {
       console.error("Failed to update profile", err);
-      alert("Failed to update profile");
+      if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
+        alert("Connection error. Server might be restarting. Please try again in a few seconds.");
+      } else {
+        alert("Failed to update profile. Please try again.");
+      }
     }
   };
 
