@@ -1,7 +1,7 @@
 from flask import request, session
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_user, logout_user, login_required, current_user
-from db_models import User, Organization
+from db_models import User, Organization, OnboardingResponse
 from datetime import datetime, timedelta
 from database import db, r_streaks, r_sessions
 from utils.common import update_user_streak
@@ -36,7 +36,12 @@ user_model = ns.model('User', {
     'login_streak': fields.Integer(),
     'profile_picture': fields.String(),
     'organization_id': fields.Integer(),
-    'organization_name': fields.String(attribute=lambda x: x.organization.name if x.organization else None)
+    'organization_name': fields.String(attribute=lambda x: x.organization.name if x.organization else None),
+    'is_onboarded': fields.Boolean()
+})
+
+onboarding_model = ns.model('Onboarding', {
+    'responses': fields.Raw(required=True, description='Onboarding responses as JSON object')
 })
 
 @ns.route('/login')
@@ -55,6 +60,11 @@ class Login(Resource):
             step_start = time.time()
             login_user(user, remember=True)
             print(f"DEBUG: Flask-Login login_user took {time.time() - step_start:.4f}s")
+            
+            # Auto-mark non-students as onboarded (only students need onboarding)
+            if user.role in ['teacher', 'admin', 'counsellor'] and not user.is_onboarded:
+                user.is_onboarded = True
+                db.session.commit()
             
             step_start = time.time()
             # Update streak in Redis (Syncs to DB in background)
@@ -79,10 +89,10 @@ class Login(Resource):
                 'username': user.username,
                 'role': user.role,
                 'full_name': user.full_name,
-                'full_name': user.full_name,
                 'login_streak': streak_count,
                 'organization_id': user.organization_id,
-                'organization_name': user.organization.name if user.organization else None
+                'organization_name': user.organization.name if user.organization else None,
+                'is_onboarded': user.is_onboarded
             }}, 200
         return {'message': 'Invalid credentials'}, 401
 
@@ -123,6 +133,11 @@ class Register(Resource):
         if data.get('student_id'):
             user.set_student_id(data['student_id'])
         user.set_password(data['password'])
+        
+        # Auto-mark non-students as onboarded (only students need onboarding)
+        if user.role in ['teacher', 'admin', 'counsellor']:
+            user.is_onboarded = True
+        
         db.session.add(user)
         db.session.commit()
         return {'message': 'User registered successfully'}, 201
@@ -169,7 +184,8 @@ class Profile(Resource):
                 'bio': user.bio,
                 'profile_picture': user.profile_picture,
                 'organization_name': org_name,
-                'organization_id': user.organization_id
+                'organization_id': user.organization_id,
+                'is_onboarded': user.is_onboarded
             }, 200
         except Exception as e:
             import traceback
@@ -248,4 +264,48 @@ class Profile(Resource):
             'profile_picture': user.profile_picture,
             'organization_name': user.organization.name if user.organization else None,
             'organization_id': user.organization_id
+        }, 200
+
+@ns.route('/onboarding')
+class Onboarding(Resource):
+    @login_required
+    @ns.expect(onboarding_model)
+    def post(self):
+        """Save onboarding responses and mark user as onboarded (Students only)"""
+        user = current_user
+        
+        # Only students need onboarding
+        if user.role != 'student':
+            return {'message': 'Onboarding is only for students'}, 403
+        
+        data = ns.payload
+        
+        if user.is_onboarded:
+            return {'message': 'User already onboarded'}, 400
+        
+        # Save onboarding responses
+        onboarding = OnboardingResponse(
+            user_id=user.id,
+            responses=data['responses']
+        )
+        db.session.add(onboarding)
+        
+        # Mark user as onboarded
+        user.is_onboarded = True
+        db.session.commit()
+        
+        # Invalidate cache
+        r_sessions.delete(f"user_profile:{user.id}")
+        
+        return {
+            'message': 'Onboarding completed successfully',
+            'is_onboarded': True
+        }, 200
+    
+    @login_required
+    def get(self):
+        """Check if user is onboarded"""
+        user = current_user
+        return {
+            'is_onboarded': user.is_onboarded
         }, 200

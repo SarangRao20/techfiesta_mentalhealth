@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { API_URL } from "../config";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     login_streak: 0,
     username: "",
@@ -19,7 +21,15 @@ export default function Dashboard() {
   const moods = ["😔", "🙂", "😄", "🤩"];
   const moodLabels = ["Low", "Okay", "Happy", "Great"];
   localStorage.setItem("mood",mood);
+  
   useEffect(() => {
+    // Check onboarding status for students
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (user.role === 'student' && !user.is_onboarded) {
+      navigate("/start-journey");
+      return;
+    }
+
     // Fire ignites on page refresh
     setTimeout(() => setIgnite(true), 300);
 
@@ -74,7 +84,7 @@ export default function Dashboard() {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [navigate]);
 
   if (loading) {
     return (
