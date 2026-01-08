@@ -225,6 +225,12 @@ export default function Profile() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => {
+                // If viewing student profile, return to mentor dashboard
+                if (isViewingStudent) {
+                  navigate('/app/mentor');
+                  return;
+                }
+                // Otherwise use role-based navigation
                 const role = profileData.role?.toLowerCase();
                 if (['teacher', 'mentor'].includes(role)) {
                   navigate('/app/mentor');
