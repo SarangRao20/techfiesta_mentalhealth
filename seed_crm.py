@@ -77,6 +77,30 @@ USERS_DATA = [
         "role": "student",
         "username": "24f2000232",
         "org": "MindCare"
+    },
+    {
+        "email": "priya.sharma@student.edu",
+        "role": "student",
+        "username": "priya_sharma",
+        "org": "TechFiesta"
+    },
+    {
+        "email": "rahul.verma@student.edu",
+        "role": "student",
+        "username": "rahul_verma",
+        "org": "TechFiesta"
+    },
+    {
+        "email": "ananya.singh@student.edu",
+        "role": "student",
+        "username": "ananya_singh",
+        "org": "MindCare"
+    },
+    {
+        "email": "arjun.patel@student.edu",
+        "role": "student",
+        "username": "arjun_patel",
+        "org": "FutureLeaders"
     }
 ]
 

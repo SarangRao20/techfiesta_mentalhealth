@@ -6,7 +6,7 @@ export default function Consultant() {
   const [counsellors, setCounsellors] = useState([]);
   const [openSlots, setOpenSlots] = useState([]);
   const [openModal, setOpenModal] = useState(false);
-  const [modalView, setModalView] = useState("form"); // 'form' | 'success'
+  const [modalView, setModalView] = useState("form"); // 'form' | 'confirm' | 'success'
   const [selectedSlotCounsellor, setSelectedSlotCounsellor] = useState("");
 
   // Form state
@@ -134,6 +134,11 @@ export default function Consultant() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Show confirmation dialog first
+    setModalView("confirm");
+  };
+
+  const handleConfirmSubmit = async () => {
     // Combine date and time from custom picker
     let preferred_time = "";
     if (dateInput) {
@@ -173,10 +178,18 @@ export default function Consultant() {
       } else {
         const err = await res.json();
         alert(err.message || "Failed to submit request");
+        setModalView("form"); // Go back to form on error
       }
     } catch (e) {
       console.error("Submit error", e);
+      alert("Network error. Please try again.");
+      setModalView("form"); // Go back to form on error
     }
+  };
+
+  const handleCancelConfirmation = () => {
+    // User cancelled, go back to form without submitting
+    setModalView("form");
   };
 
   const handleInputChange = (e) => {
@@ -400,14 +413,24 @@ export default function Consultant() {
             <div className="flex justify-between items-center p-5 border-b border-white/10 shrink-0 bg-[#141923] z-10">
               <div>
                 <h3 className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent flex items-center gap-2">
-                  {modalView === 'form' ? 'Request Consultation' : 'Request Submitted!'}
+                  {modalView === 'form' ? 'Request Consultation' : 
+                   modalView === 'confirm' ? 'Confirm Your Request' : 
+                   'Request Submitted!'}
                 </h3>
                 <p className="text-xs text-white/50 mt-1">
-                  {modalView === 'form' ? 'Book a session with our mental health pros' : 'Your request has been sent successfully'}
+                  {modalView === 'form' ? 'Book a session with our mental health pros' : 
+                   modalView === 'confirm' ? 'Please review your booking details before submitting' :
+                   'Your request has been sent successfully'}
                 </p>
               </div>
               <button
-                onClick={() => setOpenModal(false)}
+                onClick={() => {
+                  setOpenModal(false);
+                  // Reset to form view if user closes during confirmation
+                  if (modalView === 'confirm') {
+                    setModalView('form');
+                  }
+                }}
                 className="text-white/40 hover:text-white transition p-2 rounded-full hover:bg-white/5"
               >
                 ✕
@@ -746,6 +769,100 @@ export default function Consultant() {
                       />
                     </div>
                 </div>
+              ) : modalView === 'confirm' ? (
+                /* Confirmation View - Are you sure? */
+                <div className="p-8 grow flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-300">
+                   <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(245,158,11,0.3)]">
+                      <span className="text-4xl">⚠️</span>
+                   </div>
+                   
+                   <h2 className="text-2xl font-bold text-white mb-3">Confirm Your Booking</h2>
+                   <p className="text-white/60 max-w-md mb-8 text-sm leading-relaxed">
+                      Once you confirm, we'll send an email to the counsellor and process your request. 
+                      Please make sure all details are correct.
+                   </p>
+
+                   {/* Booking Summary */}
+                   <div className="w-full max-w-lg bg-[#0f131c] border border-white/10 rounded-xl p-6 text-left space-y-4 mb-8">
+                      <h3 className="text-sm font-semibold text-indigo-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        📋 Booking Summary
+                      </h3>
+                      
+                      <div className="space-y-3 text-sm">
+                        <div className="flex justify-between items-start">
+                          <span className="text-white/50">Counsellor:</span>
+                          <span className="text-white font-medium text-right">
+                            {counsellors.find(c => c.id.toString() === formData.counsellor_id)?.name || 'Not selected'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-start">
+                          <span className="text-white/50">Urgency:</span>
+                          <span className={`font-medium text-right px-2 py-0.5 rounded ${
+                            formData.urgency === 'high' ? 'bg-red-500/20 text-red-300' :
+                            formData.urgency === 'medium' ? 'bg-yellow-500/20 text-yellow-300' :
+                            'bg-green-500/20 text-green-300'
+                          }`}>
+                            {formData.urgency ? formData.urgency.charAt(0).toUpperCase() + formData.urgency.slice(1) : 'Not set'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-start">
+                          <span className="text-white/50">Contact:</span>
+                          <span className="text-white font-medium text-right">
+                            {formData.contact_preference ? formData.contact_preference.charAt(0).toUpperCase() + formData.contact_preference.slice(1) : 'Not set'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-start">
+                          <span className="text-white/50">Preferred Time:</span>
+                          <span className="text-white font-medium text-right">
+                            {dateInput && timeHour && timeMinute ? 
+                              `${dateInput} at ${timeHour}:${timeMinute} ${timeAmPm}` : 
+                              'Flexible'}
+                          </span>
+                        </div>
+                        
+                        {formData.attachments.length > 0 && (
+                          <div className="flex justify-between items-start">
+                            <span className="text-white/50">Attachments:</span>
+                            <span className="text-white font-medium text-right">
+                              {formData.attachments.length} report{formData.attachments.length > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {formData.notes && (
+                          <div className="pt-2 border-t border-white/10">
+                            <span className="text-white/50 block mb-2">Notes:</span>
+                            <p className="text-white/70 text-xs bg-white/5 rounded-lg p-3 italic">
+                              "{formData.notes.substring(0, 100)}{formData.notes.length > 100 ? '...' : ''}"
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                   </div>
+
+                   {/* Action Buttons */}
+                   <div className="flex gap-4 w-full max-w-md">
+                      <button
+                         onClick={handleCancelConfirmation}
+                         className="flex-1 px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white transition font-medium border border-white/20"
+                      >
+                         ← Go Back
+                      </button>
+                      <button
+                         onClick={handleConfirmSubmit}
+                         className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white transition font-bold shadow-lg shadow-indigo-500/30"
+                      >
+                         ✓ Confirm & Send
+                      </button>
+                   </div>
+                   
+                   <p className="text-xs text-white/40 mt-6">
+                      By confirming, you agree that this information will be shared with your selected counsellor.
+                   </p>
+                </div>
               ) : (
                 /* Success View */
                 <div className="p-8 grow flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-300">
@@ -809,7 +926,7 @@ export default function Consultant() {
                     onClick={handleSubmit}
                     className="px-8 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-400 hover:to-purple-400 text-white shadow-lg shadow-indigo-500/20 transition transform active:scale-95 grow md:grow-0"
                   >
-                    Submit Request
+                    Review & Submit →
                   </button>
                 </div>
               </div>

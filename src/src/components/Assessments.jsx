@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL } from '../config';
 import { ClipboardCheck, Activity, Brain, CheckCircle, ChevronRight, AlertCircle, Download, Share2 } from 'lucide-react';
+import AssessmentResults from './AssessmentResults';
 
 const Assessments = () => {
     const [activeTab, setActiveTab] = useState('PHQ-9'); // PHQ-9, GAD-7, GHQ
@@ -109,8 +110,15 @@ const Assessments = () => {
     const progress = Math.round((Object.keys(responses).length / (questions.length || 1)) * 100);
 
     return (
-        <div className="min-h-screen bg-[#0f131c] text-white p-6 md:p-12">
-            <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="min-h-screen bg-[#0f131c] text-white">
+            {result ? (
+                <AssessmentResults 
+                    result={result} 
+                    onBack={() => setResult(null)} 
+                />
+            ) : (
+                <div className="p-6 md:p-12">
+                    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                 {/* LEFT: Sidebar / Selection */}
                 <div className="space-y-6">
@@ -297,6 +305,8 @@ const Assessments = () => {
                     )}
                 </div>
             </div>
+            </div>
+            )}
 
             <style>{`
                 @keyframes fade-in-up {

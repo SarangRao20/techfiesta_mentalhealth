@@ -4,10 +4,13 @@ import os
 import logging
 from email.message import EmailMessage
 from flask import current_app
+from utils.celery_app import celery
 
-def send_email_notification(to_email, subject, body, sender_name="MindCare Team"):
+@celery.task(bind=True, max_retries=3)
+def send_email_notification(self, to_email, subject, body, sender_name="MindCare Team"):
     """
-    Sends an email using the SMTP configuration from environment variables.
+    Celery task to send an email using the SMTP configuration from environment variables.
+    Retries up to 3 times on failure.
     """
     try:
         smtp_host = os.environ.get('SMTP_HOST')
@@ -40,8 +43,14 @@ def send_email_notification(to_email, subject, body, sender_name="MindCare Team"
 
     except Exception as e:
         logging.error(f"Failed to send email to {to_email}: {str(e)}")
+        # Retry the task with exponential backoff
+        try:
+            self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
+        except self.MaxRetriesExceededError:
+            logging.error(f"Max retries exceeded for email to {to_email}")
         return False
 
+@celery.task
 def send_consultation_request_email(counsellor_email, user_name, time_slot, urgency):
     subject = f"New Consultation Request: {urgency.upper()} Urgency"
     body = f"""
@@ -57,8 +66,9 @@ def send_consultation_request_email(counsellor_email, user_name, time_slot, urge
     Best regards,
     MindCare System
     """
-    return send_email_notification(counsellor_email, subject, body, sender_name="MindCare Alerts")
+    return send_email_notification.delay(counsellor_email, subject, body, sender_name="MindCare Alerts")
 
+@celery.task
 def send_consultation_status_email(user_email, status, counsellor_name, time_slot):
     subject = f"Consultation Request {status.title()}"
     body = f"""
@@ -71,4 +81,4 @@ def send_consultation_status_email(user_email, status, counsellor_name, time_slo
     Best regards,
     MindCare System
     """
-    return send_email_notification(user_email, subject, body)
+    return send_email_notification.delay(user_email, subject, body)

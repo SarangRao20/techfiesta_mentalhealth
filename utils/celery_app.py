@@ -7,7 +7,14 @@ def make_celery(app_name=__name__):
         app_name,
         broker=redis_url,
         backend=redis_url,
-        include=['api.chatbot_api', 'api.assessments_api', 'utils.common', 'api.dashboard_api'] # Add other modules where tasks are defined
+        include=[
+            'api.chatbot_api', 
+            'api.assessments_api', 
+            'utils.common', 
+            'api.dashboard_api',
+            'utils.email_service',  # Async email tasks
+            'utils.upload_service'  # Async file upload tasks
+        ]
     )
 
 celery = make_celery()
