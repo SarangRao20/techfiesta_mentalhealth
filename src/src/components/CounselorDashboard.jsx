@@ -130,7 +130,7 @@ export default function CounselorDashboard() {
                                                 <h3 className="font-semibold text-lg">{req.user.full_name}</h3>
                                                 <div className="text-sm text-white/60">@{req.user.username}</div>
                                             </div>
-                                            <span className={`px-2 py-1 rounded text-xs px-2 py-0.5 rounded-full ${req.urgency === 'high' ? 'bg-red-500/20 text-red-300' :
+                                            <span className={`text-xs px-2 py-0.5 rounded-full ${req.urgency === 'high' ? 'bg-red-500/20 text-red-300' :
                                                 req.urgency === 'medium' ? 'bg-yellow-500/20 text-yellow-300' :
                                                     'bg-green-500/20 text-green-300'
                                                 }`}>
