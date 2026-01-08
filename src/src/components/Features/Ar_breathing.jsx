@@ -224,11 +224,28 @@ const Ar_breathing = () => {
     }
   };
 
-  const emergencyBreathing = () => {
+  const emergencyBreathing = async () => {
     handlePatternChange('emergency');
     startBreathing();
     setPanicUses(prev => prev + 1);
     setPhaseText('🚨 Emergency Mode - Focus on breathing');
+
+    // Create crisis alert in database
+    try {
+      await fetch(`${API_URL}/api/meditation/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          duration: 0,
+          session_type: 'sos_breathing',
+          sos_trigger: true
+        })
+      });
+      console.log('✅ SOS breathing alert sent to mentor dashboard');
+    } catch (e) {
+      console.error('Failed to log SOS:', e);
+    }
 
     setTimeout(() => {
       if (breathingActive) {
