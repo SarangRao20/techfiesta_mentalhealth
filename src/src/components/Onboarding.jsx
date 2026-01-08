@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Sparkles } from "lucide-react";
 import { API_URL } from "../config";
 
 const questions = [
@@ -65,6 +65,7 @@ export default function Onboarding() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [isExiting, setIsExiting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const navigate = useNavigate();
   const currentQuestion = questions[currentIndex];
 
@@ -79,27 +80,67 @@ export default function Onboarding() {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      setIsExiting(true);
-      // Simulate saving or actually save if endpoint exists
-      console.log("Onboarding Answers:", answers);
+      // Show success animation first
+      setShowSuccess(true);
       
-      // Save minimal preference to potentially customize experience locally
+      // Save onboarding responses to backend
       try {
-         // Could call an endpoint here if needed
-      } catch (e) {
-         console.error(e);
+        const response = await fetch(`${API_URL}/api/auth/onboarding`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ responses: answers }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          console.log("✅ Onboarding completed:", data);
+          // Update user in localStorage
+          const user = JSON.parse(localStorage.getItem("user") || "{}");
+          user.is_onboarded = true;
+          localStorage.setItem("user", JSON.stringify(user));
+        } else {
+          console.error("❌ Failed to save onboarding:", data.message);
+        }
+      } catch (error) {
+        console.error("❌ Error saving onboarding:", error);
       }
       
+      // Wait for success animation, then fade and navigate
       setTimeout(() => {
-        navigate("/app/chat");
-      }, 1000);
+        setIsExiting(true);
+        setTimeout(() => {
+          navigate("/app/dashboard");
+        }, 800);
+      }, 1500);
     }
   };
 
   const progress = ((currentIndex + 1) / questions.length) * 100;
 
   return (
-    <div className={`min-h-screen relative overflow-hidden flex items-center justify-center p-6 bg-[#050505] transition-opacity duration-1000 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
+    <div className={`min-h-screen relative overflow-hidden flex items-center justify-center p-6 bg-[#050505] transition-all duration-1000 ${isExiting ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+      
+      {/* Success Overlay */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-500">
+          <div className="text-center space-y-6 animate-in zoom-in duration-700">
+            <div className="relative">
+              <div className="w-24 h-24 mx-auto bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center animate-in spin-in duration-1000">
+                <Sparkles size={48} className="text-white" />
+              </div>
+              <div className="absolute inset-0 w-24 h-24 mx-auto bg-purple-500/30 rounded-full blur-2xl animate-pulse" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-4xl font-bold text-white">Journey Begins! 🌸</h2>
+              <p className="text-xl text-white/70">Taking you to your dashboard...</p>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Dynamic Background */}
       <div className="absolute inset-0 z-0">
