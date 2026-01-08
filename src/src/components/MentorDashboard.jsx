@@ -13,7 +13,7 @@ import {
     MessageSquare,
     User
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 
 const MentorDashboard = () => {
@@ -24,6 +24,7 @@ const MentorDashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
+    const [showActivityDashboard, setShowActivityDashboard] = useState(false);
     const navigate = useNavigate();
 
     // Helper to map severity to number
@@ -247,11 +248,11 @@ const MentorDashboard = () => {
                                         <ExternalLink size={14} />
                                     </button>
                                     <button
-                                        onClick={() => window.location.href = `mailto:${selectedStudent.email}`}
+                                        onClick={() => setShowActivityDashboard(true)}
                                         className="px-5 py-2.5 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-sm font-medium transition-colors shadow-lg shadow-teal-500/20 flex items-center gap-2"
                                     >
-                                        <MessageSquare size={14} />
-                                        Send Message
+                                        <Activity size={14} />
+                                        View Activity Dashboard
                                     </button>
                                 </div>
                             </div>
@@ -489,6 +490,271 @@ const MentorDashboard = () => {
                     </div>
                 )}
             </div>
+
+            {/* Activity Dashboard Modal */}
+            {showActivityDashboard && insights && selectedStudent && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#1a1f2e] rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto border border-white/10">
+                        <div className="sticky top-0 bg-[#1a1f2e] border-b border-white/10 p-6 flex justify-between items-center">
+                            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                <Activity className="text-teal-400" size={28} />
+                                Activity Dashboard - {selectedStudent.full_name}
+                            </h2>
+                            <button
+                                onClick={() => setShowActivityDashboard(false)}
+                                className="p-2 hover:bg-white/10 rounded-lg transition"
+                            >
+                                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            {/* Activity Breakdown - Donut Chart */}
+                            <div className="bg-[#0f131c]/50 p-6 rounded-xl border border-white/5">
+                                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                                    <TrendingUp size={20} className="text-teal-400" />
+                                    Activity Breakdown (Last 30 Days)
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="h-64">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={[
+                                                        { name: 'Meditation', value: insights.activity_stats?.meditation_count || 0, color: '#14b8a6' },
+                                                        { name: 'Chatbot', value: insights.activity_stats?.chat_count || 0, color: '#8b5cf6' },
+                                                        { name: 'Assessments', value: insights.activity_stats?.assessment_count || 0, color: '#f59e0b' },
+                                                        { name: 'Venting', value: insights.activity_stats?.venting_count || 0, color: '#ef4444' }
+                                                    ].filter(item => item.value > 0)}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={60}
+                                                    outerRadius={90}
+                                                    paddingAngle={5}
+                                                    dataKey="value"
+                                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                                >
+                                                    {[
+                                                        { name: 'Meditation', value: insights.activity_stats?.meditation_count || 0, color: '#14b8a6' },
+                                                        { name: 'Chatbot', value: insights.activity_stats?.chat_count || 0, color: '#8b5cf6' },
+                                                        { name: 'Assessments', value: insights.activity_stats?.assessment_count || 0, color: '#f59e0b' },
+                                                        { name: 'Venting', value: insights.activity_stats?.venting_count || 0, color: '#ef4444' }
+                                                    ].filter(item => item.value > 0).map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                                    ))}
+                                                </Pie>
+                                                <RechartsTooltip 
+                                                    contentStyle={{ backgroundColor: '#1a1f2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                                                    labelStyle={{ color: '#fff' }}
+                                                />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between p-3 bg-teal-500/10 rounded-lg border border-teal-500/20">
+                                            <span className="text-gray-300 flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-teal-500"></div>
+                                                Meditation Sessions
+                                            </span>
+                                            <span className="text-white font-bold">{insights.activity_stats?.meditation_count || 0}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                                            <span className="text-gray-300 flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                                                Chatbot Interactions
+                                            </span>
+                                            <span className="text-white font-bold">{insights.activity_stats?.chat_count || 0}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                                            <span className="text-gray-300 flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                                                Assessments Completed
+                                            </span>
+                                            <span className="text-white font-bold">{insights.activity_stats?.assessment_count || 0}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                                            <span className="text-gray-300 flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                                Venting Posts
+                                            </span>
+                                            <span className="text-white font-bold">{insights.activity_stats?.venting_count || 0}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10 mt-2">
+                                            <span className="text-gray-300 font-semibold">Total Activities</span>
+                                            <span className="text-teal-400 font-bold text-xl">{insights.activity_stats?.total_activities || 0}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Crisis Timeline */}
+                            <div className="bg-[#0f131c]/50 p-6 rounded-xl border border-white/5">
+                                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                                    <AlertTriangle size={20} className="text-red-400" />
+                                    Crisis Timeline (Last 30 Days)
+                                </h3>
+                                {insights.crisis_alerts && insights.crisis_alerts.length > 0 ? (
+                                    <div className="relative">
+                                        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-red-500 via-orange-500 to-yellow-500"></div>
+                                        <div className="space-y-4">
+                                            {insights.crisis_alerts.map((alert, index) => {
+                                                const severityColors = {
+                                                    critical: { bg: 'bg-red-500/20', border: 'border-red-500', dot: 'bg-red-500', text: 'text-red-400' },
+                                                    high: { bg: 'bg-orange-500/20', border: 'border-orange-500', dot: 'bg-orange-500', text: 'text-orange-400' },
+                                                    moderate: { bg: 'bg-yellow-500/20', border: 'border-yellow-500', dot: 'bg-yellow-500', text: 'text-yellow-400' },
+                                                    low: { bg: 'bg-blue-500/20', border: 'border-blue-500', dot: 'bg-blue-500', text: 'text-blue-400' }
+                                                };
+                                                const colors = severityColors[alert.severity] || severityColors.moderate;
+                                                
+                                                return (
+                                                    <div key={alert.id} className="relative pl-12">
+                                                        <div className={`absolute left-2.5 w-3 h-3 rounded-full ${colors.dot} ring-4 ring-[#0f131c]`}></div>
+                                                        <div className={`${colors.bg} border ${colors.border} rounded-lg p-4`}>
+                                                            <div className="flex items-start justify-between mb-2">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className={`px-2 py-1 ${colors.bg} ${colors.text} text-xs font-semibold rounded-md uppercase border ${colors.border}`}>
+                                                                        {alert.severity}
+                                                                    </span>
+                                                                    <span className="text-sm text-gray-400">{alert.alert_type?.replace('_', ' ')}</span>
+                                                                </div>
+                                                                <span className="text-xs text-gray-500">
+                                                                    {new Date(alert.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                                </span>
+                                                            </div>
+                                                            {alert.message_snippet && (
+                                                                <p className="text-gray-300 text-sm italic">"{alert.message_snippet}"</p>
+                                                            )}
+                                                            {alert.acknowledged && (
+                                                                <div className="mt-2 text-xs text-green-400 flex items-center gap-1">
+                                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                    Acknowledged
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <Shield size={48} className="mx-auto mb-3 opacity-50" />
+                                        <p>No crisis alerts in the last 30 days - Great progress! 🎉</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Emotional Trend Line Chart */}
+                            <div className="bg-[#0f131c]/50 p-6 rounded-xl border border-white/5">
+                                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                                    <TrendingUp size={20} className="text-purple-400" />
+                                    Emotional Intensity Trend (Last 30 Days)
+                                </h3>
+                                {insights.emotional_trends && insights.emotional_trends.length > 0 ? (
+                                    <div className="h-64">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={insights.emotional_trends.map(trend => ({
+                                                date: new Date(trend.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                                intensity: trend.emotional_intensity === 'critical' ? 4 : 
+                                                          trend.emotional_intensity === 'high' ? 3 : 
+                                                          trend.emotional_intensity === 'moderate' ? 2 : 1,
+                                                state: trend.emotional_state,
+                                                fullDate: trend.timestamp
+                                            })).reverse()}>
+                                                <defs>
+                                                    <linearGradient id="emotionGradient" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                                                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                                                    </linearGradient>
+                                                </defs>
+                                                <XAxis 
+                                                    dataKey="date" 
+                                                    stroke="#6b7280" 
+                                                    style={{ fontSize: '12px' }}
+                                                />
+                                                <YAxis 
+                                                    stroke="#6b7280"
+                                                    domain={[0, 4]}
+                                                    ticks={[1, 2, 3, 4]}
+                                                    tickFormatter={(value) => ['Low', 'Moderate', 'High', 'Critical'][value - 1]}
+                                                    style={{ fontSize: '12px' }}
+                                                />
+                                                <RechartsTooltip 
+                                                    contentStyle={{ backgroundColor: '#1a1f2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                                                    labelStyle={{ color: '#fff' }}
+                                                    formatter={(value, name, props) => [
+                                                        `${props.payload.state} (${['Low', 'Moderate', 'High', 'Critical'][value - 1]})`,
+                                                        'Emotional State'
+                                                    ]}
+                                                />
+                                                <Area 
+                                                    type="monotone" 
+                                                    dataKey="intensity" 
+                                                    stroke="#8b5cf6" 
+                                                    strokeWidth={2}
+                                                    fill="url(#emotionGradient)" 
+                                                />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <p>No emotional data available yet</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Recent Activity List */}
+                            <div className="bg-[#0f131c]/50 p-6 rounded-xl border border-white/5">
+                                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                                    <Activity size={20} className="text-blue-400" />
+                                    Recent Activity Feed
+                                </h3>
+                                {insights.recent_activity && insights.recent_activity.length > 0 ? (
+                                    <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+                                        {insights.recent_activity.slice(0, 15).map((activity, index) => {
+                                            const activityIcons = {
+                                                meditation: { icon: '🧘', color: 'text-teal-400', bg: 'bg-teal-500/10' },
+                                                chat: { icon: '💬', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+                                                assessment: { icon: '📊', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+                                                venting: { icon: '🗨️', color: 'text-red-400', bg: 'bg-red-500/10' },
+                                                default: { icon: '✨', color: 'text-gray-400', bg: 'bg-gray-500/10' }
+                                            };
+                                            const config = activityIcons[activity.type] || activityIcons.default;
+
+                                            return (
+                                                <div key={index} className={`${config.bg} border border-white/5 rounded-lg p-3 flex items-center justify-between hover:border-white/10 transition`}>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-2xl">{config.icon}</span>
+                                                        <div>
+                                                            <p className={`${config.color} font-medium capitalize`}>{activity.type}</p>
+                                                            <p className="text-sm text-gray-400">{activity.action}</p>
+                                                            {activity.duration && (
+                                                                <p className="text-xs text-gray-500 mt-1">Duration: {activity.duration} min</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">
+                                                        {new Date(activity.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <p>No recent activity</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <style dangerouslySetInnerHTML={{
                 __html: `
