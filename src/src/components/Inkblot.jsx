@@ -7,9 +7,8 @@ const Inkblot = () => {
     const [showInstructions, setShowInstructions] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [sequence, setSequence] = useState([]);
-    const [response, setResponse] = useState('');
     const [elaboration, setElaboration] = useState('');
-    const [step, setStep] = useState('perception'); // 'perception', 'elaboration', 'results'
+    const [step, setStep] = useState('elaboration'); // 'elaboration', 'results'
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showTransition, setShowTransition] = useState(false);
     const [resultId, setResultId] = useState(null);
@@ -46,9 +45,8 @@ const Inkblot = () => {
 
         setSequence(selected);
         setCurrentIndex(0);
-        setResponse('');
         setElaboration('');
-        setStep('perception');
+        setStep('elaboration');
         setResultId(null);
         setStarted(true);
         setShowInstructions(false);
@@ -66,12 +64,8 @@ const Inkblot = () => {
     };
 
     const handleNext = async () => {
-        if (step === 'perception') {
-            if (!response.trim()) return;
-            setStep('elaboration');
-        } else if (step === 'elaboration') {
-            await submitStep();
-        }
+        if (!elaboration.trim()) return;
+        await submitStep();
     };
 
     const submitStep = async () => {
@@ -85,7 +79,7 @@ const Inkblot = () => {
                 credentials: 'include',
                 body: JSON.stringify({
                     blot_num: currentBlotId,
-                    response: response,
+                    response: elaboration,
                     elaboration: elaboration
                 })
             });
@@ -94,9 +88,8 @@ const Inkblot = () => {
                 setShowTransition(true);
                 setTimeout(() => {
                     setCurrentIndex(prev => prev + 1);
-                    setResponse('');
                     setElaboration('');
-                    setStep('perception');
+                    setStep('elaboration');
                     setShowTransition(false);
                 }, 800);
             } else {
@@ -195,8 +188,8 @@ const Inkblot = () => {
                                 <span className="text-purple-400 font-bold text-sm">1</span>
                             </div>
                             <div>
-                                <h3 className="text-white font-semibold mb-1">Describe what you see</h3>
-                                <p className="text-neutral-500 text-sm">Objects, shapes, or feelings</p>
+                                <h3 className="text-white font-semibold mb-1">Observe the inkblot</h3>
+                                <p className="text-neutral-500 text-sm">What do you see, feel, or imagine?</p>
                             </div>
                         </div>
                         
@@ -205,8 +198,8 @@ const Inkblot = () => {
                                 <span className="text-purple-400 font-bold text-sm">2</span>
                             </div>
                             <div>
-                                <h3 className="text-white font-semibold mb-1">Tell a brief story</h3>
-                                <p className="text-neutral-500 text-sm">Build a narrative around it</p>
+                                <h3 className="text-white font-semibold mb-1">Elaborate deeply</h3>
+                                <p className="text-neutral-500 text-sm">Describe your perception and tell its story</p>
                             </div>
                         </div>
                     </div>
@@ -273,24 +266,22 @@ const Inkblot = () => {
                         <div className="space-y-3">
                             <div className="flex items-center gap-2 text-neutral-500 uppercase tracking-[0.3em] text-[10px] font-bold">
                                 <div className="w-6 h-[1px] bg-neutral-700" />
-                                {step === 'perception' ? 'First Impression' : 'Deep Elaboration'}
+                                Deep Dive
                             </div>
                             <h2 className="text-3xl font-serif italic text-white">
-                                {step === 'perception' ? "What do you see?" : "Tell the story..."}
+                                What do you see? Tell the story...
                             </h2>
                             <p className="text-neutral-500 font-light leading-relaxed">
-                                {step === 'perception'
-                                    ? "Description, details, or immediate feelings evoked by the symmetry."
-                                    : "Briefly expand on what's happening. Who, what, why? Build the narrative."}
+                                Describe what you perceive, what feelings it evokes, and build a narrative around it. Be as detailed as possible.
                             </p>
                         </div>
 
                         <div className="relative group">
                             <textarea
-                                value={step === 'perception' ? response : elaboration}
-                                onChange={(e) => step === 'perception' ? setResponse(e.target.value) : setElaboration(e.target.value)}
+                                value={elaboration}
+                                onChange={(e) => setElaboration(e.target.value)}
                                 className="w-full h-48 bg-[#1a1a1a]/50 border border-white/5 rounded-2xl p-6 text-white text-lg leading-relaxed placeholder-neutral-700 focus:outline-none focus:border-white/20 focus:bg-[#1a1a1a] transition-all resize-none shadow-inner"
-                                placeholder={step === 'perception' ? "I see..." : "Once upon a time..."}
+                                placeholder="I see... and it makes me think of..."
                                 autoFocus
                             />
                         </div>
@@ -306,15 +297,15 @@ const Inkblot = () => {
                             </div>
                             <button
                                 onClick={handleNext}
-                                disabled={!(step === 'perception' ? response.trim() : elaboration.trim()) || isSubmitting}
+                                disabled={!elaboration.trim() || isSubmitting}
                                 className={`
                                     flex items-center gap-3 px-10 py-4 rounded-full font-bold transition-all uppercase tracking-widest text-xs
-                                    ${!(step === 'perception' ? response.trim() : elaboration.trim())
+                                    ${!elaboration.trim()
                                         ? 'bg-white/5 text-neutral-600 cursor-not-allowed border border-white/5'
                                         : 'bg-white text-black hover:bg-emerald-500 hover:text-white hover:shadow-[0_0_30px_rgba(16,185,129,0.3)]'}
                                 `}
                             >
-                                {isSubmitting ? 'Recording...' : (step === 'perception' ? 'Continue' : 'Finalize Plate')}
+                                {isSubmitting ? 'Recording...' : 'Submit Response'}
                                 <Send size={14} />
                             </button>
                         </div>
