@@ -70,6 +70,7 @@ class User(UserMixin, db.Model):
     last_streak_date = db.Column(db.Date)
     mentor_id = db.Column(db.Integer, db.ForeignKey('user.id')) # Student's connected mentor
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'))
+    is_onboarded = db.Column(db.Boolean, default=False, nullable=False)  # Onboarding status
     
     # Relationships
     mentor = db.relationship('User', remote_side=[id], backref='students')
@@ -103,6 +104,16 @@ class User(UserMixin, db.Model):
         self.last_streak_date = today
         self.last_login = datetime.utcnow()
         db.session.commit()
+
+class OnboardingResponse(db.Model):
+    __tablename__ = 'onboarding_response'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    responses = db.Column(JSONB, nullable=False)  # Store all onboarding answers as JSON
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    user = db.relationship('User', backref='onboarding_responses')
 
 class ChatSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)

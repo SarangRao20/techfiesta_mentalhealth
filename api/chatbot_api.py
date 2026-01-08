@@ -36,10 +36,12 @@ def save_chat_message(session_id, message_type, content, crisis_detected=False):
         return msg.id  # Return message ID for linking
 
 @celery.task
+@celery.task
 def save_intent_and_alert(session_id, user_id, user_message, intent_data, suggested_feature, suggested_assessment, crisis_detected):
     """Save intent analysis and create crisis alert if needed"""
     from app import app
     from database import db
+    from db_models import User
     with app.app_context():
         try:
             # Extract fields from intent_data
@@ -91,6 +93,19 @@ def save_intent_and_alert(session_id, user_id, user_message, intent_data, sugges
                 chat_session = ChatSession.query.get(session_id)
                 if chat_session:
                     chat_session.crisis_flag = True
+                
+                # Send notification to mentor via Redis
+                student = User.query.get(user_id)
+                if student and student.mentor_id:
+                    from api.mentor_api import push_mentor_notification
+                    push_mentor_notification(student.mentor_id, {
+                        'type': 'crisis_alert',
+                        'severity': severity,
+                        'student_id': user_id,
+                        'student_name': student.full_name,
+                        'message': f"🚨 Crisis detected for {student.full_name}",
+                        'details': user_message[:100]
+                    })
             
             db.session.commit()
             print(f"✅ Saved intent {chat_intent.id} and crisis alert for user {user_id}")
