@@ -144,11 +144,15 @@ const Inkblot = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                         <button
-                            onClick={() => window.location.href = '/app/assessments'}
-                            className="flex items-center justify-center gap-3 px-6 py-4 bg-white/5 border border-white/10 text-white rounded-xl font-medium hover:bg-white/10 transition-all"
+                            onClick={() => {
+                                if (resultId) {
+                                    window.open(`${API_URL}/api/inkblot/export/${resultId}`, '_blank');
+                                }
+                            }}
+                            className="flex items-center justify-center gap-3 px-6 py-4 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl font-medium hover:bg-emerald-500/30 transition-all"
                         >
                             <Download size={18} />
-                            View Results
+                            Download Report
                         </button>
                         <button
                             onClick={() => window.location.href = '/app/consultation'}

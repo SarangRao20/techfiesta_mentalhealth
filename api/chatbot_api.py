@@ -1,8 +1,8 @@
 from flask import request
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from db_models import ChatSession, ChatMessage
-from database import db
+from db_models import ChatSession, ChatMessage, ChatIntent, CrisisAlert
+from database import db, cache
 import requests
 from ollama import Client
 import json
@@ -11,6 +11,11 @@ from flask import current_app
 import redis
 import time
 import os
+import sys
+import hashlib
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'models'))
+from json_sanitizer import extract_json
+from flask import current_app
 
 # Initialize redis client for chatbot context (DB index 3 as per plan)
 r_context = redis.from_url(f"{os.environ.get('REDIS_URL', 'redis://localhost:6379')}/3")
@@ -29,6 +34,71 @@ def save_chat_message(session_id, message_type, content, crisis_detected=False):
             if chat_session:
                 chat_session.crisis_flag = True
         db.session.commit()
+        return msg.id  # Return message ID for linking
+
+@celery.task
+def save_intent_and_alert(session_id, user_id, user_message, intent_data, suggested_feature, suggested_assessment, crisis_detected):
+    """Save intent analysis and create crisis alert if needed"""
+    from app import app
+    from database import db
+    with app.app_context():
+        try:
+            # Extract fields from intent_data
+            emotional_state = intent_data.get('emotional_state')
+            intent_type = intent_data.get('intent_type')
+            emotional_intensity = intent_data.get('emotional_intensity')
+            cognitive_load = intent_data.get('cognitive_load')
+            help_receptivity = intent_data.get('help_receptivity')
+            
+            # Save ChatIntent for analytics
+            chat_intent = ChatIntent(
+                session_id=session_id,
+                user_id=user_id,
+                user_message=user_message,
+                intent_data=intent_data,
+                emotional_state=emotional_state,
+                intent_type=intent_type,
+                emotional_intensity=emotional_intensity,
+                cognitive_load=cognitive_load,
+                help_receptivity=help_receptivity,
+                self_harm_crisis=crisis_detected,
+                suggested_feature=suggested_feature,
+                suggested_assessment=suggested_assessment
+            )
+            db.session.add(chat_intent)
+            db.session.flush()  # Get intent ID
+            
+            # Create CrisisAlert if crisis detected
+            if crisis_detected:
+                # Determine severity based on emotional intensity
+                severity = 'critical' if emotional_intensity == 'critical' else 'high'
+                
+                crisis_alert = CrisisAlert(
+                    user_id=user_id,
+                    session_id=session_id,
+                    intent_id=chat_intent.id,
+                    alert_type='self_harm',
+                    severity=severity,
+                    message_snippet=user_message[:200],  # First 200 chars
+                    intent_summary={
+                        'emotional_state': emotional_state,
+                        'emotional_intensity': emotional_intensity,
+                        'intent_type': intent_type
+                    }
+                )
+                db.session.add(crisis_alert)
+                
+                # Update ChatSession crisis flag
+                chat_session = ChatSession.query.get(session_id)
+                if chat_session:
+                    chat_session.crisis_flag = True
+            
+            db.session.commit()
+            print(f"✅ Saved intent {chat_intent.id} and crisis alert for user {user_id}")
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Error saving intent/alert: {e}")
 
 ns = Namespace('chatbot', description='AI Chatbot operations')
 
@@ -38,7 +108,7 @@ chat_message_model = ns.model('ChatMessage', {
 })
 
 chat_response_model = ns.model('ChatResponse', {
-    'bot_message': fields.String(),
+    'response': fields.String(),
     'crisis_detected': fields.Boolean(),
     'sos': fields.Boolean(description='Emergency SOS flag when crisis detected'),
     'intent_json': fields.String(description='Intent classification JSON from FastAPI'),
@@ -71,7 +141,7 @@ class Chat(Resource):
         count = r_context.get(rate_limit_key)
         if count and int(count) >= 10:
             return {
-                'bot_message': "You're sending messages too fast. Please take a deep breath.",
+                'response': "You're sending messages too fast. Please take a deep breath.",
                 'crisis_detected': False,
                 'session_id': session_id
             }, 429
@@ -94,6 +164,34 @@ class Chat(Resource):
         suggested_feature = None  # Feature from catalog (breathing, venting, etc.)
         suggested_assessment = None  # Assessment type (PHQ-9, GAD-7, GHQ, Inkblot)
         intent_json_str = '{}' # Store intent JSON for response
+
+        # Check cache for similar messages (non-crisis only)
+        msg_hash = hashlib.md5(user_message.lower().strip().encode()).hexdigest()
+        cache_key = f"chatbot_resp:{msg_hash}"
+        
+        # Quick crisis keyword check (don't use cache for crisis)
+        crisis_keywords = ['kill', 'suicide', 'die', 'end my life', 'harm myself', 'khudkushi']
+        is_potential_crisis = any(kw in user_message.lower() for kw in crisis_keywords)
+        
+        if not is_potential_crisis:
+            cached_response = cache.get(cache_key)
+            if cached_response:
+                current_app.logger.info(f"💾 Cache HIT for message hash: {msg_hash[:8]}...")
+                # Save user message
+                save_chat_message.delay(session_id, 'user', user_message)
+                # Save cached bot message
+                save_chat_message.delay(session_id, 'bot', cached_response['response'], cached_response.get('crisis_detected', False))
+                # Update Redis context
+                chat_history.append({'role': 'user', 'content': user_message})
+                chat_history.append({'role': 'bot', 'content': cached_response['response']})
+                r_context.setex(context_key, 3600, json.dumps(chat_history[-4:]))
+                
+                return {
+                    **cached_response,
+                    'session_id': session_id
+                }
+            else:
+                current_app.logger.info(f"💾 Cache MISS for message hash: {msg_hash[:8]}...")
 
         # Fallback helper for Ollama (when FastAPI unavailable)
         def call_ollama(msg, hist):
@@ -189,66 +287,82 @@ Return ONLY valid JSON:
                 "suggested_feature": suggested_feature
             }
 
-        # Main Logic: FastAPI -> Ollama
+        # Main Logic: Use Direct Ollama Models from app.config
         try:
-            fastapi_response = requests.post(
-                'http://localhost:8000/send-message',
-                json={'user_message': user_message, 'history': chat_history},
-                timeout=10
+            # Get Ollama client and models from app config
+            ollama_client = current_app.config.get('OLLAMA_CLIENT')
+            intent_model = current_app.config.get('INTENT_MODEL', 'intent_classifier:latest')
+            convo_model = current_app.config.get('CONVO_MODEL', 'convo_LLM:latest')
+            
+            if not ollama_client:
+                raise Exception("Ollama client not configured in app.config")
+            
+            # STEP 1: Intent Classification
+            current_app.logger.info(f"🔍 Classifying intent for: {user_message[:50]}...")
+            intent_resp = ollama_client.generate(
+                model=intent_model,
+                prompt=user_message,
+                stream=False
             )
-            fastapi_data = fastapi_response.json()
+            intent_raw = intent_resp['response'].strip()
+            current_app.logger.info(f"📊 Intent response: {intent_raw[:100]}...")
             
-            # FastAPI returns: reply, intent_json, self_harm_crisis
-            intent_json_str = fastapi_data.get('intent_json', '{}')
-            crisis_detected = fastapi_data.get('self_harm_crisis') == 'true'
-            reply_text = fastapi_data.get('reply', 'I am here to listen.')
-            
-            print(f"DEBUG FastAPI reply_text: {reply_text[:200]}...")  # Debug
-            
-            # Parse reply_text to extract response and suggested_feature
-            # FastAPI convo_LLM returns JSON: {"response": "...", "suggested_feature": "..."}
+            # Parse intent JSON
             try:
-                # Try to parse as JSON
-                reply_json = json.loads(reply_text)
-                bot_message = reply_json.get('response', reply_text)
-                suggested_feature = reply_json.get('suggested_feature', None)
-                print(f"DEBUG: Parsed reply JSON, feature={suggested_feature}")  # Debug
+                intent_data = json.loads(intent_raw)
             except json.JSONDecodeError as e:
-                # If reply is not JSON, use it as-is
-                print(f"DEBUG: Reply not JSON, using as plain text: {e}")  # Debug
-                bot_message = reply_text
-                suggested_feature = None
+                current_app.logger.warning(f"⚠️ Intent JSON parse error: {e}. Using extract_json fallback.")
+                intent_data = extract_json(intent_raw) or {}
             
-            # Parse intent_json to suggest assessment
+            intent_json_str = json.dumps(intent_data) if intent_data else '{}'
+            crisis_detected = str(intent_data.get('self_harm_crisis', 'false')).lower() == 'true'
+            
+            # STEP 2: Generate Conversation Response
+            current_app.logger.info(f"💬 Generating response with convo_LLM")
+            convo_resp = ollama_client.generate(
+                model=convo_model,
+                prompt=user_message + "\n" + intent_raw,
+                stream=False
+            )
+            convo_raw = convo_resp['response'].strip()
+            current_app.logger.info(f"🤖 Convo response: {convo_raw[:100]}...")
+            
+            # Parse conversation response
             try:
-                intent_data = json.loads(intent_json_str)
-                emotional_state = intent_data.get('emotional_state', 'neutral')
-                emotional_intensity = intent_data.get('emotional_intensity', 'mild')
-                help_receptivity = intent_data.get('help_receptivity', 'passive')
-                intent_type = intent_data.get('intent_type', 'casual_chat')
-                cognitive_load = intent_data.get('cognitive_load', 'medium')
+                reply_json = json.loads(convo_raw)
+            except json.JSONDecodeError:
+                reply_json = extract_json(convo_raw) or {}
+            
+            bot_message = reply_json.get('response') or reply_json.get('bot_message') or convo_raw
+            suggested_feature = reply_json.get('suggested_feature', None)
+            
+            current_app.logger.info(f"✅ Parsed - Feature: {suggested_feature}")
+            
+            # ASSESSMENT SUGGESTION LOGIC
+            emotional_state = intent_data.get('emotional_state', 'neutral')
+            emotional_intensity = intent_data.get('emotional_intensity', 'mild')
+            help_receptivity = intent_data.get('help_receptivity', 'passive')
+            intent_type = intent_data.get('intent_type', 'casual_chat')
+            cognitive_load = intent_data.get('cognitive_load', 'medium')
+            
+            # PHQ-9: Depression screening (sad, low, numb)
+            if emotional_state in ['sad', 'numb', 'low'] and emotional_intensity in ['moderate', 'high']:
+                suggested_assessment = 'PHQ-9'
+            # GAD-7: Anxiety screening (anxious, stressed, overwhelmed)
+            elif emotional_state in ['anxious', 'stressed', 'overwhelmed'] and emotional_intensity in ['moderate', 'high']:
+                suggested_assessment = 'GAD-7'
+            # GHQ: General health for critical cases
+            elif emotional_intensity == 'critical':
+                suggested_assessment = 'GHQ'
+            # Inkblot: For emotional numbness, dissociation, difficulty expressing, complex trauma
+            elif (emotional_state == 'numb' and emotional_intensity in ['moderate', 'high']) or \
+                 (help_receptivity == 'resistant' and emotional_intensity == 'high') or \
+                 (intent_type in ['reflection', 'venting'] and emotional_state in ['numb', 'frustrated', 'angry'] and cognitive_load == 'high'):
+                suggested_assessment = 'Inkblot'
                 
-                # ASSESSMENT SUGGESTION LOGIC
-                # PHQ-9: Depression screening (sad, low, numb)
-                if emotional_state in ['sad', 'numb', 'low'] and emotional_intensity in ['moderate', 'high']:
-                    suggested_assessment = 'PHQ-9'
-                # GAD-7: Anxiety screening (anxious, stressed, overwhelmed)
-                elif emotional_state in ['anxious', 'stressed', 'overwhelmed'] and emotional_intensity in ['moderate', 'high']:
-                    suggested_assessment = 'GAD-7'
-                # GHQ: General health for critical cases
-                elif emotional_intensity == 'critical':
-                    suggested_assessment = 'GHQ'
-                # Inkblot: For emotional numbness, dissociation, difficulty expressing, complex trauma
-                elif (emotional_state == 'numb' and emotional_intensity in ['moderate', 'high']) or \
-                     (help_receptivity == 'resistant' and emotional_intensity == 'high') or \
-                     (intent_type in ['reflection', 'venting'] and emotional_state in ['numb', 'frustrated', 'angry'] and cognitive_load == 'high'):
-                    suggested_assessment = 'Inkblot'
-            except Exception as e:
-                print(f"Error parsing intent_json from FastAPI: {e}")
-                
-        except Exception as fastapi_error:
-            # Fallback to direct Ollama if FastAPI fails
-            print(f"FastAPI unavailable, using Ollama fallback: {fastapi_error}")
+        except Exception as ollama_error:
+            # Fallback to keyword-based Ollama if models fail
+            current_app.logger.error(f"❌ Ollama models error: {ollama_error}. Using fallback.")
             unified_data = call_ollama(user_message, chat_history)
             bot_message = unified_data.get('response', 'I am here to listen.')
             intent_analysis = unified_data.get('intent_analysis', {})
@@ -380,13 +494,28 @@ Return ONLY valid JSON:
         # Save bot message asynchronously
         save_chat_message.delay(session_id, 'bot', bot_message, crisis_detected)
         
+        # Save intent analysis and create crisis alert if needed (async)
+        try:
+            intent_data_dict = json.loads(intent_json_str) if intent_json_str else {}
+            save_intent_and_alert.delay(
+                session_id=session_id,
+                user_id=current_user.id,
+                user_message=user_message,
+                intent_data=intent_data_dict,
+                suggested_feature=suggested_feature,
+                suggested_assessment=suggested_assessment,
+                crisis_detected=crisis_detected
+            )
+        except Exception as e:
+            current_app.logger.error(f"Failed to queue intent/alert save: {e}")
+        
         # Update Redis context
         chat_history.append({'role': 'user', 'content': user_message})
         chat_history.append({'role': 'bot', 'content': bot_message})
         r_context.setex(context_key, 3600, json.dumps(chat_history[-4:])) # Keep last 4
         
-        return {
-            'bot_message': bot_message,
+        response_data = {
+            'response': bot_message,
             'crisis_detected': crisis_detected,
             'sos': crisis_detected,  # SOS flag mirrors crisis detection
             'intent_json': intent_json_str,  # Include intent classification JSON
@@ -394,6 +523,13 @@ Return ONLY valid JSON:
             'suggested_assessment': suggested_assessment,  # Assessment type (PHQ-9, GAD-7, GHQ)
             'session_id': session_id
         }
+        
+        # Cache response for non-crisis messages (10 min TTL)
+        if not crisis_detected and not is_potential_crisis:
+            cache.set(cache_key, response_data, timeout=600)
+            current_app.logger.info(f"💾 Cached response for hash: {msg_hash[:8]}... (TTL: 10min)")
+        
+        return response_data
 
 
 @ns.route('/history')

@@ -19,6 +19,9 @@ from flask_session import Session
 from flask_caching import Cache
 import json
 
+# app.py mein ye add karo
+from ollama import Client
+
 # Load environment variables
 load_dotenv()
 
@@ -37,6 +40,13 @@ class Base(DeclarativeBase):
 app = Flask(__name__, template_folder='old_tries/templates', static_folder='old_tries/static')
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+# Global Ollama client
+ollama_client = Client(host='http://localhost:11434')
+app.config['OLLAMA_CLIENT'] = ollama_client
+app.config['INTENT_MODEL'] = 'intent_classifier:latest'
+app.config['CONVO_MODEL'] = 'convo_LLM:latest'
+
 
 # Selective origins to allow credentials (wildcard '*' won't work with supports_credentials=True)
 allowed_origins = [
@@ -143,6 +153,8 @@ def load_user(user_id):
                 print(f"DEBUG: Stale cache for user {user_id} (missing org_id). Reloading from DB.")
                 raise Exception("Stale cache")
 
+            # Create User object from cached data
+            user = User()
             user.id = user_data['id']
             user.username = user_data['username']
             user.role = user_data['role']
@@ -197,6 +209,7 @@ from api.perenall_api import ns as perenall_ns
 from api.analytics_api import ns as analytics_ns
 from api.activity_api import ns as activity_ns
 from api.mentor_api import ns as mentor_ns
+from api.counsellor_api import ns as counsellor_ns
 
 api.add_namespace(auth_ns, path='/auth')
 api.add_namespace(dashboard_ns, path='/dashboard')
@@ -213,5 +226,6 @@ api.add_namespace(perenall_ns, path='/perenall')
 api.add_namespace(analytics_ns, path='/analytics')
 api.add_namespace(activity_ns, path='/activity')
 api.add_namespace(mentor_ns, path='/mentor')
+api.add_namespace(counsellor_ns, path='/counsellor')
 
 ## Removed inkblot_bp blueprint registration; now using direct route in routes.py

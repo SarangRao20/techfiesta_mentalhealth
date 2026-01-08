@@ -127,13 +127,46 @@ class ChatMessage(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     crisis_keywords = db.Column(JSONB)  # JSON string of crisis keywords in this message
 
+class ChatIntent(db.Model):
+    """Store intent analysis for each user message for analytics"""
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('chat_session.id', ondelete='CASCADE'), nullable=False)
+    message_id = db.Column(db.Integer, db.ForeignKey('chat_message.id', ondelete='SET NULL'), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False, index=True)
+    user_message = db.Column(db.Text, nullable=False)
+    intent_data = db.Column(JSONB, nullable=False)  # Full intent JSON
+    emotional_state = db.Column(db.String(50))
+    intent_type = db.Column(db.String(50))
+    emotional_intensity = db.Column(db.String(20))
+    cognitive_load = db.Column(db.String(20))
+    help_receptivity = db.Column(db.String(20))
+    self_harm_crisis = db.Column(db.Boolean, default=False, index=True)
+    suggested_feature = db.Column(db.String(100))
+    suggested_assessment = db.Column(db.String(50))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+class CrisisAlert(db.Model):
+    """Real-time crisis alerts for mentor dashboard"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False, index=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('chat_session.id', ondelete='SET NULL'))
+    intent_id = db.Column(db.Integer, db.ForeignKey('chat_intent.id', ondelete='SET NULL'))
+    alert_type = db.Column(db.String(50), nullable=False)  # 'self_harm', 'high_distress'
+    severity = db.Column(db.String(20), nullable=False)  # 'critical', 'high', 'moderate'
+    message_snippet = db.Column(db.Text)
+    intent_summary = db.Column(JSONB)
+    acknowledged = db.Column(db.Boolean, default=False, index=True)
+    acknowledged_by = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='SET NULL'))
+    acknowledged_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
 class Assessment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     assessment_type = db.Column(db.String(10), nullable=False)  # PHQ-9, GAD-7, GHQ
     responses = db.Column(JSONB, nullable=False)  # JSON string of responses
     score = db.Column(db.Integer, nullable=False)
-    severity_level = db.Column(db.String(20), nullable=False)
+    severity_level = db.Column(db.String(50), nullable=False)
     recommendations = db.Column(JSONB)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)

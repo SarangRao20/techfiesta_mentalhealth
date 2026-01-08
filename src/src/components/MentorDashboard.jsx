@@ -36,6 +36,20 @@ const MentorDashboard = () => {
         }
     };
 
+    // Helper to get status badge color and style
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 'Doing well':
+                return { bg: 'bg-green-500/20', text: 'text-green-400', border: 'border-green-500/30', icon: '✓' };
+            case 'Needs attention':
+                return { bg: 'bg-yellow-500/20', text: 'text-yellow-400', border: 'border-yellow-500/30', icon: '⚠' };
+            case 'Critical':
+                return { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/30', icon: '!' };
+            default:
+                return { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/30', icon: '○' };
+        }
+    };
+
     useEffect(() => {
         fetchStudents();
     }, []);
@@ -132,7 +146,9 @@ const MentorDashboard = () => {
                             )}
                         </div>
                     ) : (
-                        filteredStudents.map(student => (
+                        filteredStudents.map(student => {
+                            const statusBadge = getStatusBadge(student.status);
+                            return (
                             <button
                                 key={student.id}
                                 onClick={() => fetchInsights(student.id)}
@@ -141,36 +157,44 @@ const MentorDashboard = () => {
                                     : 'hover:bg-white/5 border-white/5'
                                     }`}
                             >
-                                <div className="flex justify-between items-start relative z-10">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden border border-white/10 relative ${student.has_risk ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/50' : 'bg-gray-700 text-gray-300'
-                                            }`}>
-                                            {student.profile_picture ? (
-                                                <img
-                                                    src={student.profile_picture}
-                                                    alt={student.full_name}
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('fallback-icon'); }}
-                                                />
-                                            ) : null}
-                                            <span className={`${student.profile_picture ? 'hidden fallback-icon:block' : ''}`}>
-                                                {student.full_name.charAt(0)}
-                                            </span>
-                                            {student.has_risk && (
-                                                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-[#161b26] animate-pulse z-20"></span>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <div className="font-medium text-sm text-gray-200">{student.full_name}</div>
-                                            <div className="text-xs text-gray-500 flex items-center gap-1">
-                                                @{student.username}
+                                <div className="flex flex-col gap-2 relative z-10">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden border border-white/10 relative ${student.has_risk ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/50' : 'bg-gray-700 text-gray-300'
+                                                }`}>
+                                                {student.profile_picture ? (
+                                                    <img
+                                                        src={student.profile_picture}
+                                                        alt={student.full_name}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('fallback-icon'); }}
+                                                    />
+                                                ) : null}
+                                                <span className={`${student.profile_picture ? 'hidden fallback-icon:block' : ''}`}>
+                                                    {student.full_name.charAt(0)}
+                                                </span>
+                                                {student.has_risk && (
+                                                    <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-[#161b26] animate-pulse z-20"></span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-sm text-gray-200">{student.full_name}</div>
+                                                <div className="text-xs text-gray-500 flex items-center gap-1">
+                                                    @{student.username}
+                                                </div>
                                             </div>
                                         </div>
+                                        <ChevronRight size={16} className={`text-gray-600 transition-transform ${selectedStudent?.id === student.id ? 'translate-x-[2px] text-teal-400' : ''}`} />
                                     </div>
-                                    <ChevronRight size={16} className={`text-gray-600 transition-transform ${selectedStudent?.id === student.id ? 'translate-x-[2px] text-teal-400' : ''}`} />
+                                    {/* Status Badge */}
+                                    <div className={`flex items-center gap-2 px-2 py-1 rounded-lg border ${statusBadge.bg} ${statusBadge.border} w-fit`}>
+                                        <span className={`text-xs font-medium ${statusBadge.text}`}>{statusBadge.icon}</span>
+                                        <span className={`text-xs font-medium ${statusBadge.text}`}>{student.status || 'Unknown'}</span>
+                                    </div>
                                 </div>
                             </button>
-                        ))
+                        );
+                        })
                     )}
                 </div>
             </div>
@@ -186,8 +210,17 @@ const MentorDashboard = () => {
 
                             <div className="flex flex-col md:flex-row justify-between md:items-center gap-6 relative z-10">
                                 <div className="flex items-center gap-6">
-                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-teal-500 to-blue-500 flex items-center justify-center text-3xl font-bold text-white shadow-lg">
-                                        {selectedStudent.full_name.charAt(0)}
+                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-teal-500 to-blue-500 flex items-center justify-center text-3xl font-bold text-white shadow-lg overflow-hidden">
+                                        {selectedStudent.profile_picture ? (
+                                            <img
+                                                src={selectedStudent.profile_picture}
+                                                alt={selectedStudent.full_name}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => { e.target.style.display = 'none'; }}
+                                            />
+                                        ) : (
+                                            <span>{selectedStudent.full_name.charAt(0)}</span>
+                                        )}
                                     </div>
                                     <div>
                                         <h1 className="text-3xl font-bold text-white mb-1">{selectedStudent.full_name}</h1>
@@ -245,7 +278,112 @@ const MentorDashboard = () => {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Emotional State & Status */}
+                            {(insights.student_info.current_emotional_state || insights.student_info.status) && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                    {insights.student_info.current_emotional_state && (
+                                        <div className="bg-[#0f131c]/50 p-4 rounded-xl border border-white/5 backdrop-blur-sm">
+                                            <div className="text-xs text-gray-500 mb-1 uppercase tracking-wider font-bold">Current Emotional State</div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-lg font-semibold text-teal-300 capitalize">
+                                                    {insights.student_info.current_emotional_state}
+                                                </span>
+                                                {insights.student_info.current_emotional_intensity && (
+                                                    <span className={`text-xs px-2 py-1 rounded-full ${
+                                                        insights.student_info.current_emotional_intensity === 'critical' ? 'bg-red-500/20 text-red-400' :
+                                                        insights.student_info.current_emotional_intensity === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                                                        insights.student_info.current_emotional_intensity === 'moderate' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                        'bg-green-500/20 text-green-400'
+                                                    }`}>
+                                                        {insights.student_info.current_emotional_intensity}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {insights.student_info.status && (
+                                        <div className="bg-[#0f131c]/50 p-4 rounded-xl border border-white/5 backdrop-blur-sm">
+                                            <div className="text-xs text-gray-500 mb-1 uppercase tracking-wider font-bold">Overall Status</div>
+                                            <div className="flex items-center gap-2">
+                                                {(() => {
+                                                    const badge = getStatusBadge(insights.student_info.status);
+                                                    return (
+                                                        <span className={`px-3 py-1 rounded-lg border ${badge.bg} ${badge.border} ${badge.text} font-semibold`}>
+                                                            {badge.icon} {insights.student_info.status}
+                                                        </span>
+                                                    );
+                                                })()}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
+
+                        {/* Crisis Alerts Section (if any) */}
+                        {insights.crisis_alerts && insights.crisis_alerts.length > 0 && (
+                            <div className="bg-gradient-to-br from-red-900/20 to-red-950/30 rounded-3xl p-6 border border-red-500/20">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <AlertTriangle className="text-red-400" size={24} />
+                                    <h3 className="text-lg font-bold text-white">Recent Crisis Alerts</h3>
+                                    <span className="ml-auto text-xs bg-red-500/20 text-red-400 px-3 py-1 rounded-full border border-red-500/30">
+                                        {insights.crisis_alerts.length} alert{insights.crisis_alerts.length > 1 ? 's' : ''}
+                                    </span>
+                                </div>
+                                <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
+                                    {insights.crisis_alerts.map((alert, idx) => (
+                                        <div key={idx} className="bg-[#0f131c]/50 p-4 rounded-xl border border-red-500/20">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className={`text-xs font-bold uppercase tracking-wider px-2 py-1 rounded ${
+                                                    alert.severity === 'critical' ? 'bg-red-500/30 text-red-300' :
+                                                    alert.severity === 'high' ? 'bg-orange-500/30 text-orange-300' :
+                                                    'bg-yellow-500/30 text-yellow-300'
+                                                }`}>
+                                                    {alert.severity}
+                                                </span>
+                                                <span className="text-xs text-gray-500">{new Date(alert.created_at).toLocaleDateString()}</span>
+                                            </div>
+                                            <p className="text-sm text-gray-300 line-clamp-2">{alert.message_snippet}</p>
+                                            {!alert.acknowledged && (
+                                                <div className="mt-2 text-xs text-red-400 flex items-center gap-1">
+                                                    <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse"></span>
+                                                    Needs acknowledgment
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Activity Stats */}
+                        {insights.activity_stats && (
+                            <div className="bg-[#161b26] rounded-3xl p-6 border border-white/5">
+                                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                    <Activity className="text-teal-400" />
+                                    Activity Summary
+                                </h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                                        <div className="text-xs text-gray-500 mb-1">Meditation</div>
+                                        <div className="text-2xl font-bold text-teal-400">{insights.activity_stats.meditation_count}</div>
+                                    </div>
+                                    <div className="bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                                        <div className="text-xs text-gray-500 mb-1">Assessments</div>
+                                        <div className="text-2xl font-bold text-blue-400">{insights.activity_stats.assessment_count}</div>
+                                    </div>
+                                    <div className="bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                                        <div className="text-xs text-gray-500 mb-1">Chat Sessions</div>
+                                        <div className="text-2xl font-bold text-purple-400">{insights.activity_stats.chat_count}</div>
+                                    </div>
+                                    <div className="bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                                        <div className="text-xs text-gray-500 mb-1">Venting</div>
+                                        <div className="text-2xl font-bold text-pink-400">{insights.activity_stats.venting_count}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Content Grid */}
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
@@ -278,6 +416,9 @@ const MentorDashboard = () => {
                                                         <span className="text-xs text-gray-600 font-mono">{new Date(l.date).toLocaleDateString()}</span>
                                                     </div>
                                                     <p className="text-sm text-gray-400 capitalize">{l.action}</p>
+                                                    {l.duration && (
+                                                        <p className="text-xs text-gray-600 mt-1">Duration: {Math.floor(l.duration / 60)}m {l.duration % 60}s</p>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))
@@ -293,37 +434,39 @@ const MentorDashboard = () => {
                                         Wellness Trends
                                     </h3>
                                 </div>
-                                <div className="flex-1 min-h-0">
+                                <div className="flex-1 min-h-[300px] w-full">
                                     {insights.recent_assessments.length === 0 ? (
                                         <div className="h-full flex flex-col items-center justify-center text-gray-600 opacity-50">
                                             <TrendingUp size={32} className="mb-2" />
                                             <p>No assessment data for trends</p>
                                         </div>
                                     ) : (
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <AreaChart data={[...insights.recent_assessments].reverse()}>
-                                                <defs>
-                                                    <linearGradient id="colorSeverity" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="#2dd4bf" stopOpacity={0.3} />
-                                                        <stop offset="95%" stopColor="#2dd4bf" stopOpacity={0} />
-                                                    </linearGradient>
-                                                </defs>
-                                                <XAxis dataKey="date" hide />
-                                                <YAxis hide domain={[0, 4]} />
-                                                <RechartsTooltip
-                                                    contentStyle={{ backgroundColor: '#161b26', borderColor: '#334155', borderRadius: '12px' }}
-                                                    itemStyle={{ color: '#cbd5e1' }}
-                                                />
-                                                <Area
-                                                    type="monotone"
-                                                    dataKey={(data) => getSeverityScore(data.severity)}
-                                                    stroke="#2dd4bf"
-                                                    fillOpacity={1}
-                                                    fill="url(#colorSeverity)"
-                                                    strokeWidth={3}
-                                                />
-                                            </AreaChart>
-                                        </ResponsiveContainer>
+                                        <div className="w-full h-full min-h-[300px]">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={[...insights.recent_assessments].reverse()}>
+                                                    <defs>
+                                                        <linearGradient id="colorSeverity" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#2dd4bf" stopOpacity={0.3} />
+                                                            <stop offset="95%" stopColor="#2dd4bf" stopOpacity={0} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <XAxis dataKey="date" hide />
+                                                    <YAxis hide domain={[0, 4]} />
+                                                    <RechartsTooltip
+                                                        contentStyle={{ backgroundColor: '#161b26', borderColor: '#334155', borderRadius: '12px' }}
+                                                        itemStyle={{ color: '#cbd5e1' }}
+                                                    />
+                                                    <Area
+                                                        type="monotone"
+                                                        dataKey={(data) => getSeverityScore(data.severity)}
+                                                        stroke="#2dd4bf"
+                                                        fillOpacity={1}
+                                                        fill="url(#colorSeverity)"
+                                                        strokeWidth={3}
+                                                    />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        </div>
                                     )}
                                 </div>
                             </div>
