@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { API_URL } from "../config";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, RadialBarChart, RadialBar, Legend } from "recharts";
 
 export default function Profile() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
     full_name: "",
@@ -22,6 +23,10 @@ export default function Profile() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploadInProgress, setUploadInProgress] = useState(false);
+  
+  // Check if viewing as mentor (student profile view)
+  const isViewingStudent = location.state?.viewAsStudent;
+  const studentId = location.state?.studentId;
 
   // Mock progress data - replace with actual data from your backend
   const weeklyProgress = [
@@ -58,7 +63,12 @@ export default function Profile() {
 
   const fetchProfile = async (silent = false) => {
     try {
-      const res = await fetch(`${API_URL}/api/auth/profile`, {
+      // If viewing student profile, fetch student data from mentor insights API
+      const endpoint = isViewingStudent && studentId 
+        ? `${API_URL}/api/mentor/student/${studentId}/insights`
+        : `${API_URL}/api/auth/profile`;
+        
+      const res = await fetch(endpoint, {
         credentials: 'include'
       });
 
@@ -66,23 +76,26 @@ export default function Profile() {
         const data = await res.json();
         const previousPic = profileData.profile_picture;
         
+        // If viewing student, extract from student_info
+        const studentInfo = isViewingStudent ? data.student_info : data;
+        
         setProfileData({
-          full_name: data.full_name || "",
+          full_name: studentInfo.full_name || studentInfo.name || "",
           username: data.username || "",
-          email: data.email || "",
-          role: data.role || "student",
+          email: studentInfo.email || "",
+          role: studentInfo.role || "student",
           student_id: data.student_id || "",
           accommodation_type: data.accommodation_type || "",
           bio: data.bio || "",
-          profile_picture: data.profile_picture || null,
+          profile_picture: studentInfo.profile_picture || null,
           organization_name: data.organization_name || ""
         });
         
-        if (data.profile_picture) {
-          setPreviewImage(data.profile_picture);
+        if (studentInfo.profile_picture) {
+          setPreviewImage(studentInfo.profile_picture);
           
           // If picture URL changed and we were uploading, upload is complete
-          if (uploadInProgress && data.profile_picture !== previousPic) {
+          if (uploadInProgress && studentInfo.profile_picture !== previousPic) {
             setUploadInProgress(false);
             if (!silent) {
               console.log("Profile picture upload completed!");
@@ -228,34 +241,38 @@ export default function Profile() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </button>
-            <h1 className="text-2xl font-semibold">My Profile</h1>
+            <h1 className="text-2xl font-semibold">
+              {isViewingStudent ? "Student Profile" : "My Profile"}
+            </h1>
           </div>
           <div className="flex gap-3">
-            {isEditing ? (
-              <>
+            {!isViewingStudent && (
+              isEditing ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setIsEditing(false);
+                      fetchProfile(); // Reset to original data
+                    }}
+                    className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 transition font-medium"
+                  >
+                    Save Changes
+                  </button>
+                </>
+              ) : (
                 <button
-                  onClick={() => {
-                    setIsEditing(false);
-                    fetchProfile(); // Reset to original data
-                  }}
-                  className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
+                  onClick={() => setIsEditing(true)}
                   className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 transition font-medium"
                 >
-                  Save Changes
+                  Edit Profile
                 </button>
-              </>
-            ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 transition font-medium"
-              >
-                Edit Profile
-              </button>
+              )
             )}
           </div>
         </div>

@@ -235,7 +235,12 @@ const MentorDashboard = () => {
                                 </div>
                                 <div className="flex gap-3">
                                     <button
-                                        onClick={() => navigate('/app/profile')} // Placeholder for specific student profile
+                                        onClick={() => navigate('/app/profile', { 
+                                            state: { 
+                                                studentId: selectedStudent.id,
+                                                viewAsStudent: true 
+                                            } 
+                                        })}
                                         className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-medium transition-colors border border-white/10 flex items-center gap-2"
                                     >
                                         View Full Profile
