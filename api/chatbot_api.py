@@ -104,7 +104,7 @@ def save_intent_and_alert(session_id, user_id, user_message, intent_data, sugges
                         'student_id': user_id,
                         'student_name': student.full_name,
                         'message': f"🚨 Crisis detected for {student.full_name}",
-                        'details': message_snippet[:100]
+                        'details': user_message[:100]
                     })
             
             db.session.commit()
