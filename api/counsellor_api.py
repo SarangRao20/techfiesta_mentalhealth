@@ -206,6 +206,41 @@ class PatientDetailedInsights(Resource):
             user_id=patient_id
         ).order_by(InkblotResult.created_at.desc()).limit(5).all()
         
+        # Get shared documents (attachments from consultation requests)
+        shared_documents = []
+        consultation_requests = ConsultationRequest.query.filter_by(
+            user_id=patient_id,
+            counsellor_id=current_user.id
+        ).all()
+        
+        for req in consultation_requests:
+            if req.attachments:
+                for attachment in req.attachments:
+                    if attachment.get('type') == 'assessment':
+                        assessment = Assessment.query.get(attachment.get('id'))
+                        if assessment:
+                            shared_documents.append({
+                                'type': 'assessment',
+                                'id': assessment.id,
+                                'assessment_type': assessment.assessment_type,
+                                'score': assessment.score,
+                                'severity': assessment.severity_level,
+                                'created_at': assessment.created_at.isoformat(),
+                                'time_ago': get_time_ago(assessment.created_at),
+                                'shared_at': req.created_at.isoformat()
+                            })
+                    elif attachment.get('type') == 'inkblot':
+                        inkblot = InkblotResult.query.get(attachment.get('id'))
+                        if inkblot:
+                            shared_documents.append({
+                                'type': 'inkblot',
+                                'id': inkblot.id,
+                                'created_at': inkblot.created_at.isoformat(),
+                                'time_ago': get_time_ago(inkblot.created_at),
+                                'shared_at': req.created_at.isoformat(),
+                                'has_pdf': inkblot.pdf_path is not None
+                            })
+        
         # Calculate emotional state distribution
         emotional_state_counts = {}
         for intent in emotional_intents:
@@ -311,6 +346,7 @@ class PatientDetailedInsights(Resource):
                 'created_at': ir.created_at.isoformat(),
                 'sharing_status': ir.sharing_status
             } for ir in inkblot_results],
+            'shared_documents': shared_documents,
             'statistics': {
                 'total_assessments': len(assessments),
                 'total_crisis_alerts': len(crisis_alerts),

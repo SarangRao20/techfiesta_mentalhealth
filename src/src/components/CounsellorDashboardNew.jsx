@@ -513,6 +513,79 @@ const CounsellorDashboardNew = () => {
                                 </div>
                             </div>
                         )}
+
+                        {/* Shared Documents Section */}
+                        {insights.shared_documents && insights.shared_documents.length > 0 && (
+                            <div className="bg-[#161b26] rounded-3xl p-6 border border-white/5">
+                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                    <MessageSquare className="text-blue-400" />
+                                    Shared Documents
+                                </h3>
+                                <div className="space-y-3">
+                                    {insights.shared_documents.map((doc, idx) => (
+                                        <div key={idx} className="bg-[#0f131c] p-4 rounded-xl border border-white/10 hover:border-teal-500/30 transition-all">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                                                            doc.type === 'assessment' 
+                                                                ? 'bg-purple-500/20 text-purple-400' 
+                                                                : 'bg-blue-500/20 text-blue-400'
+                                                        }`}>
+                                                            {doc.type === 'assessment' ? 'Assessment' : 'Inkblot Test'}
+                                                        </span>
+                                                        {doc.type === 'assessment' && (
+                                                            <>
+                                                                <span className="text-sm font-semibold text-teal-300">
+                                                                    {doc.assessment_type}
+                                                                </span>
+                                                                <span className={`px-2 py-0.5 rounded text-xs ${
+                                                                    doc.severity === 'severe' ? 'bg-red-500/20 text-red-400' :
+                                                                    doc.severity === 'moderate' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                                    'bg-green-500/20 text-green-400'
+                                                                }`}>
+                                                                    {doc.severity}
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    {doc.type === 'assessment' && (
+                                                        <div className="text-sm text-gray-400 mb-1">
+                                                            <span className="font-medium">Score:</span> {doc.score}
+                                                        </div>
+                                                    )}
+                                                    <div className="text-xs text-gray-500">
+                                                        Created: {doc.time_ago} • Shared: {new Date(doc.shared_at).toLocaleDateString()}
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    {doc.type === 'assessment' && (
+                                                        <a
+                                                            href={`${API_URL}/api/assessments/${doc.id}/pdf`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-sm font-medium transition-colors"
+                                                        >
+                                                            View PDF
+                                                        </a>
+                                                    )}
+                                                    {doc.type === 'inkblot' && (
+                                                        <a
+                                                            href={`${API_URL}/api/inkblot/${doc.id}/pdf`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
+                                                        >
+                                                            View PDF
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center text-gray-600 p-8">

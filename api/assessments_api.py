@@ -84,22 +84,33 @@ class Assessments(Resource):
             'analysis': analysis
         }, 201
 
-@ns.route('/export/<int:assessment_id>')
-class ExportAssessmentPDF(Resource):
+@ns.route('/<int:assessment_id>/pdf')
+class AssessmentPDF(Resource):
     @login_required
     def get(self, assessment_id):
-        """Export assessment result as PDF with counsellor-detailed analysis"""
+        """Get assessment PDF - accessible by counsellors with patient access"""
         from io import BytesIO
         from flask import send_file
         from reportlab.lib.pagesizes import letter
         from reportlab.pdfgen import canvas
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.platypus import Paragraph
-        from reportlab.lib.enums import TA_LEFT
+        from db_models import ConsultationRequest
         
         assessment = Assessment.query.get_or_404(assessment_id)
-        if assessment.user_id != current_user.id and current_user.role != 'counsellor':
-            return {'message': 'Unauthorized'}, 403
+        
+        # Check access - either owner or counsellor with active consultation
+        if assessment.user_id != current_user.id:
+            if current_user.role != 'counsellor':
+                return {'message': 'Unauthorized'}, 403
+            
+            # Verify counsellor has access to this patient
+            has_access = ConsultationRequest.query.filter_by(
+                user_id=assessment.user_id,
+                counsellor_id=current_user.id,
+                status='booked'
+            ).first()
+            
+            if not has_access:
+                return {'message': 'No active consultation with this patient'}, 403
             
         buffer = BytesIO()
         p = canvas.Canvas(buffer, pagesize=letter)
@@ -177,9 +188,10 @@ class ExportAssessmentPDF(Resource):
         p.drawString(100, y, "Key Clinical Insights")
         y -= 18
         p.setFont("Helvetica", 10)
-        insights = detail.get('key_insights', [])
+        insights = [i for i in detail.get('key_insights', []) if i]  # Filter None values
         for i, insight in enumerate(insights[:4], 1):  # Limit to 4 insights
-            p.drawString(120, y, f"{i}. {insight[:75]}{'...' if len(insight) > 75 else ''}")
+            insight_text = str(insight) if insight else 'N/A'
+            p.drawString(120, y, f"{i}. {insight_text[:75]}{'...' if len(insight_text) > 75 else ''}")
             y -= 13
         
         y -= 10
@@ -189,9 +201,10 @@ class ExportAssessmentPDF(Resource):
         p.drawString(100, y, "Treatment Recommendations")
         y -= 18
         p.setFont("Helvetica", 10)
-        treatments = detail.get('treatment_recommendations', [])
+        treatments = [t for t in detail.get('treatment_recommendations', []) if t]  # Filter None values
         for i, treatment in enumerate(treatments[:4], 1):  # Limit to 4 recommendations
-            p.drawString(120, y, f"{i}. {treatment[:75]}{'...' if len(treatment) > 75 else ''}")
+            treatment_text = str(treatment) if treatment else 'N/A'
+            p.drawString(120, y, f"{i}. {treatment_text[:75]}{'...' if len(treatment_text) > 75 else ''}")
             y -= 13
         
         y -= 10
@@ -202,10 +215,148 @@ class ExportAssessmentPDF(Resource):
             p.drawString(100, y, "Differential Considerations")
             y -= 18
             p.setFont("Helvetica", 10)
-            differentials = detail.get('differential_considerations', [])
+            differentials = [d for d in detail.get('differential_considerations', []) if d]  # Filter None values
             for i, diff in enumerate(differentials[:3], 1):  # Limit to 3
                 if y > 120:
-                    p.drawString(120, y, f"{i}. {diff[:70]}{'...' if len(diff) > 70 else ''}")
+                    diff_text = str(diff) if diff else 'N/A'
+                    p.drawString(120, y, f"{i}. {diff_text[:70]}{'...' if len(diff_text) > 70 else ''}")
+                    y -= 13
+        
+        # Footer
+        p.setFont("Helvetica-Oblique", 9)
+        p.drawString(100, 50, "CONFIDENTIAL - For Mental Health Professional Use Only")
+        p.drawString(100, 35, f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}")
+        
+        p.showPage()
+        p.save()
+        buffer.seek(0)
+        return send_file(buffer, as_attachment=True, download_name=f"Assessment_{assessment_id}_Professional.pdf", mimetype='application/pdf')
+
+@ns.route('/export/<int:assessment_id>')
+class ExportAssessmentPDF(Resource):
+    @login_required
+    def get(self, assessment_id):
+        """Export assessment result as PDF with counsellor-detailed analysis (legacy endpoint)"""
+        from io import BytesIO
+        from flask import send_file
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.platypus import Paragraph
+        from reportlab.lib.enums import TA_LEFT
+        
+        assessment = Assessment.query.get_or_404(assessment_id)
+        if assessment.user_id != current_user.id and current_user.role != 'counsellor':
+            return {'message': 'Unauthorized'}, 403
+        
+        buffer = BytesIO()
+        p = canvas.Canvas(buffer, pagesize=letter)
+        p.setTitle(f"Assessment Report - {assessment.user.full_name}")
+        
+        # Header
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(100, 750, f"{assessment.assessment_type} Assessment Report")
+        p.setFont("Helvetica", 12)
+        p.drawString(100, 730, f"Patient: {assessment.user.full_name}")
+        p.drawString(100, 715, f"Date: {assessment.completed_at.strftime('%Y-%m-%d %H:%M')}")
+        p.drawString(100, 700, f"Report For: Mental Health Professional")
+        p.line(100, 690, 500, 690)
+        
+        # Basic scores
+        p.setFont("Helvetica-Bold", 13)
+        p.drawString(100, 665, "Assessment Scores")
+        p.setFont("Helvetica", 11)
+        p.drawString(120, 645, f"Score: {assessment.score}")
+        p.drawString(120, 630, f"Severity: {assessment.severity_level}")
+        
+        # Get counsellor-detailed analysis
+        from utils.common import generate_analysis
+        analysis = assessment.recommendations or generate_analysis(assessment.assessment_type, assessment.score)
+        detail = analysis.get('counsellor_detailed', {})
+        
+        y = 605
+        
+        # Clinical Interpretation
+        p.setFont("Helvetica-Bold", 13)
+        p.drawString(100, y, "Clinical Interpretation")
+        y -= 20
+        p.setFont("Helvetica", 10)
+        
+        clinical_text = detail.get('clinical_interpretation', 'N/A')
+        if len(clinical_text) > 80:
+            # Word wrap for long text
+            words = clinical_text.split()
+            lines = []
+            current_line = []
+            for word in words:
+                current_line.append(word)
+                if len(' '.join(current_line)) > 80:
+                    lines.append(' '.join(current_line[:-1]))
+                    current_line = [current_line[-1]]
+            if current_line:
+                lines.append(' '.join(current_line))
+            
+            for line in lines[:3]:  # Limit to 3 lines
+                p.drawString(120, y, line)
+                y -= 12
+        else:
+            p.drawString(120, y, clinical_text)
+            y -= 15
+        
+        y -= 10
+        
+        # Risk Assessment
+        p.setFont("Helvetica-Bold", 13)
+        p.drawString(100, y, "Risk Assessment")
+        y -= 18
+        p.setFont("Helvetica", 10)
+        risk = detail.get('risk_assessment', {})
+        p.drawString(120, y, f"Suicide Risk: {risk.get('suicide_risk', 'N/A')}")
+        y -= 13
+        p.drawString(120, y, f"Functional Impairment: {risk.get('functional_impairment', 'N/A')}")
+        y -= 13
+        p.drawString(120, y, f"Treatment Urgency: {risk.get('treatment_urgency', 'N/A')}")
+        y -= 13
+        p.drawString(120, y, f"Professional Help: {'Required' if detail.get('professional_help_recommended') else 'Optional'}")
+        y -= 20
+        
+        # Key Clinical Insights
+        p.setFont("Helvetica-Bold", 13)
+        p.drawString(100, y, "Key Clinical Insights")
+        y -= 18
+        p.setFont("Helvetica", 10)
+        insights = [i for i in detail.get('key_insights', []) if i]  # Filter None values
+        for i, insight in enumerate(insights[:4], 1):  # Limit to 4 insights
+            insight_text = str(insight) if insight else 'N/A'
+            p.drawString(120, y, f"{i}. {insight_text[:75]}{'...' if len(insight_text) > 75 else ''}")
+            y -= 13
+        
+        y -= 10
+        
+        # Treatment Recommendations
+        p.setFont("Helvetica-Bold", 13)
+        p.drawString(100, y, "Treatment Recommendations")
+        y -= 18
+        p.setFont("Helvetica", 10)
+        treatments = [t for t in detail.get('treatment_recommendations', []) if t]  # Filter None values
+        for i, treatment in enumerate(treatments[:4], 1):  # Limit to 4 recommendations
+            treatment_text = str(treatment) if treatment else 'N/A'
+            p.drawString(120, y, f"{i}. {treatment_text[:75]}{'...' if len(treatment_text) > 75 else ''}")
+            y -= 13
+        
+        y -= 10
+        
+        # Differential Considerations (if space allows)
+        if y > 150:
+            p.setFont("Helvetica-Bold", 13)
+            p.drawString(100, y, "Differential Considerations")
+            y -= 18
+            p.setFont("Helvetica", 10)
+            differentials = [d for d in detail.get('differential_considerations', []) if d]  # Filter None values
+            for i, diff in enumerate(differentials[:3], 1):  # Limit to 3
+                if y > 120:
+                    diff_text = str(diff) if diff else 'N/A'
+                    p.drawString(120, y, f"{i}. {diff_text[:70]}{'...' if len(diff_text) > 70 else ''}")
                     y -= 13
         
         # Footer
