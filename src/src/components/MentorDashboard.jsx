@@ -11,7 +11,9 @@ import {
     RefreshCw,
     Shield,
     MessageSquare,
-    User
+    User,
+    Bell,
+    X
 } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useNavigate } from 'react-router-dom';
@@ -25,6 +27,9 @@ const MentorDashboard = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
     const [showActivityDashboard, setShowActivityDashboard] = useState(false);
+    const [notifications, setNotifications] = useState([]);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
     const navigate = useNavigate();
 
     // Helper to map severity to number
@@ -53,6 +58,12 @@ const MentorDashboard = () => {
 
     useEffect(() => {
         fetchStudents();
+        fetchNotifications();
+        
+        // Poll for notifications every 30 seconds
+        const notifInterval = setInterval(fetchNotifications, 30000);
+        
+        return () => clearInterval(notifInterval);
     }, []);
 
     const fetchStudents = async () => {
@@ -71,6 +82,35 @@ const MentorDashboard = () => {
         } finally {
             setLoading(false);
             setRefreshing(false);
+        }
+    };
+
+    const fetchNotifications = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/mentor/notifications`, {
+                credentials: 'include'
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setNotifications(data.notifications || []);
+                setUnreadCount(data.count || 0);
+            }
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        }
+    };
+
+    const clearNotifications = async () => {
+        try {
+            await fetch(`${API_URL}/api/mentor/notifications`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            setNotifications([]);
+            setUnreadCount(0);
+            setShowNotifications(false);
+        } catch (error) {
+            console.error('Error clearing notifications:', error);
         }
     };
 
@@ -360,6 +400,31 @@ const MentorDashboard = () => {
                                         </div>
                                     ))}
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Onboarding Report Section */}
+                        {selectedStudent?.is_onboarded !== false && (
+                            <div className="bg-gradient-to-br from-purple-900/20 to-indigo-950/30 rounded-3xl p-6 border border-purple-500/20">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <User className="text-purple-400" size={24} />
+                                        <h3 className="text-lg font-bold text-white">Onboarding Report</h3>
+                                        <span className="ml-2 text-xs bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full border border-purple-500/30">
+                                            Initial Assessment
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            window.open(`${API_URL}/api/mentor/student/${selectedStudent.id}/onboarding-report/pdf`, '_blank');
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium transition-colors"
+                                    >
+                                        <ExternalLink size={16} />
+                                        Download PDF
+                                    </button>
+                                </div>
+                                <OnboardingReportView studentId={selectedStudent.id} />
                             </div>
                         )}
 
@@ -763,6 +828,82 @@ const MentorDashboard = () => {
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
       `}} />
+        </div>
+    );
+};
+
+// OnboardingReportView Component
+const OnboardingReportView = ({ studentId }) => {
+    const [report, setReport] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchReport = async () => {
+            try {
+                const response = await fetch(`${API_URL}/api/mentor/student/${studentId}/onboarding-report`, {
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setReport(data);
+                }
+            } catch (error) {
+                console.error('Error fetching onboarding report:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (studentId) {
+            fetchReport();
+        }
+    }, [studentId]);
+
+    const questionLabels = {
+        'adjustment': 'Adjustment to New Environment',
+        'social': 'Social Connections',
+        'academic': 'Academic Pressure',
+        'support': 'Support System',
+        'anxiety': 'Mental Well-being'
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-8">
+                <RefreshCw className="animate-spin text-purple-400" size={24} />
+            </div>
+        );
+    }
+
+    if (!report || !report.onboarding_data) {
+        return (
+            <div className="text-center py-8 text-gray-400">
+                <p>No onboarding data available</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            <div className="text-xs text-gray-400 mb-2">
+                Completed: {new Date(report.onboarding_data.completed_at).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })}
+            </div>
+            {Object.entries(report.onboarding_data.responses).map(([key, value]) => (
+                <div key={key} className="bg-[#0f131c]/50 p-4 rounded-xl border border-purple-500/10">
+                    <div className="text-sm font-semibold text-purple-300 mb-2">
+                        {questionLabels[key] || key.replace('_', ' ').toUpperCase()}
+                    </div>
+                    <div className="text-gray-300 text-sm italic">
+                        "{value}"
+                    </div>
+                </div>
+            ))}
         </div>
     );
 };

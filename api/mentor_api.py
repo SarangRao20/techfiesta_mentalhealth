@@ -1,11 +1,105 @@
-from flask import request
+from flask import request, send_file
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from db_models import User, UserActivityLog, Assessment, ChatSession, CrisisAlert, ChatIntent
-from database import db
+from db_models import User, UserActivityLog, Assessment, ChatSession, CrisisAlert, ChatIntent, OnboardingResponse
+from database import db, r_sessions, cache
 from datetime import datetime, timedelta
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.units import inch
+from utils.celery_app import celery
+import json
 
 ns = Namespace('mentor', description='Mentor and Student Management')
+
+@celery.task
+def precalculate_student_insights(student_id):
+    """Background task to calculate and cache student insights"""
+    try:
+        student = User.query.get(student_id)
+        if not student:
+            return None
+            
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        
+        # Get all data
+        assessments = Assessment.query.filter_by(user_id=student_id).order_by(Assessment.completed_at.desc()).limit(5).all()
+        logs = UserActivityLog.query.filter_by(user_id=student_id).order_by(UserActivityLog.timestamp.desc()).limit(20).all()
+        crisis_sessions = ChatSession.query.filter_by(user_id=student_id, crisis_flag=True).count()
+        recent_crisis_alerts = CrisisAlert.query.filter(
+            CrisisAlert.user_id == student_id,
+            CrisisAlert.created_at >= thirty_days_ago
+        ).order_by(CrisisAlert.created_at.desc()).limit(5).all()
+        recent_intents = ChatIntent.query.filter(
+            ChatIntent.user_id == student_id,
+            ChatIntent.timestamp >= thirty_days_ago
+        ).order_by(ChatIntent.timestamp.desc()).limit(10).all()
+        
+        # Calculate stats
+        current_emotional_state = None
+        current_emotional_intensity = None
+        if recent_intents:
+            latest_intent = recent_intents[0]
+            current_emotional_state = latest_intent.emotional_state
+            current_emotional_intensity = latest_intent.emotional_intensity
+        
+        engagement_level = "Low"
+        if student.login_streak > 5: engagement_level = "Medium"
+        if student.login_streak > 15: engagement_level = "High"
+        
+        activity_stats = {
+            'total_activities': len(logs),
+            'meditation_count': sum(1 for l in logs if l.activity_type == 'meditation'),
+            'assessment_count': sum(1 for l in logs if l.activity_type == 'assessment'),
+            'chat_count': sum(1 for l in logs if l.activity_type == 'chat'),
+            'venting_count': sum(1 for l in logs if l.activity_type == 'venting')
+        }
+        
+        # Build insights object
+        insights = {
+            'student_info': {
+                'name': student.full_name,
+                'username': student.username,
+                'login_streak': student.login_streak,
+                'last_login': student.last_login.isoformat() if student.last_login else None,
+                'engagement_level': engagement_level,
+                'crisis_flags': crisis_sessions,
+                'current_emotional_state': current_emotional_state,
+                'current_emotional_intensity': current_emotional_intensity,
+                'status': calculate_user_status(student_id)
+            },
+            'activity_stats': activity_stats,
+            'crisis_alerts': [{
+                'severity': a.severity,
+                'alert_type': a.alert_type,
+                'message_snippet': a.message_snippet,
+                'created_at': a.created_at.isoformat(),
+                'time_ago': get_time_ago(a.created_at)
+            } for a in recent_crisis_alerts],
+            'recent_activity': [{
+                'type': l.activity_type,
+                'action': l.action_description or l.activity_type,
+                'date': l.timestamp.isoformat(),
+                'duration': getattr(l, 'duration_minutes', None)
+            } for l in logs],
+            'emotional_trends': [{
+                'date': i.timestamp.strftime('%m/%d'),
+                'state': i.emotional_state,
+                'intensity': i.emotional_intensity
+            } for i in recent_intents]
+        }
+        
+        # Cache for 5 minutes
+        cache_key = f"mentor:student_insights:{student_id}"
+        r_sessions.setex(cache_key, 300, json.dumps(insights))
+        
+        return insights
+    except Exception as e:
+        print(f"Error calculating insights for student {student_id}: {e}")
+        return None
 
 @ns.route('/crisis-alerts')
 class CrisisAlerts(Resource):
@@ -172,7 +266,8 @@ class MentorStudents(Resource):
                 'profile_picture': s.profile_picture,
                 'has_risk': ChatSession.query.filter_by(user_id=s.id, crisis_flag=True).count() > 0,
                 'status': calculate_user_status(s.id),
-                'last_login': s.last_login.isoformat() if s.last_login else None
+                'last_login': s.last_login.isoformat() if s.last_login else None,
+                'is_onboarded': s.is_onboarded
             } for s in students
         ], 200
 
@@ -180,7 +275,7 @@ class MentorStudents(Resource):
 class StudentInsights(Resource):
     @login_required
     def get(self, student_id):
-        """Get insights for a specific student (only if connected)"""
+        """Get insights for a specific student (only if connected) - CACHED"""
         if current_user.role not in ['teacher', 'admin']:
             return {'message': 'Unauthorized'}, 403
             
@@ -190,11 +285,20 @@ class StudentInsights(Resource):
         
         if not is_connected and not is_same_org and current_user.role != 'admin':
             return {'message': 'Forbidden: Student not connected to you'}, 403
-            
-        # Get recent assessments (basic info)
-        assessments = Assessment.query.filter_by(user_id=student.id).order_by(Assessment.completed_at.desc()).limit(5).all()
         
-        # Get recent activity logs
+        # Try to get from Redis cache first
+        cache_key = f"mentor:student_insights:{student_id}"
+        cached_insights = r_sessions.get(cache_key)
+        
+        if cached_insights:
+            return json.loads(cached_insights), 200
+        
+        # If not in cache, trigger background calculation and return quick version
+        precalculate_student_insights.delay(student_id)
+        
+        # Return quick basic info while background task runs
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        assessments = Assessment.query.filter_by(user_id=student.id).order_by(Assessment.completed_at.desc()).limit(5).all()
         logs = UserActivityLog.query.filter_by(user_id=student.id).order_by(UserActivityLog.timestamp.desc()).limit(20).all()
 
         # Get crisis flags (last 30 days)
@@ -343,3 +447,196 @@ class ListMentors(Resource):
                 'name': m.full_name
             } for m in mentors
         ], 200
+
+@ns.route('/notifications')
+class MentorNotifications(Resource):
+    @login_required
+    def get(self):
+        """Get real-time notifications for mentor from Redis"""
+        if current_user.role not in ['teacher', 'admin']:
+            return {'message': 'Unauthorized'}, 403
+        
+        # Get notifications from Redis (sorted set by timestamp)
+        notif_key = f"mentor:notifications:{current_user.id}"
+        notifications = []
+        
+        # Get last 20 notifications
+        notif_data = r_sessions.zrevrange(notif_key, 0, 19, withscores=True)
+        
+        for notif_json, timestamp in notif_data:
+            try:
+                notif = json.loads(notif_json)
+                notif['timestamp'] = timestamp
+                notifications.append(notif)
+            except:
+                pass
+        
+        return {'notifications': notifications, 'count': len(notifications)}, 200
+    
+    @login_required
+    def delete(self):
+        """Clear all notifications for mentor"""
+        if current_user.role not in ['teacher', 'admin']:
+            return {'message': 'Unauthorized'}, 403
+        
+        notif_key = f"mentor:notifications:{current_user.id}"
+        r_sessions.delete(notif_key)
+        
+        return {'message': 'Notifications cleared'}, 200
+
+def push_mentor_notification(mentor_id, notification_data):
+    """Push notification to mentor's Redis notification queue"""
+    try:
+        notif_key = f"mentor:notifications:{mentor_id}"
+        timestamp = datetime.utcnow().timestamp()
+        
+        # Add to sorted set (keeps them ordered by time)
+        r_sessions.zadd(notif_key, {json.dumps(notification_data): timestamp})
+        
+        # Keep only last 50 notifications
+        r_sessions.zremrangebyrank(notif_key, 0, -51)
+        
+        # Set expiry of 7 days
+        r_sessions.expire(notif_key, 604800)
+    except Exception as e:
+        print(f"Error pushing notification: {e}")
+
+@ns.route('/student/<int:student_id>/onboarding-report')
+class StudentOnboardingReport(Resource):
+    @login_required
+    def get(self, student_id):
+        """Get onboarding report for a specific student"""
+        if current_user.role not in ['teacher', 'admin']:
+            return {'message': 'Unauthorized'}, 403
+            
+        student = User.query.get_or_404(student_id)
+        is_connected = student.mentor_id == current_user.id
+        is_same_org = (student.organization_id == current_user.organization_id) and (current_user.organization_id is not None)
+        
+        if not is_connected and not is_same_org and current_user.role != 'admin':
+            return {'message': 'Forbidden: Student not connected to you'}, 403
+        
+        # Get onboarding response
+        onboarding = OnboardingResponse.query.filter_by(user_id=student.id).first()
+        
+        if not onboarding:
+            return {
+                'message': 'No onboarding data found',
+                'student_name': student.full_name,
+                'is_onboarded': student.is_onboarded,
+                'onboarding_data': None
+            }, 200
+        
+        return {
+            'student_id': student.id,
+            'student_name': student.full_name,
+            'username': student.username,
+            'email': student.email,
+            'is_onboarded': student.is_onboarded,
+            'onboarding_data': {
+                'responses': onboarding.responses,
+                'completed_at': onboarding.created_at.isoformat() if onboarding.created_at else None
+            }
+        }, 200
+
+@ns.route('/student/<int:student_id>/onboarding-report/pdf')
+class StudentOnboardingPDF(Resource):
+    @login_required
+    def get(self, student_id):
+        """Generate PDF report of student's onboarding responses"""
+        if current_user.role not in ['teacher', 'admin']:
+            return {'message': 'Unauthorized'}, 403
+            
+        student = User.query.get_or_404(student_id)
+        is_connected = student.mentor_id == current_user.id
+        is_same_org = (student.organization_id == current_user.organization_id) and (current_user.organization_id is not None)
+        
+        if not is_connected and not is_same_org and current_user.role != 'admin':
+            return {'message': 'Forbidden: Student not connected to you'}, 403
+        
+        # Get onboarding response
+        onboarding = OnboardingResponse.query.filter_by(user_id=student.id).first()
+        
+        if not onboarding:
+            return {'message': 'No onboarding data found'}, 404
+        
+        # Create PDF
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        story = []
+        styles = getSampleStyleSheet()
+        
+        # Custom styles
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#4F46E5'),
+            spaceAfter=30,
+            alignment=1  # Center
+        )
+        
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=16,
+            textColor=colors.HexColor('#1F2937'),
+            spaceAfter=12,
+            spaceBefore=20
+        )
+        
+        # Title
+        story.append(Paragraph("Onboarding Report", title_style))
+        story.append(Spacer(1, 0.2 * inch))
+        
+        # Student Info
+        info_data = [
+            ['Student Name:', student.full_name],
+            ['Username:', student.username],
+            ['Email:', student.email],
+            ['Completed At:', onboarding.created_at.strftime('%B %d, %Y at %I:%M %p') if onboarding.created_at else 'N/A']
+        ]
+        
+        info_table = Table(info_data, colWidths=[2*inch, 4*inch])
+        info_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#4B5563')),
+            ('TEXTCOLOR', (1, 0), (1, -1), colors.HexColor('#1F2937')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 0.4 * inch))
+        
+        # Responses section
+        story.append(Paragraph("Onboarding Responses", heading_style))
+        story.append(Spacer(1, 0.2 * inch))
+        
+        # Question labels mapping
+        question_labels = {
+            'adjustment': 'Adjustment to New Environment',
+            'social': 'Social Connections',
+            'academic': 'Academic Pressure',
+            'support': 'Support System',
+            'anxiety': 'Mental Well-being'
+        }
+        
+        # Add each response
+        for key, value in onboarding.responses.items():
+            question = question_labels.get(key, key.replace('_', ' ').title())
+            story.append(Paragraph(f"<b>{question}:</b>", styles['Normal']))
+            story.append(Spacer(1, 0.05 * inch))
+            story.append(Paragraph(f"<i>{value}</i>", styles['Normal']))
+            story.append(Spacer(1, 0.15 * inch))
+        
+        # Build PDF
+        doc.build(story)
+        buffer.seek(0)
+        
+        return send_file(
+            buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f'onboarding_report_{student.username}_{datetime.now().strftime("%Y%m%d")}.pdf'
+        )
