@@ -13,7 +13,7 @@ import TextVenting from './Features/TextVenting.jsx';
 import SoundVenting from './Features/SoundVenting.jsx';
 import { calculateConfidenceScore } from './score_calculator.js';
 import { API_URL } from '../config.js';
-import {spea}
+import { LucideSpeech } from 'lucide-react';
 const FeatureRenderer = ({ feature, onClose }) => {
     switch (feature) {
         case "1/2-Minute Breathing Exercise":
@@ -63,6 +63,8 @@ const Chat = () => {
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [speechText, setSpeechText] = useState(null);
+
     const [activeFeature, setActiveFeature] = useState(null);
     const [sosTimer, setSosTimer] = useState(null);
     const [sosCountdown, setSosCountdown] = useState(5);
@@ -86,7 +88,7 @@ const Chat = () => {
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
-
+    const SpeakOut = () => { }
     useEffect(() => {
         isVoiceModeRef.current = isVoiceMode;
     }, [isVoiceMode]);
@@ -158,11 +160,12 @@ const Chat = () => {
             const res = await fetch(`${API_URL}/api/chatbot/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    message: userMessage+" My mood before chatting was "+beforeMood,
-                    session_id:null
+                body: JSON.stringify({
+                    message: userMessage,
+                    session_id: null
                 }),
                 credentials: 'include'
+
             });
 
             const data = await res.json();
@@ -184,14 +187,14 @@ const Chat = () => {
 
                 replyContent = matchResponse ? matchResponse[1] : data;
                 console.log(replyContent)
-                if(replyContent){
+                if (replyContent) {
                     console.log("yes")
                 }
-                if(!replyContent){
+                if (!replyContent) {
                     console.log("nah")
                 }
                 suggestedFeature = matchFeature ? matchFeature[1] : null;
-            } else if (typeof data === 'object' && data!== null) {
+            } else if (typeof data === 'object' && data !== null) {
                 // future-proof: if backend sends real JSON later
                 replyContent = data.response || '';
                 suggestedFeature = data.suggested_feature || null;
@@ -216,7 +219,7 @@ const Chat = () => {
                     {
                         ...intentData,
                         timestamp: Date.now(),
-                        confidence_score: calculateConfidenceScore(intentData)  
+                        confidence_score: calculateConfidenceScore(intentData)
                     }
                 );
 
@@ -386,14 +389,19 @@ const Chat = () => {
         }
 
         try {
-            const res = await fetch('http://localhost:8000/send-message', {
+            const res = await fetch(`${API_URL}/api/chatbot/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_message: userMessage })
+                body: JSON.stringify({
+                    message: userMessage,
+                    session_id: null
+                }),
+                credentials: 'include'
+
             });
 
             const data = await res.json();
-
+            console.log(data)
             let replyContent = '';
             let suggestedFeature = null;
 
@@ -407,12 +415,12 @@ const Chat = () => {
                     /'suggested_feature':\s*'([^']*)'/
                 );
 
-                replyContent = matchResponse ? matchResponse[1] : data.reply;
+                replyContent = matchResponse ? matchResponse[1] : data;
                 suggestedFeature = matchFeature ? matchFeature[1] : null;
-            } else if (typeof data.reply === 'object' && data.reply !== null) {
+            } else if (typeof data === 'object' && data !== null) {
                 // future-proof: if backend sends real JSON later
-                replyContent = data.reply.response || '';
-                suggestedFeature = data.reply.suggested_feature || null;
+                replyContent = data.response || '';
+                suggestedFeature = data.suggested_feature || null;
             }
 
 
@@ -444,7 +452,7 @@ const Chat = () => {
     };
 
     const speakResponse = (text) => {
-        if (!text || !isVoiceMode) return;
+        if (!text) return;
 
         if (recognitionRef.current) {
             recognitionRef.current.abort();
@@ -581,6 +589,14 @@ const Chat = () => {
                                         : 'text-white'}
                             `}>
                                     {msg.content}
+                                    {msg.role === 'bot' && (
+                                        <div onClick={() => speakResponse(msg.content)} className={` 
+                                        ${msg.suggested_feature ? 'relative left-40 top-5' : ' '}
+                                         mt-2 justify-start cursor-pointer`}>
+                                            <LucideSpeech />
+                                        </div>
+                                    )}
+
                                 </div>
                             </div>
 
