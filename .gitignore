@@ -5,3 +5,4 @@ __pycache__/
 *.pycinstance/mental_health.db
 instance/mental_health.db
 .env
+Kokoro-82M/
