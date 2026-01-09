@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 function SideBar() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [username, setUsername] = useState(() => {
     try {

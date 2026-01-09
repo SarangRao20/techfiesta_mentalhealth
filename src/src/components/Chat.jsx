@@ -13,6 +13,7 @@ import TextVenting from './Features/TextVenting.jsx';
 import SoundVenting from './Features/SoundVenting.jsx';
 import { calculateConfidenceScore } from './score_calculator.js';
 import { API_URL } from '../config.js';
+import {spea}
 const FeatureRenderer = ({ feature, onClose }) => {
     switch (feature) {
         case "1/2-Minute Breathing Exercise":
