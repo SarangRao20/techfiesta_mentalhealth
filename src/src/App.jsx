@@ -24,6 +24,7 @@ import MeditationHub from './components/MeditationHub'
 import Assessments from './components/Assessments'
 import Inkblot from './components/Inkblot'
 import NotFound from './components/NotFound'
+import DashboardFinal from './components/DashboardFinal'
 
 //children routes
 function App() {
@@ -31,13 +32,8 @@ function App() {
   const router = createBrowserRouter([
     {
       path: "/",
-      element:
-        <div>
-          <LandingPage />
-          <Kalpvriksha />
-        </div>
+      element:<LandingPage />
     },
-
     {
       path: "/signin",
       element: <SignIn />
@@ -69,7 +65,7 @@ function App() {
         },
         {
           path: "dashboard",
-          element: <Dashboard />
+          element:<DashboardFinal/>
         },
 
         {

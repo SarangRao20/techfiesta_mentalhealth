@@ -100,15 +100,15 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f131c] p-6 md:p-10 text-white relative font-sans">
+    <div className="min-h-screen p-6 md:p-10 text-white relative font-sans">
 
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white/95">
+          <h1 className="text-3xl ml-8 font-bold tracking-tight text-white">
             {getGreeting()}, {stats.username || "Friend"}
           </h1>
-          <p className="text-white/50 mt-1.5 text-base font-normal">
+          <p className="text-white/50 mt-1.5  ml-9 text-base font-normal">
             Your progress overview for today.
           </p>
         </div>
