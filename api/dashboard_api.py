@@ -26,7 +26,8 @@ dashboard_model = ns.model('Dashboard', {
     'tasks': fields.Nested(task_stats_model),
     'recent_assessments': fields.List(fields.Raw()),
     'consultations': fields.List(fields.Raw()),
-    'recent_meditation_logs': fields.List(fields.Raw())
+    'recent_meditation_logs': fields.List(fields.Raw()),
+    'profile_picture': fields.String()
 })
 
 def get_dashboard_summary(user):
@@ -66,6 +67,7 @@ def get_dashboard_summary(user):
     return {
         'username': user.username,
         'full_name': user.full_name,
+        'profile_picture': user.profile_picture,
         'login_streak': streak_count,
         'meditation_streak': streak_count,
         'weekly_sessions': weekly_sessions,
@@ -90,7 +92,8 @@ def get_dashboard_summary(user):
                 'counsellor_name': c.counsellor.username if c.counsellor else 'Assigned Counselor',
                 'time_slot': c.time_slot,
                 'date': c.session_datetime.isoformat() if c.session_datetime else None,
-                'status': c.status
+                'status': c.status,
+                'meeting_link': c.chat_video_link
             } for c in ConsultationRequest.query.options(joinedload(ConsultationRequest.counsellor)).filter_by(user_id=user.id, status='booked').filter(ConsultationRequest.session_datetime >= datetime.utcnow()).order_by(ConsultationRequest.session_datetime.asc()).limit(3).all()
         ],
         'recent_meditation_logs': [

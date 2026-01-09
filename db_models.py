@@ -210,6 +210,15 @@ class VentingResponse(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     user = db.relationship('User', backref='venting_responses')
+    
+class VentingPostLike(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('venting_post.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Unique constraint to prevent multiple likes per user per post
+    __table_args__ = (db.UniqueConstraint('post_id', 'user_id', name='unique_user_post_like'),)
 
 class SoundVentingSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -286,6 +295,25 @@ class AvailabilitySlot(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     counsellor = db.relationship('User', foreign_keys=[counsellor_id], backref='availability_slots')
+
+class CommunityChatLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    room = db.Column(db.String(50), nullable=False, index=True)
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    
+    user = db.relationship('User', backref='chat_logs')
+
+    def as_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'username': self.user.username,
+            'room': self.room,
+            'content': self.content,
+            'timestamp': self.timestamp.isoformat()
+        }
 
 
 

@@ -20,10 +20,11 @@ if __name__ == "__main__":
     extra_files = []
     extra_dirs = []
     
-    app.run(
+    from app import socketio
+    socketio.run(
+        app,
         host="0.0.0.0", 
         port=2323, 
         debug=True,
         use_reloader=True,
-        reloader_type='stat'  # Use stat instead of watchdog for more stable reloading
     )

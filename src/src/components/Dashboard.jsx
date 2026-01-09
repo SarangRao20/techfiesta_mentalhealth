@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-const API_URL = 'http://localhost:5000';
+import { API_URL } from "../config";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -12,7 +12,8 @@ export default function Dashboard() {
     tasks: { completed: 0, total: 0, progress: 0 },
     meditation_minutes: 0,
     consultations: [],
-    recent_meditation_logs: []
+    recent_meditation_logs: [],
+    profile_picture: ""
   });
   const [ignite, setIgnite] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -31,34 +32,48 @@ export default function Dashboard() {
         ...dash,
         username: user.username || dash.username,
         full_name: user.full_name || dash.full_name,
-        meditation_minutes: dash.total_minutes_meditated || 0
+        meditation_minutes: dash.total_minutes_meditated || 0,
+        profile_picture: user.profile_picture || dash.profile_picture || ""
       });
       setLoading(false);
     }
 
     const fetchDashboardData = async () => {
       try {
+        // Fetch dashboard stats
         const response = await fetch(`${API_URL}/api/dashboard`, {
           credentials: 'include'
         });
+
+        let profilePic = "";
+        let dashData = {};
+
         if (response.ok) {
-          const data = await response.json();
-          let username = data.username || "";
-          let full_name = data.full_name || "";
-
-          setStats({
-            login_streak: data.login_streak || 0,
-            username: username,
-            full_name: full_name,
-            meditation_streak: data.meditation_streak || 0,
-            tasks: data.tasks || { completed: 0, total: 0, progress: 0 },
-            meditation_minutes: data.total_minutes_meditated || 0,
-            consultations: data.consultations || [],
-            recent_meditation_logs: data.recent_meditation_logs || []
-          });
-
-          localStorage.setItem("initial_dash", JSON.stringify(data));
+          dashData = await response.json();
+          profilePic = dashData.profile_picture || "";
+          localStorage.setItem("initial_dash", JSON.stringify(dashData));
         }
+
+        // If profile pic is missing, or just to be safe, fetch user info
+        const userRes = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          if (userData.profile_picture) profilePic = userData.profile_picture;
+          localStorage.setItem("user", JSON.stringify(userData));
+        }
+
+        setStats({
+          login_streak: dashData.login_streak || 0,
+          username: dashData.username || "",
+          full_name: dashData.full_name || "",
+          meditation_streak: dashData.meditation_streak || 0,
+          tasks: dashData.tasks || { completed: 0, total: 0, progress: 0 },
+          meditation_minutes: dashData.total_minutes_meditated || 0,
+          consultations: dashData.consultations || [],
+          recent_meditation_logs: dashData.recent_meditation_logs || [],
+          profile_picture: profilePic
+        });
+
       } catch (error) {
         console.error("Failed to fetch dashboard stats", error);
       } finally {
@@ -67,6 +82,16 @@ export default function Dashboard() {
     };
 
     fetchDashboardData();
+
+    // Listen for profile updates from other components
+    const handleProfileUpdate = () => {
+      fetchDashboardData();
+    };
+    window.addEventListener('userProfileUpdate', handleProfileUpdate);
+
+    return () => {
+      window.removeEventListener('userProfileUpdate', handleProfileUpdate);
+    };
   }, []);
 
   const getGreeting = () => {
@@ -116,9 +141,13 @@ export default function Dashboard() {
           <div className="text-right hidden md:block">
             <p className="text-sm font-medium text-white/80">{formatDate()}</p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-gradient-to-b from-white/10 to-white/5 border border-white/5 flex items-center justify-center text-lg shadow-sm">
-            {stats.username ? stats.username[0].toUpperCase() : "U"}
-          </div>
+          <Link to="/app/profile" className="w-12 h-12 rounded-full bg-gradient-to-b from-white/10 to-white/5 border border-white/5 flex items-center justify-center text-lg shadow-sm overflow-hidden hover:opacity-80 transition">
+            {stats.profile_picture ? (
+              <img src={stats.profile_picture} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              stats.username ? stats.username[0].toUpperCase() : "U"
+            )}
+          </Link>
         </div>
       </div>
 
@@ -129,7 +158,7 @@ export default function Dashboard() {
         <Card className="lg:col-span-2 bg-[#151a23]">
           <div className="flex justify-between items-center mb-5">
             <h3 className="card-title">Recent Activity</h3>
-            <Link to="/app/history" className="text-xs font-medium text-white/40 hover:text-white transition-colors">View All</Link>
+            <Link to="/app/meditation-hub" className="text-xs font-medium text-white/40 hover:text-white transition-colors">View All</Link>
           </div>
 
           <div className="flex flex-col gap-3 h-full">
@@ -183,9 +212,9 @@ export default function Dashboard() {
         <Card className="lg:col-span-1 lg:row-span-2 h-full flex flex-col bg-[#151a23]">
           <h3 className="card-title mb-6">Quick Actions</h3>
           <div className="grid grid-cols-1 gap-3 flex-1">
-            <QuickActionTile icon="🌬️" label="Breathe" sub="2 min" to="/app/meditation" delay="0" />
-            <QuickActionTile icon="📔" label="Journal" sub="Daily Log" to="/app/journal" delay="100" />
-            <QuickActionTile icon="💬" label="Mentor" sub="Chat" to="/app/mentors" delay="200" />
+            <QuickActionTile icon="🌬️" label="Breathe" sub="1/2 min" to="/app/meditation" state={{ autoStartId: 1 }} delay="0" />
+            <QuickActionTile icon="🔒" label="Venting Hall" sub="Private Space" to="/app/private-venting" delay="100" />
+            <QuickActionTile icon="💬" label="Community" sub="Realtime Chat" to="/app/community" delay="200" />
             <QuickActionTile icon="📝" label="Assess" sub="Check-in" to="/app/assessments" delay="300" />
             <div className="mt-auto pt-4 border-t border-white/5">
               <button
@@ -218,9 +247,20 @@ export default function Dashboard() {
                     <p className="text-sm font-semibold text-white/90 truncate">{consult.counsellor_name}</p>
                     <p className="text-xs text-white/40 truncate">Video Consultation • {new Date(consult.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
-                  <button className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs font-medium rounded-lg transition border border-indigo-500/10 hover:border-indigo-500/30">
-                    Join
-                  </button>
+                  {consult.meeting_link ? (
+                    <a
+                      href={consult.meeting_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-medium rounded-lg transition shadow-lg shadow-indigo-500/20"
+                    >
+                      Join
+                    </a>
+                  ) : (
+                    <button disabled className="px-4 py-2 bg-white/5 text-white/30 text-xs font-medium rounded-lg cursor-not-allowed border border-white/5">
+                      Waiting for Link
+                    </button>
+                  )}
                 </div>
               ))
             ) : (
@@ -306,10 +346,11 @@ function Card({ children, className = "" }) {
   );
 }
 
-function QuickActionTile({ icon, label, sub, to, delay }) {
+function QuickActionTile({ icon, label, sub, to, delay, state }) {
   return (
     <Link
       to={to}
+      state={state}
       className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/10 border border-transparent transition-all duration-300 group"
       style={{ animationDelay: `${delay}ms` }}
     >

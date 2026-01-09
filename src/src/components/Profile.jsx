@@ -23,7 +23,7 @@ export default function Profile() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploadInProgress, setUploadInProgress] = useState(false);
-  
+
   // Check if viewing as mentor (student profile view)
   const isViewingStudent = location.state?.viewAsStudent;
   const studentId = location.state?.studentId;
@@ -47,7 +47,7 @@ export default function Profile() {
 
   useEffect(() => {
     fetchProfile();
-    
+
     // Poll for profile updates every 5 seconds if upload in progress
     let pollInterval;
     if (uploadInProgress) {
@@ -55,7 +55,7 @@ export default function Profile() {
         fetchProfile(true); // Silent fetch
       }, 5000);
     }
-    
+
     return () => {
       if (pollInterval) clearInterval(pollInterval);
     };
@@ -64,10 +64,10 @@ export default function Profile() {
   const fetchProfile = async (silent = false) => {
     try {
       // If viewing student profile, fetch student data from mentor insights API
-      const endpoint = isViewingStudent && studentId 
+      const endpoint = isViewingStudent && studentId
         ? `${API_URL}/api/mentor/student/${studentId}/insights`
         : `${API_URL}/api/auth/profile`;
-        
+
       const res = await fetch(endpoint, {
         credentials: 'include'
       });
@@ -75,10 +75,10 @@ export default function Profile() {
       if (res.ok) {
         const data = await res.json();
         const previousPic = profileData.profile_picture;
-        
+
         // If viewing student, extract from student_info
         const studentInfo = isViewingStudent ? data.student_info : data;
-        
+
         setProfileData({
           full_name: studentInfo.full_name || studentInfo.name || "",
           username: data.username || "",
@@ -90,16 +90,18 @@ export default function Profile() {
           profile_picture: studentInfo.profile_picture || null,
           organization_name: data.organization_name || ""
         });
-        
+
         if (studentInfo.profile_picture) {
           setPreviewImage(studentInfo.profile_picture);
-          
+
           // If picture URL changed and we were uploading, upload is complete
           if (uploadInProgress && studentInfo.profile_picture !== previousPic) {
             setUploadInProgress(false);
             if (!silent) {
               console.log("Profile picture upload completed!");
             }
+            // Notify other components (Sidebar)
+            window.dispatchEvent(new Event('userProfileUpdate'));
           }
         }
       } else {
@@ -168,7 +170,10 @@ export default function Profile() {
           bio: updated.bio || "",
           profile_picture: updated.profile_picture || null
         });
-        
+
+        // Notify immediately for text changes
+        window.dispatchEvent(new Event('userProfileUpdate'));
+
         // If image was uploaded, show success message but don't wait for upload
         if (selectedFile) {
           setUploadInProgress(true); // Start polling
@@ -177,10 +182,10 @@ export default function Profile() {
         } else {
           alert("Profile updated successfully!");
         }
-        
+
         setIsEditing(false);
         setSelectedFile(null);
-        
+
         // Clean up temporary URL if created
         if (tempPreviewUrl) {
           URL.revokeObjectURL(tempPreviewUrl);

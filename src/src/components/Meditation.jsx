@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Brain, Music, Play, Pause, RotateCcw, X, Volume2, VolumeX, Settings, Award, TrendingUp } from 'lucide-react';
 import { API_URL } from '../config';
 
 const Meditation = () => {
+  const location = useLocation();
   const [selectedCard, setSelectedCard] = useState(null);
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -231,7 +233,7 @@ const Meditation = () => {
     // Clear all pending timeouts
     breathTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
     breathTimeoutsRef.current = [];
-    
+
     // Clear the interval
     if (breathIntervalRef.current) {
       clearInterval(breathIntervalRef.current);
@@ -336,6 +338,16 @@ const Meditation = () => {
   // Fetch stats on load
   useEffect(() => {
     fetchStats();
+
+    // Check for auto-start from dashboard
+    if (location.state?.autoStartId) {
+      const option = meditationOptions.find(opt => opt.id === location.state.autoStartId);
+      if (option) {
+        handleStartSession(option);
+        // Clear state to prevent re-triggering on navigation
+        window.history.replaceState({}, document.title);
+      }
+    }
   }, []);
 
   const handleEndSession = async () => {
