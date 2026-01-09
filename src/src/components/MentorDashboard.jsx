@@ -151,10 +151,10 @@ const MentorDashboard = () => {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
                 </span>
-                <span className="text-xs font-bold text-teal-400 uppercase tracking-[0.2em]">Mentor Panel</span>
+                <span className="text-xs font-bold text-indigo-400 uppercase tracking-[0.2em]">Mentor Intelligence</span>
               </div>
-              <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-400 tracking-tight">
-                Student Wellness Overview
+              <h1 className="text-4xl font-black text-white tracking-tight">
+                Spirit Wellness Intel
               </h1>
             </div>
             <div className="absolute right-0 top-1/2 -translate-y-1/2">
@@ -576,10 +576,10 @@ const MentorDashboard = () => {
                             <PieChart>
                               <Pie
                                 data={[
-                                  { name: 'Meditation', value: insights.activity_stats?.meditation_count || 0, color: '#14b8a6' },
-                                  { name: 'Chatbot', value: insights.activity_stats?.chat_count || 0, color: '#8b5cf6' },
-                                  { name: 'Assessments', value: insights.activity_stats?.assessment_count || 0, color: '#f59e0b' },
-                                  { name: 'Venting', value: insights.activity_stats?.venting_count || 0, color: '#ef4444' }
+                                  { name: 'Meditation', value: insights.activity_stats?.meditation_count || 0, color: '#2dd4bf' },
+                                  { name: 'Chatbot', value: insights.activity_stats?.chat_count || 0, color: '#818cf8' },
+                                  { name: 'Assessments', value: insights.activity_stats?.assessment_count || 0, color: '#fbbf24' },
+                                  { name: 'Venting', value: insights.activity_stats?.venting_count || 0, color: '#fb7185' }
                                 ].filter(item => item.value > 0)}
                                 cx="50%"
                                 cy="50%"
@@ -590,10 +590,10 @@ const MentorDashboard = () => {
                                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                               >
                                 {[
-                                  { name: 'Meditation', value: insights.activity_stats?.meditation_count || 0, color: '#14b8a6' },
-                                  { name: 'Chatbot', value: insights.activity_stats?.chat_count || 0, color: '#8b5cf6' },
-                                  { name: 'Assessments', value: insights.activity_stats?.assessment_count || 0, color: '#f59e0b' },
-                                  { name: 'Venting', value: insights.activity_stats?.venting_count || 0, color: '#ef4444' }
+                                  { name: 'Meditation', value: insights.activity_stats?.meditation_count || 0, color: '#2dd4bf' },
+                                  { name: 'Chatbot', value: insights.activity_stats?.chat_count || 0, color: '#818cf8' },
+                                  { name: 'Assessments', value: insights.activity_stats?.assessment_count || 0, color: '#fbbf24' },
+                                  { name: 'Venting', value: insights.activity_stats?.venting_count || 0, color: '#fb7185' }
                                 ].filter(item => item.value > 0).map((entry, index) => (
                                   <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
@@ -613,9 +613,9 @@ const MentorDashboard = () => {
                             </span>
                             <span className="text-white font-bold">{insights.activity_stats?.meditation_count || 0}</span>
                           </div>
-                          <div className="flex items-center justify-between p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                          <div className="flex items-center justify-between p-3 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
                             <span className="text-gray-300 flex items-center gap-2">
-                              <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                              <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
                               Chatbot Interactions
                             </span>
                             <span className="text-white font-bold">{insights.activity_stats?.chat_count || 0}</span>
@@ -627,9 +627,9 @@ const MentorDashboard = () => {
                             </span>
                             <span className="text-white font-bold">{insights.activity_stats?.assessment_count || 0}</span>
                           </div>
-                          <div className="flex items-center justify-between p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                          <div className="flex items-center justify-between p-3 bg-rose-500/10 rounded-lg border border-rose-500/20">
                             <span className="text-gray-300 flex items-center gap-2">
-                              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                              <div className="w-3 h-3 rounded-full bg-rose-500"></div>
                               Venting Posts
                             </span>
                             <span className="text-white font-bold">{insights.activity_stats?.venting_count || 0}</span>

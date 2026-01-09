@@ -2,7 +2,7 @@ from flask import current_app
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
 from db_models import MeditationSession, CrisisAlert, ChatSession, ChatIntent
-from database import db
+from database import db, cache
 from utils import get_meditation_content
 from datetime import datetime, timedelta
 from sqlalchemy import func
@@ -19,6 +19,7 @@ meditation_session_model = ns.model('MeditationSession', {
 @ns.route('/content')
 class MeditationContent(Resource):
     @login_required
+    @cache.cached(timeout=3600, key_prefix='meditation_content')
     def get(self):
         """Get all available meditation content"""
         return get_meditation_content(), 200

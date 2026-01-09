@@ -1,11 +1,11 @@
 from flask import request
 from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
-from db_models import VentingPost, VentingResponse, SoundVentingSession, User
+from db_models import VentingPost, VentingResponse, VentingPostLike, SoundVentingSession, User
 from database import db, cache
 from datetime import datetime
 
-ns = Namespace('venting', description='Venting wall and emotional expression')
+ns = Namespace('venting', description='Community support and emotional expression')
 
 post_model = ns.model('VentingPost', {
     'content': fields.String(required=True, description='Post content'),
@@ -29,11 +29,19 @@ sound_venting_model = ns.model('SoundVentingSession', {
 @ns.route('/posts')
 class Posts(Resource):
     @login_required
-    @cache.cached(timeout=300, key_prefix='all_venting_posts')
     def get(self):
-        """Get all venting posts"""
+        """Get all posts for Community Support (Cached per user)"""
+        cache_key = f"community_posts_user_{current_user.id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached, 200
+
         posts = VentingPost.query.order_by(VentingPost.created_at.desc()).all()
-        return [
+        
+        # Get list of post IDs liked by current user
+        liked_post_ids = [l.post_id for l in VentingPostLike.query.filter_by(user_id=current_user.id).all()]
+        
+        result = [
             {
                 'id': p.id,
                 'content': p.content,
@@ -41,16 +49,27 @@ class Posts(Resource):
                 'author': 'Anonymous' if p.anonymous else User.query.get(p.user_id).username,
                 'created_at': p.created_at.isoformat(),
                 'likes': p.likes,
+                'liked_by_me': p.id in liked_post_ids,
+                'responses': [
+                    {
+                        'id': r.id,
+                        'content': r.content,
+                        'author': 'Anonymous' if r.anonymous else User.query.get(r.user_id).username,
+                        'created_at': r.created_at.isoformat()
+                    } for r in p.responses
+                ] if p.responses else [],
                 'responses_count': len(p.responses) if p.responses else 0,
-                'is_owner': p.user_id == current_user.id,
-                'user_id': p.user_id
+                'is_owner': p.user_id == current_user.id
             } for p in posts
-        ], 200
+        ]
+        
+        cache.set(cache_key, result, timeout=300)
+        return result, 200
 
     @login_required
     @ns.expect(post_model)
     def post(self):
-        """Create a new venting post"""
+        """Create a new community support post"""
         data = ns.payload
         post = VentingPost(
             user_id=current_user.id,
@@ -58,32 +77,37 @@ class Posts(Resource):
             anonymous=data.get('anonymous', True)
         )
         db.session.add(post)
-        
-        # Universal Activity Log
-        from db_models import UserActivityLog
-        log = UserActivityLog(
-            user_id=current_user.id,
-            activity_type='venting',
-            action='post_created',
-            extra_data={'anonymous': data.get('anonymous', True)},
-            timestamp=datetime.utcnow()
-        )
-        db.session.add(log)
-        
         db.session.commit()
-        # Clear cache so new post shows up
-        cache.delete('all_venting_posts')
+        # Invalidate ALL community caches because a new post/like affects everyone's view (likes/responses)
+        # However, since we use per-user keys, we either need a way to clear all or just accept 5min stale for others.
+        # Redis scan/delete is heavy. Better to use a versioned key if we want instant.
+        # For now, let's just clear the current user's cache and let others catch up.
+        cache.delete(f"community_posts_user_{current_user.id}")
         return {'message': 'Post created', 'id': post.id}, 201
 
 @ns.route('/posts/<int:post_id>/like')
 class LikePost(Resource):
     @login_required
     def post(self, post_id):
-        """Like a post"""
+        """Like or Unlike a post"""
         post = VentingPost.query.get_or_404(post_id)
-        post.likes += 1
-        db.session.commit()
-        return {'likes': post.likes}, 200
+        existing_like = VentingPostLike.query.filter_by(post_id=post_id, user_id=current_user.id).first()
+        
+        if existing_like:
+            # Unlike logic: remove like and decrement count
+            db.session.delete(existing_like)
+            post.likes = max(0, post.likes - 1)
+            db.session.commit()
+            cache.delete(f"community_posts_user_{current_user.id}")
+            return {'likes': post.likes, 'liked': False}, 200
+        else:
+            # Like logic: add like and increment count
+            new_like = VentingPostLike(post_id=post_id, user_id=current_user.id)
+            db.session.add(new_like)
+            post.likes += 1
+            db.session.commit()
+            cache.delete(f"community_posts_user_{current_user.id}")
+            return {'likes': post.likes, 'liked': True}, 200
 
 @ns.route('/responses')
 class Responses(Resource):
@@ -100,7 +124,12 @@ class Responses(Resource):
         )
         db.session.add(response)
         db.session.commit()
-        return {'message': 'Response added', 'id': response.id}, 201
+        # Invalidate ALL community caches because a new post/like affects everyone's view (likes/responses)
+        # However, since we use per-user keys, we either need a way to clear all or just accept 5min stale for others.
+        # Redis scan/delete is heavy. Better to use a versioned key if we want instant.
+        # For now, let's just clear the current user's cache and let others catch up.
+        cache.delete(f"community_posts_user_{current_user.id}")
+        return {'message': 'Response added', 'id': response.id, 'likes': 0}, 201
 
 @ns.route('/sound_session')
 class SoundSession(Resource):

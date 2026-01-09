@@ -60,7 +60,15 @@ function SideBar() {
         console.error("Failed to fetch profile", e);
       }
     };
+
     fetchProfile();
+
+    // Listen for updates from Profile component
+    window.addEventListener('userProfileUpdate', fetchProfile);
+
+    return () => {
+      window.removeEventListener('userProfileUpdate', fetchProfile);
+    };
   }, []);
 
   const handleLogout = async () => {
