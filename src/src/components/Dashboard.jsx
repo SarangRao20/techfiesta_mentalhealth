@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 const API_URL = 'http://localhost:5000';
 
@@ -14,19 +15,9 @@ export default function Dashboard() {
     recent_meditation_logs: []
   });
   const [ignite, setIgnite] = useState(false);
-  const [moodIndex, setMoodIndex] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [mood, setMood] = useState();
   const [showCrisisMenu, setShowCrisisMenu] = useState(false);
-  const moods = ["😔", "🙂", "😄", "🤩"];
-  const moodLabels = ["Low", "Okay", "Happy", "Great"];
-  
-  useEffect(() => {
-    if (mood) {
-      localStorage.setItem("mood", mood);
-    }
-  }, [mood]);
-  
+
   useEffect(() => {
     setTimeout(() => setIgnite(true), 300);
 
@@ -44,7 +35,7 @@ export default function Dashboard() {
       });
       setLoading(false);
     }
-    
+
     const fetchDashboardData = async () => {
       try {
         const response = await fetch(`${API_URL}/api/dashboard`, {
@@ -78,18 +69,30 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
+  };
+
+  const formatDate = () => {
+    return new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0f131c] to-[#141923] p-8 text-white">
-        <h1 className="text-3xl font-semibold mb-8 tracking-wide">
-          Dashboard
-        </h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="min-h-screen bg-[#0f131c] p-8 text-white">
+        <div className="h-24 w-full bg-white/5 animate-pulse rounded-2xl mb-8"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-2 h-64 bg-white/5 animate-pulse rounded-2xl"></div>
           <div className="h-64 bg-white/5 animate-pulse rounded-2xl"></div>
-          <div className="h-64 bg-white/5 animate-pulse rounded-2xl"></div>
-          <div className="h-64 bg-white/5 animate-pulse rounded-2xl"></div>
-          <div className="h-64 bg-white/5 animate-pulse rounded-2xl"></div>
-          <div className="h-64 bg-white/5 animate-pulse rounded-2xl"></div>
+          <div className="lg:row-span-2 h-full bg-white/5 animate-pulse rounded-2xl"></div>
+          <div className="lg:col-span-2 h-64 bg-white/5 animate-pulse rounded-2xl"></div>
           <div className="h-64 bg-white/5 animate-pulse rounded-2xl"></div>
         </div>
       </div>
@@ -97,235 +100,197 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f131c] to-[#141923] p-8 text-white relative">
-      <h1 className="text-3xl font-semibold mb-8 tracking-wide">
-        Dashboard
-      </h1>
+    <div className="min-h-screen bg-[#0f131c] p-6 md:p-10 text-white relative font-sans">
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* SET MOOD */}
-        <Card>
-          <h3 className="card-title">Set Mood</h3>
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white/95">
+            {getGreeting()}, {stats.username || "Friend"}
+          </h1>
+          <p className="text-white/50 mt-1.5 text-base font-normal">
+            Your progress overview for today.
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right hidden md:block">
+            <p className="text-sm font-medium text-white/80">{formatDate()}</p>
+          </div>
+          <div className="w-12 h-12 rounded-full bg-gradient-to-b from-white/10 to-white/5 border border-white/5 flex items-center justify-center text-lg shadow-sm">
+            {stats.username ? stats.username[0].toUpperCase() : "U"}
+          </div>
+        </div>
+      </div>
 
-          <div className="flex items-center justify-center gap-6 mt-6">
-            <button
-              onClick={() => setMoodIndex((moodIndex - 1 + moods.length) % moods.length)}
-              className="text-2xl text-white/40 hover:text-white transition"
-            >
-              ‹
-            </button>
+      {/* BENTO GRID LAYOUT */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 auto-rows-[minmax(180px,auto)]">
 
-            <div className="text-center">
-              <div onClick={() => setMood(moodLabels[moodIndex])} className="text-6xl mb-2 cursor-pointer">{moods[moodIndex]}</div>
-              <p className="text-white/70">{moodLabels[moodIndex]}</p>
-            </div>
-
-            <button
-              onClick={() => setMoodIndex((moodIndex + 1) % moods.length)}
-              className="text-2xl text-white/40 hover:text-white transition"
-            >
-              ›
-            </button>
+        {/* RECENT ACTIVITY - Wide Card (col-span-2) */}
+        <Card className="lg:col-span-2 bg-[#151a23]">
+          <div className="flex justify-between items-center mb-5">
+            <h3 className="card-title">Recent Activity</h3>
+            <Link to="/app/history" className="text-xs font-medium text-white/40 hover:text-white transition-colors">View All</Link>
           </div>
 
-          <p className="text-xs text-white/50 text-center mt-4">
-            Click emoji to set your current mood
-          </p>
-        </Card>
-
-        {/* LOGIN STREAK */}
-        <Card>
-          <h3 className="card-title">Login Streak</h3>
-
-          <div className="relative flex items-center justify-center mt-6">
-            <div
-              className={`text-6xl transition-all duration-700 ${ignite ? "animate-flame" : "opacity-0 scale-50"
-                }`}
-            >
-              🔥
-            </div>
-          </div>
-
-          <p className="text-center text-xl font-semibold mt-3">
-            {stats.login_streak} days
-          </p>
-
-          <p className="text-xs text-white/50 text-center mt-1">
-            Keep the fire alive
-          </p>
-        </Card>
-
-        {/* DAILY INSPIRATION */}
-        <Card>
-          <h3 className="card-title">Daily Inspiration</h3>
-
-          <p className="text-white/80 text-sm leading-relaxed mt-4">
-            Every experience of the past year — pleasant or unpleasant —
-            has shaped you into someone wiser and stronger.
-            Step forward knowing you are here to give back.
-          </p>
-
-          <p className="text-xs text-white/40 mt-4 text-right">
-            — by you
-          </p>
-        </Card>
-
-        {/* RECENT MEDITATION LOGS */}
-        <Card>
-          <h3 className="card-title">Recent Mindfulness</h3>
-          <div className="mt-4 space-y-3">
+          <div className="flex flex-col gap-3 h-full">
             {stats.recent_meditation_logs && stats.recent_meditation_logs.length > 0 ? (
-              stats.recent_meditation_logs.map((log, i) => (
-                <div key={i} className="flex justify-between text-sm border-b border-white/5 pb-2">
-                  <div>
-                    <p className="text-white/90 capitalize">{log.type.replace('_', ' ')}</p>
-                    <p className="text-xs text-white/50">{log.date}</p>
+              stats.recent_meditation_logs.slice(0, 3).map((log, i) => (
+                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition border border-white/5 group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#1c212c] flex items-center justify-center text-indigo-400 group-hover:text-indigo-300 transition-colors border border-white/5">
+                      {log.type.includes('breathing') ? '🌬️' : '🧘'}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white/90 capitalize">{log.type.replace('_', ' ')}</p>
+                      <p className="text-xs text-white/40">{log.date}</p>
+                    </div>
                   </div>
-                  <span className="text-indigo-300">{Math.floor(log.duration / 60)}m {log.duration % 60}s</span>
+                  <span className="text-xs font-mono text-white/50 bg-white/5 px-2 py-1 rounded-md">{Math.floor(log.duration / 60)}m</span>
                 </div>
               ))
             ) : (
-              <p className="text-xs text-white/40 italic">No recent sessions.</p>
+              <div className="flex flex-col items-center justify-center h-48 border border-dashed border-white/10 rounded-xl">
+                <span className="text-2xl mb-2 opacity-30">🏔️</span>
+                <p className="text-sm text-white/40">No activity yet.</p>
+                <Link to="/app/meditation" className="mt-3 text-xs bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg text-white/80 transition font-medium">Start Session</Link>
+              </div>
             )}
-          </div>
-          <div className="mt-4 pt-2 border-t border-white/10 flex justify-between text-xs text-white/60">
-            <span>Total Time</span>
-            <span>{stats.meditation_minutes} min</span>
           </div>
         </Card>
 
-        {/* TASK COMPLETION */}
-        <Card>
-          <h3 className="card-title">Task Completion</h3>
+        {/* LOGIN STREAK - Standard Card (col-span-1) */}
+        <Card className="lg:col-span-1 flex flex-col justify-between bg-[linear-gradient(145deg,#151a23,#12161f)]">
+          <h3 className="card-title">Streak</h3>
+          <div className="flex flex-col gap-1 items-start mt-2">
+            <span className={`text-6xl font-bold tracking-tighter transition-all duration-1000 ${ignite ? 'text-white blur-none translate-y-0 opacity-100' : 'text-white/0 blur-xl translate-y-4 opacity-0'}`}>
+              {stats.login_streak}
+            </span>
+            <span className="text-sm text-white/40 font-medium">days active</span>
+          </div>
 
-          <div className="flex items-center justify-center mt-8">
-            <div className="relative w-24 h-24 rounded-full border-4 border-indigo-500/30">
-              <div
-                className="absolute inset-2 rounded-full border-4 border-indigo-500"
-                style={{ clipPath: `polygon(50% 0%, 100% 0%, 100% ${stats.tasks.progress}%, 50% 100%)` }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center text-sm font-semibold">
-                {Math.round(stats.tasks.progress)}%
-              </div>
+          <div className="mt-6 pt-4 border-t border-white/5 w-full">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-white/40">Best Record</span>
+              <span className="text-emerald-400 font-mono font-medium">{Math.max(stats.login_streak, 1)} d</span>
+            </div>
+            <div className="w-full bg-white/5 h-1 rounded-full mt-2 overflow-hidden">
+              <div className="bg-emerald-500/50 h-full w-3/4 rounded-full"></div>
             </div>
           </div>
-
-          <p className="text-center text-sm text-white/70 mt-4">
-            {stats.tasks.completed}/{stats.tasks.total} completed
-          </p>
         </Card>
 
-        {/* UPCOMING SCHEDULE (Consultations) */}
-        <Card>
-          <h3 className="card-title">Upcoming Schedule</h3>
+        {/* QUICK ACTIONS - Tall Card (row-span-2) */}
+        <Card className="lg:col-span-1 lg:row-span-2 h-full flex flex-col bg-[#151a23]">
+          <h3 className="card-title mb-6">Quick Actions</h3>
+          <div className="grid grid-cols-1 gap-3 flex-1">
+            <QuickActionTile icon="🌬️" label="Breathe" sub="2 min" to="/app/meditation" delay="0" />
+            <QuickActionTile icon="📔" label="Journal" sub="Daily Log" to="/app/journal" delay="100" />
+            <QuickActionTile icon="💬" label="Mentor" sub="Chat" to="/app/mentors" delay="200" />
+            <QuickActionTile icon="📝" label="Assess" sub="Check-in" to="/app/assessments" delay="300" />
+            <div className="mt-auto pt-4 border-t border-white/5">
+              <button
+                onClick={() => setShowCrisisMenu(!showCrisisMenu)}
+                className="w-full flex items-center justify-between p-4 rounded-xl bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 transition group cursor-pointer"
+              >
+                <span className="text-sm font-semibold text-red-400">SOS Support</span>
+                <span className="text-red-400 group-hover:translate-x-1 transition">→</span>
+              </button>
+            </div>
+          </div>
+        </Card>
 
-          <div className="mt-4 space-y-4">
+        {/* SCHEDULE - Wide Card (col-span-2) */}
+        <Card className="lg:col-span-2 bg-[#151a23]">
+          <div className="flex justify-between items-center mb-5">
+            <h3 className="card-title">Schedule</h3>
+            {stats.consultations?.length > 0 && <span className="text-xs bg-white/5 px-2 py-1 rounded text-white/50">{stats.consultations.length} upcoming</span>}
+          </div>
+
+          <div className="space-y-3">
             {stats.consultations && stats.consultations.length > 0 ? (
-              stats.consultations.map((consult, i) => (
-                <div key={i} className="bg-white/5 rounded-lg p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-purple-300/30 flex items-center justify-center text-xs">
-                      🩺
-                    </div>
-                    <div className="text-sm">
-                      <p className="font-medium">{consult.counsellor_name}</p>
-                      <p className="text-white/60 text-xs">
-                        {new Date(consult.date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
+              stats.consultations.slice(0, 2).map((consult, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-white/[0.03] to-transparent border border-white/5">
+                  <div className="flex flex-col items-center justify-center w-12 h-12 bg-[#1c212c] rounded-lg border border-white/5">
+                    <span className="text-xs font-bold text-white/90">{new Date(consult.date).getDate()}</span>
+                    <span className="text-[10px] uppercase text-white/30">{new Date(consult.date).toLocaleString('default', { month: 'short' })}</span>
                   </div>
-                  <div className="flex gap-2 mt-3">
-                    <ActionBtn>Join</ActionBtn>
-                    <ActionBtn danger>Reschedule</ActionBtn>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white/90 truncate">{consult.counsellor_name}</p>
+                    <p className="text-xs text-white/40 truncate">Video Consultation • {new Date(consult.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
+                  <button className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs font-medium rounded-lg transition border border-indigo-500/10 hover:border-indigo-500/30">
+                    Join
+                  </button>
                 </div>
               ))
             ) : (
-              <div className="text-center py-6">
-                <p className="text-white/50 text-sm">No upcoming sessions.</p>
-                <button className="mt-2 text-xs text-indigo-400 hover:text-indigo-300 underline">Book a session</button>
+              <div className="flex flex-col items-center justify-center h-32 text-center">
+                <p className="text-sm text-white/40 mb-3">No upcoming sessions.</p>
+                <Link to="/app/consultation" className="text-xs border border-white/10 hover:border-white/30 hover:bg-white/5 px-3 py-1.5 rounded-lg text-white/70 transition">Schedule Now</Link>
               </div>
             )}
           </div>
         </Card>
-      </div>
 
-      {/* Crisis Support Floating Button */}
-      <div className="fixed bottom-8 right-8 z-50">
-        {showCrisisMenu && (
-          <div className="mb-4 bg-white rounded-2xl shadow-2xl p-4 w-72 animate-slide-up">
-            <button
-              onClick={() => window.location.href = 'tel:14416'}
-              className="w-full flex items-center gap-3 p-3 hover:bg-red-50 rounded-xl transition-colors group"
-            >
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center group-hover:bg-red-200 transition-colors">
-                📞
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold text-gray-800">Crisis Support: 14416</p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => window.location.href = '/app/ai-chat'}
-              className="w-full flex items-center gap-3 p-3 hover:bg-purple-50 rounded-xl transition-colors group mt-2"
-            >
-              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                💬
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold text-gray-800">Chat Support</p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => window.location.href = '/app/consultation'}
-              className="w-full flex items-center gap-3 p-3 hover:bg-blue-50 rounded-xl transition-colors group mt-2"
-            >
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                👨‍⚕️
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-semibold text-gray-800">Get Professional Help</p>
-              </div>
-            </button>
+        {/* WEEKLY GOALS - Standard Card (col-span-1) */}
+        <Card className="lg:col-span-1 bg-[#151a23]">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="card-title">Goals</h3>
+            <span className="text-[10px] font-mono text-emerald-400/80">+12%</span>
           </div>
-        )}
 
-        <button
-          onClick={() => setShowCrisisMenu(!showCrisisMenu)}
-          className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-pink-600 text-white shadow-2xl hover:shadow-red-500/50 transition-all hover:scale-110 flex items-center justify-center font-bold text-2xl"
-        >
-          {showCrisisMenu ? '✕' : '🆘'}
-        </button>
+          <div className="flex flex-col items-center justify-center py-4 relative">
+            <svg className="w-28 h-28 transform -rotate-90" viewBox="0 0 36 36">
+              <path className="text-white/[0.03]" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2.5" />
+              <path className="text-indigo-400" strokeDasharray={`${Math.max(stats.tasks.progress, 5)}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-2xl font-bold text-white">{Math.round(stats.tasks.progress)}%</span>
+              <span className="text-[10px] uppercase tracking-wider text-white/30">Completed</span>
+            </div>
+          </div>
+        </Card>
+
       </div>
+
+      {/* CRISIS MENU OVERLAY (If needed, separate from Quick Actions or redundant) */}
+      {/* Kept minimal as integrated in Quick Actions card now, but kept absolute logic if user needs global access */}
+      {showCrisisMenu && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowCrisisMenu(false)}>
+          <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-scale-up" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-white mb-4">Emergency Support</h3>
+            <div className="space-y-3">
+              <button onClick={() => window.location.href = 'tel:14416'} className="w-full flex items-center gap-4 p-4 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/10 text-left transition">
+                <span className="text-2xl">📞</span>
+                <div>
+                  <p className="font-bold text-red-400">Helpline: 14416</p>
+                  <p className="text-xs text-red-400/60">24/7 Crisis Support</p>
+                </div>
+              </button>
+              <button onClick={() => window.location.href = '/app/chat'} className="w-full flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-left transition">
+                <span className="text-2xl">💬</span>
+                <div>
+                  <p className="font-bold text-white">Chat Support</p>
+                  <p className="text-xs text-white/50">Talk to a counselor</p>
+                </div>
+              </button>
+            </div>
+            <button onClick={() => setShowCrisisMenu(false)} className="mt-6 w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-medium text-white/60 transition">Cancel</button>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .card-title {
-          font-size: 1rem;
+          font-size: 1.125rem;
           font-weight: 600;
-          color: rgba(255, 255, 255, 0.9);
+          color: rgba(255, 255, 255, 0.95);
+          letter-spacing: -0.02em;
         }
-        @keyframes slide-up {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-slide-up {
-          animation: slide-up 0.3s ease-out;
-        }
-        @keyframes flame {
-          0%, 100% { transform: scale(1) rotate(-2deg); }
-          50% { transform: scale(1.1) rotate(2deg); }
-        }
-        .animate-flame {
-          animation: flame 1.5s ease-in-out infinite;
-        }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fade-in 0.2s ease-out; }
+        @keyframes scale-up { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .animate-scale-up { animation: scale-up 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
       `}</style>
     </div>
   );
@@ -333,23 +298,29 @@ export default function Dashboard() {
 
 /* ---------- Components ---------- */
 
-function Card({ children }) {
+function Card({ children, className = "" }) {
   return (
-    <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 hover:border-white/20 transition">
+    <div className={`border border-white/5 rounded-3xl p-6 shadow-2xl shadow-black/20 ${className}`}>
       {children}
     </div>
   );
 }
 
-function ActionBtn({ children, danger }) {
+function QuickActionTile({ icon, label, sub, to, delay }) {
   return (
-    <button
-      className={`flex-1 py-2 rounded-lg text-sm transition ${danger
-        ? "bg-red-500/80 hover:bg-red-500"
-        : "bg-indigo-500/80 hover:bg-indigo-500"
-        }`}
+    <Link
+      to={to}
+      className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/10 border border-transparent transition-all duration-300 group"
+      style={{ animationDelay: `${delay}ms` }}
     >
-      {children}
-    </button>
+      <div className="w-10 h-10 rounded-xl bg-[#1c212c] flex items-center justify-center text-xl group-hover:scale-110 transition duration-300 border border-white/5 shadow-sm">
+        {icon}
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-semibold text-white/90 group-hover:text-white">{label}</p>
+        <p className="text-xs text-white/40 group-hover:text-white/60 transition-colors">{sub}</p>
+      </div>
+      <span className="text-white/20 group-hover:translate-x-1 transition text-sm">→</span>
+    </Link>
   );
 }
