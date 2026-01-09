@@ -252,6 +252,10 @@ class Profile(Resource):
         # Invalidate profile cache so it re-fetches with new details
         r_sessions.delete(f"user_profile:{user.id}")
         
+        # Also invalidate dashboard cache so the top-right profile pic updates
+        from api.dashboard_api import invalidate_dashboard_cache
+        invalidate_dashboard_cache(user.id)
+        
         return {
             'message': 'Profile updated successfully',
             'username': user.username,

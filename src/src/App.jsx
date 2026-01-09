@@ -115,6 +115,10 @@ function App() {
         {
           path: "counselor-dashboard",
           element: <CounsellorDashboardNew />
+        },
+        {
+          path: "meditation",
+          element: <Meditation />
         }
 
       ]

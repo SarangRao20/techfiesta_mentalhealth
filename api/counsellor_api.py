@@ -51,7 +51,8 @@ class CounsellorInbox(Resource):
             'attachments': r.attachments or [],
             'created_at': r.created_at.isoformat(),
             'time_ago': get_time_ago(r.created_at),
-            'is_new': r.status == 'pending'
+            'is_new': r.status == 'pending',
+            'meeting_link': r.chat_video_link
         } for r in requests], 200
 
 @ns.route('/inbox/<int:request_id>/action')
