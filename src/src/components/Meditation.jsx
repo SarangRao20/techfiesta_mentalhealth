@@ -19,6 +19,7 @@ const Meditation = () => {
   const intervalRef = useRef(null);
   const breathIntervalRef = useRef(null);
   const synthRef = useRef(null);
+  const breathTimeoutsRef = useRef([]);
 
   const meditationOptions = [
     {
@@ -200,28 +201,42 @@ const Meditation = () => {
       setBreathPhase('Breathe In');
       speak('Breathe in');
 
-      setTimeout(() => {
+      const t1 = setTimeout(() => {
         setBreathPhase('Hold');
         speak('Hold');
       }, breathDuration * 1000);
 
-      setTimeout(() => {
+      const t2 = setTimeout(() => {
         setBreathPhase('Breathe Out');
         speak('Breathe out');
       }, breathDuration * 2000);
 
-      setTimeout(() => {
+      const t3 = setTimeout(() => {
         setBreathPhase('Hold');
         speak('Hold');
       }, breathDuration * 3000);
 
-      setTimeout(() => {
+      const t4 = setTimeout(() => {
         setBreathCount(prev => prev + 1);
       }, breathDuration * 4000);
+
+      breathTimeoutsRef.current.push(t1, t2, t3, t4);
     };
 
     cycle();
     breathIntervalRef.current = setInterval(cycle, breathDuration * 4000);
+  };
+
+  const clearBreathingGuide = () => {
+    // Clear all pending timeouts
+    breathTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+    breathTimeoutsRef.current = [];
+    
+    // Clear the interval
+    if (breathIntervalRef.current) {
+      clearInterval(breathIntervalRef.current);
+      breathIntervalRef.current = null;
+    }
   };
 
   const handleStartSession = (option) => {
@@ -288,17 +303,18 @@ const Meditation = () => {
         });
       }, 1000);
 
-      if (option.id === 1 && !breathIntervalRef.current) {
+      if (option.id === 1) {
         startBreathingGuide();
       }
     } else {
       setIsPaused(true);
       stopSound();
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (breathIntervalRef.current) {
-        clearInterval(breathIntervalRef.current);
-        breathIntervalRef.current = null;
+      // Cancel any ongoing speech
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
       }
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      clearBreathingGuide();
     }
   };
 
@@ -353,10 +369,7 @@ const Meditation = () => {
     setBreathPhase('');
     stopSound();
     if (intervalRef.current) clearInterval(intervalRef.current);
-    if (breathIntervalRef.current) {
-      clearInterval(breathIntervalRef.current);
-      breathIntervalRef.current = null;
-    }
+    clearBreathingGuide();
   };
 
   const handleReset = () => {
@@ -367,7 +380,7 @@ const Meditation = () => {
       stopSound();
       playSound(option.soundFreq);
       if (option.id === 1) {
-        if (breathIntervalRef.current) clearInterval(breathIntervalRef.current);
+        clearBreathingGuide();
         startBreathingGuide();
       }
     }
@@ -389,7 +402,7 @@ const Meditation = () => {
     return () => {
       stopSound();
       if (intervalRef.current) clearInterval(intervalRef.current);
-      if (breathIntervalRef.current) clearInterval(breathIntervalRef.current);
+      clearBreathingGuide();
     };
   }, []);
 
