@@ -193,7 +193,8 @@ class MyRequests(Resource):
                 'createdAt': r.created_at.isoformat(),
                 'urgency': r.urgency_level,
                 'timeSlot': r.time_slot,
-                'contactPreference': r.contact_preference
+                'contactPreference': r.contact_preference,
+                'meetingLink': r.chat_video_link
             } for r in requests
         ], 200
 
@@ -258,6 +259,36 @@ class RequestAction(Resource):
                  print(f"Email task queue failed: {e}")
 
         return {'message': f'Request {action}ed'}, 200
+
+link_model = ns.model('UpdateLink', {
+    'link': fields.String(required=True, description='Meeting Link URL')
+})
+
+@ns.route('/request/<int:request_id>/link')
+class UpdateLink(Resource):
+    @login_required
+    @ns.doc('update_consultation_link')
+    @ns.expect(link_model)
+    def put(self, request_id):
+        """Update meeting link for consultation"""
+        data = ns.payload
+        req = ConsultationRequest.query.get_or_404(request_id)
+        
+        # Verify ownership (Counsellor only)
+        if req.counsellor_id != current_user.id:
+            return {'message': 'Unauthorized'}, 403
+            
+        req.chat_video_link = data['link']
+        
+        # Auto-update status to booked if it has link?
+        if req.status == 'accepted':
+             req.status = 'booked'
+
+        db.session.commit()
+        
+        # Notify user (Optional: Email logic here)
+        
+        return {'message': 'Meeting link updated successfully', 'link': req.chat_video_link}
 
 @ns.route('/counsellors')
 class CounsellorList(Resource):

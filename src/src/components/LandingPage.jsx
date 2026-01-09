@@ -31,52 +31,19 @@ const LandingPage = () => {
     return () => observer.disconnect();
   }, []);
 
-  const CountUp = ({ end, duration = 2000, suffix = '' }) => {
-    const [count, setCount] = useState(0);
-
-    useEffect(() => {
-      let startTime;
-      let animationFrame;
-
-      const animate = (currentTime) => {
-        if (!startTime) startTime = currentTime;
-        const progress = Math.min((currentTime - startTime) / duration, 1);
-        
-        if (typeof end === 'string' && end.includes('in')) {
-          const parts = end.split(' in ');
-          if (progress === 1) {
-            setCount(end);
-          }
-        } else {
-          const value = Math.floor(progress * parseInt(end));
-          setCount(value + suffix);
-        }
-
-        if (progress < 1) {
-          animationFrame = requestAnimationFrame(animate);
-        }
-      };
-
-      animationFrame = requestAnimationFrame(animate);
-      return () => cancelAnimationFrame(animationFrame);
-    }, [end, duration, suffix]);
-
-    return <span>{count}</span>;
-  };
-
   return (
     <div className="bg-gradient-to-br from-[#0E1116] via-[#16213e] to-[#1a1a2e] font-sans min-h-screen text-white relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div 
+        <div
           className="absolute top-20 left-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl"
           style={{ transform: `translateY(${scrollY * 0.1}px)` }}
         />
-        <div 
+        <div
           className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"
           style={{ transform: `translateY(${-scrollY * 0.15}px)` }}
         />
-        <div 
+        <div
           className="absolute top-1/2 left-1/2 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl"
           style={{ transform: `translate(-50%, -50%) translateY(${scrollY * 0.08}px)` }}
         />
@@ -181,7 +148,7 @@ const LandingPage = () => {
               Everything you need for mental wellness, designed with students in mind
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
@@ -209,9 +176,8 @@ const LandingPage = () => {
               <div
                 key={idx}
                 id={`animate-feature-${idx}`}
-                className={`group p-8 bg-gradient-to-br ${feature.gradient} backdrop-blur-sm rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-500 transform hover:-translate-y-2 hover:shadow-2xl ${
-                  isVisible[`animate-feature-${idx}`] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-                }`}
+                className={`group p-8 bg-gradient-to-br ${feature.gradient} backdrop-blur-sm rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-500 transform hover:-translate-y-2 hover:shadow-2xl ${isVisible[`animate-feature-${idx}`] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+                  }`}
                 style={{ transitionDelay: `${feature.delay}ms` }}
               >
                 <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300">{feature.icon}</div>
@@ -241,9 +207,8 @@ const LandingPage = () => {
               <div
                 key={idx}
                 id={`animate-stat-${idx}`}
-                className={`transform transition-all duration-700 ${
-                  isVisible[`animate-stat-${idx}`] ? 'opacity-100 scale-100' : 'opacity-0 scale-75'
-                }`}
+                className={`transform transition-all duration-700 ${isVisible[`animate-stat-${idx}`] ? 'opacity-100 scale-100' : 'opacity-0 scale-75'
+                  }`}
                 style={{ transitionDelay: `${idx * 100}ms` }}
               >
                 <div className="p-8 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-300 hover:bg-white/10 h-full flex flex-col justify-center items-center text-center">
@@ -287,9 +252,8 @@ const LandingPage = () => {
               <div
                 key={idx}
                 id={`animate-testimonial-${idx}`}
-                className={`group p-8 bg-gradient-to-br ${testimonial.gradient} backdrop-blur-sm rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-500 transform hover:-translate-y-2 ${
-                  isVisible[`animate-testimonial-${idx}`] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-                }`}
+                className={`group p-8 bg-gradient-to-br ${testimonial.gradient} backdrop-blur-sm rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-500 transform hover:-translate-y-2 ${isVisible[`animate-testimonial-${idx}`] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+                  }`}
                 style={{ transitionDelay: `${idx * 100}ms` }}
               >
                 <div className="text-[#c495e6] text-5xl mb-4 opacity-50">"</div>
@@ -364,9 +328,8 @@ const LandingPage = () => {
               <div
                 key={idx}
                 id={`animate-step-${idx}`}
-                className={`flex flex-col md:flex-row gap-6 mb-12 group transition-all duration-700 ${
-                  isVisible[`animate-step-${idx}`] ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'
-                }`}
+                className={`flex flex-col md:flex-row gap-6 mb-12 group transition-all duration-700 ${isVisible[`animate-step-${idx}`] ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'
+                  }`}
                 style={{ transitionDelay: `${idx * 150}ms` }}
               >
                 <div className="flex-shrink-0">
@@ -460,9 +423,8 @@ const LandingPage = () => {
               <div
                 key={idx}
                 id={`animate-why-${idx}`}
-                className={`p-8 bg-gradient-to-br from-white/5 to-white/0 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-500 ${
-                  isVisible[`animate-why-${idx}`] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-                }`}
+                className={`p-8 bg-gradient-to-br from-white/5 to-white/0 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-500 ${isVisible[`animate-why-${idx}`] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+                  }`}
                 style={{ transitionDelay: `${idx * 100}ms` }}
               >
                 <div className="mb-4">{item.icon}</div>
@@ -510,9 +472,8 @@ const LandingPage = () => {
               <div
                 key={idx}
                 id={`animate-condition-${idx}`}
-                className={`p-8 bg-gradient-to-br ${item.color} backdrop-blur-sm rounded-2xl border border-white/10 transition-all duration-700 ${
-                  isVisible[`animate-condition-${idx}`] ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
-                }`}
+                className={`p-8 bg-gradient-to-br ${item.color} backdrop-blur-sm rounded-2xl border border-white/10 transition-all duration-700 ${isVisible[`animate-condition-${idx}`] ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
+                  }`}
                 style={{ transitionDelay: `${idx * 150}ms` }}
               >
                 <div className="text-6xl mb-4 text-center">{item.icon}</div>
@@ -580,9 +541,8 @@ const LandingPage = () => {
               <div
                 key={idx}
                 id={`animate-faq-${idx}`}
-                className={`p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-500 ${
-                  isVisible[`animate-faq-${idx}`] ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'
-                }`}
+                className={`p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-white/30 transition-all duration-500 ${isVisible[`animate-faq-${idx}`] ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'
+                  }`}
                 style={{ transitionDelay: `${idx * 100}ms` }}
               >
                 <h3 className="text-xl font-bold text-white mb-3">{faq.q}</h3>
@@ -608,11 +568,11 @@ const LandingPage = () => {
                 className="px-8 py-3.5 text-base rounded-xl bg-gradient-to-r from-[#c495e6] to-[#9b6fc7] text-white font-semibold hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 transform hover:scale-105">
                 Register Now
               </a>
-                <a href="/signin"
+              <a href="/signin"
                 className="px-8 py-3.5 text-base rounded-xl border-2 border-[#c495e6] text-[#c495e6] font-semibold hover:bg-[#c495e6] hover:text-white transition-all duration-300 transform hover:scale-105">
                 Contact Support
               </a>
-            </div>  
+            </div>
           </div>
         </div>
       </section>
@@ -670,7 +630,7 @@ const LandingPage = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="border-t border-white/10 pt-8 text-center text-gray-400">
             <p>&copy; 2024 MindWell. All rights reserved. Made with 💜 for student wellness.</p>
           </div>
@@ -691,5 +651,38 @@ const LandingPage = () => {
     </div>
   );
 }
+
+const CountUp = ({ end, duration = 2000, suffix = '' }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTime;
+    let animationFrame;
+
+    const animate = (currentTime) => {
+      if (!startTime) startTime = currentTime;
+      const progress = Math.min((currentTime - startTime) / duration, 1);
+
+      if (typeof end === 'string' && end.includes('in')) {
+        const parts = end.split(' in ');
+        if (progress === 1) {
+          setCount(end);
+        }
+      } else {
+        const value = Math.floor(progress * parseInt(end));
+        setCount(value + suffix);
+      }
+
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [end, duration, suffix]);
+
+  return <span>{count}</span>;
+};
 
 export default LandingPage;

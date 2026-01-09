@@ -149,8 +149,8 @@ def load_user(user_id):
     if cached_user:
         try:
             user_data = json.loads(cached_user)
-            if 'organization_id' not in user_data:
-                print(f"DEBUG: Stale cache for user {user_id} (missing org_id). Reloading from DB.")
+            if 'organization_id' not in user_data or 'email' not in user_data:
+                print(f"DEBUG: Stale cache for user {user_id} (missing fields). Reloading from DB.")
                 raise Exception("Stale cache")
 
             # Create User object from cached data
@@ -159,7 +159,14 @@ def load_user(user_id):
             user.username = user_data['username']
             user.role = user_data['role']
             user.full_name = user_data.get('full_name', '')
+            user.email = user_data.get('email', '')
             user.organization_id = user_data.get('organization_id')
+            user.profile_picture = user_data.get('profile_picture')
+            user.student_id = user_data.get('student_id')
+            user.accommodation_type = user_data.get('accommodation_type')
+            user.bio = user_data.get('bio')
+            user.is_onboarded = user_data.get('is_onboarded', False)
+            
             print(f"DEBUG: Loaded user {user.username} from Redis. Org ID: {user.organization_id}")
             return user
         except Exception as e:
@@ -173,12 +180,19 @@ def load_user(user_id):
             'username': user.username,
             'role': user.role,
             'full_name': user.full_name,
-            'organization_id': user.organization_id
+            'email': user.email,
+            'organization_id': user.organization_id,
+            'profile_picture': user.profile_picture,
+            'student_id': user.student_id,
+            'accommodation_type': user.accommodation_type,
+            'bio': user.bio,
+            'is_onboarded': user.is_onboarded
         }))
     return user
 
 with app.app_context():
-    import models  # noqa: F401
+    import db_models
+    db.create_all()
     logging.info("Database tables created")
 
 def nl2br(value):
@@ -228,4 +242,8 @@ api.add_namespace(activity_ns, path='/activity')
 api.add_namespace(mentor_ns, path='/mentor')
 api.add_namespace(counsellor_ns, path='/counsellor')
 
-## Removed inkblot_bp blueprint registration; now using direct route in routes.py
+# Initialize SocketIO
+from api.chat_socket import socketio
+socketio.init_app(app)
+
+# SocketIO initialization is done above: socketio.init_app(app)

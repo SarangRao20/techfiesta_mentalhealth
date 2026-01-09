@@ -16,7 +16,8 @@ import {
     BarChart3,
     Brain,
     Heart,
-    Calendar
+    Calendar,
+    Link as LinkIcon
 } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useNavigate } from 'react-router-dom';
@@ -29,9 +30,15 @@ const CounsellorDashboardNew = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [refreshing, setRefreshing] = useState(false);
+
+    // Link Modal State
+    const [showLinkModal, setShowLinkModal] = useState(false);
+    const [linkRequestId, setLinkRequestId] = useState(null);
+    const [linkUrl, setLinkUrl] = useState('');
+
     const navigate = useNavigate();
 
-    const COLORS = ['#2dd4bf', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+    const COLORS = ['#818cf8', '#2dd4bf', '#fb7185', '#fbbf24', '#a78bfa', '#60a5fa'];
 
     useEffect(() => {
         fetchInbox();
@@ -85,6 +92,33 @@ const CounsellorDashboardNew = () => {
         }
     };
 
+    const handleAddLink = (requestId, currentLink) => {
+        setLinkRequestId(requestId);
+        setLinkUrl(currentLink || '');
+        setShowLinkModal(true);
+    };
+
+    const saveLink = async () => {
+        if (!linkUrl.trim()) return;
+        try {
+            const response = await fetch(`${API_URL}/api/consultation/request/${linkRequestId}/link`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ link: linkUrl })
+            });
+
+            if (response.ok) {
+                setShowLinkModal(false);
+                setLinkRequestId(null);
+                setLinkUrl('');
+                fetchInbox(); // Refresh to see updated link
+            }
+        } catch (error) {
+            console.error('Error saving link:', error);
+        }
+    }
+
     const handleInboxAction = async (requestId, action) => {
         try {
             const response = await fetch(`${API_URL}/api/counsellor/inbox/${requestId}/action`, {
@@ -103,6 +137,7 @@ const CounsellorDashboardNew = () => {
     };
 
     const pendingRequests = inbox.filter(r => r.status === 'pending');
+    const upcomingSessions = inbox.filter(r => r.status === 'booked' || r.status === 'accepted');
     const filteredPatients = patients.filter(p =>
         p.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.username?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -119,11 +154,11 @@ const CounsellorDashboardNew = () => {
         <div className="flex h-screen bg-[#0f131c] text-gray-100 font-sans overflow-hidden flex-col">
             {/* Top Header - Centered */}
             <div className="h-20 bg-[#161b26] border-b border-white/5 flex flex-col items-center justify-center shrink-0 z-20 shadow-md">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-teal-400 to-blue-500 bg-clip-text text-transparent flex items-center gap-3">
-                    <Shield className="text-teal-400" size={28} />
-                    Counsellor Panel
+                <h2 className="text-2xl font-black text-white flex items-center gap-3 tracking-tight">
+                    <Shield className="text-indigo-400" size={28} />
+                    Counsellor Portal
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">Professional patient management</p>
+                <p className="text-[10px] text-slate-500 mt-1 font-bold uppercase tracking-[0.2em]">Clinical Operations Control</p>
             </div>
 
             <div className="flex flex-1 overflow-hidden">
@@ -508,7 +543,7 @@ const CounsellorDashboardNew = () => {
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
                         <div className="flex justify-between items-center px-2 mb-2">
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                Requests ({inbox.length})
+                                Pending Requests ({pendingRequests.length})
                             </span>
                             <button
                                 onClick={fetchInbox}
@@ -519,26 +554,25 @@ const CounsellorDashboardNew = () => {
                             </button>
                         </div>
 
-                        {inbox.length === 0 ? (
-                            <div className="text-center py-10 opacity-50 px-4">
-                                <Inbox size={40} className="mx-auto mb-3" />
-                                <p className="text-sm">No requests found</p>
+                        {pendingRequests.length === 0 ? (
+                            <div className="text-center py-6 opacity-50 px-4">
+                                <p className="text-xs">No pending requests</p>
                             </div>
                         ) : (
-                            inbox.map(request => (
+                            pendingRequests.map(request => (
                                 <div
                                     key={request.id}
                                     className="bg-[#0f131c] p-3 rounded-xl border border-white/10 hover:bg-white/5 transition-all"
                                 >
                                     <div className="flex items-start gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-teal-500 to-blue-500 flex items-center justify-center text-white font-bold">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-teal-500 to-blue-500 flex items-center justify-center text-white font-bold text-xs">
                                             {request.patient_name.charAt(0)}
                                         </div>
                                         <div className="flex-1">
                                             <div className="font-semibold text-sm">{request.patient_name}</div>
                                             <div className="text-xs text-gray-500">{request.time_ago}</div>
                                         </div>
-                                        <span className={`px-2 py-0.5 rounded-full text-xs ${request.urgency === 'high' ? 'bg-red-500/20 text-red-400' :
+                                        <span className={`px-2 py-0.5 rounded-full text-[10px] ${request.urgency === 'high' ? 'bg-red-500/20 text-red-400' :
                                             request.urgency === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
                                                 'bg-green-500/20 text-green-400'
                                             }`}>
@@ -550,36 +584,114 @@ const CounsellorDashboardNew = () => {
                                         <p className="text-xs text-gray-400 mb-3 line-clamp-2">{request.notes}</p>
                                     )}
 
-                                    {request.status === 'pending' ? (
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => handleInboxAction(request.id, 'accept')}
-                                                className="flex-1 px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1"
-                                            >
-                                                <CheckCircle size={14} />
-                                                Accept
-                                            </button>
-                                            <button
-                                                onClick={() => handleInboxAction(request.id, 'reject')}
-                                                className="flex-1 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1"
-                                            >
-                                                <XCircle size={14} />
-                                                Reject
-                                            </button>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => handleInboxAction(request.id, 'accept')}
+                                            className="flex-1 px-2 py-1 bg-green-600 hover:bg-green-500 text-white rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
+                                        >
+                                            <CheckCircle size={12} />
+                                            Accept
+                                        </button>
+                                        <button
+                                            onClick={() => handleInboxAction(request.id, 'reject')}
+                                            className="flex-1 px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
+                                        >
+                                            <XCircle size={12} />
+                                            Reject
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+
+                        {/* Upcoming Sessions Section */}
+                        <div className="mt-6 px-2 mb-2">
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                Upcoming Sessions
+                            </span>
+                        </div>
+                        {upcomingSessions.length === 0 ? (
+                            <div className="text-center py-6 opacity-50 px-4">
+                                <p className="text-xs">No upcoming sessions</p>
+                            </div>
+                        ) : (
+                            upcomingSessions.map(request => (
+                                <div
+                                    key={request.id}
+                                    className="bg-[#0f131c] p-3 rounded-xl border border-teal-500/20 hover:bg-white/5 transition-all"
+                                >
+                                    <div className="flex items-start gap-3 mb-2">
+                                        <div className="w-8 h-8 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center text-xs font-bold border border-teal-500/20">
+                                            {request.patient_name.charAt(0)}
                                         </div>
-                                    ) : (
-                                        <div className={`text-xs font-medium px-3 py-1.5 rounded-lg text-center ${request.status === 'booked' ? 'bg-green-500/20 text-green-400' :
-                                            'bg-red-500/20 text-red-400'
-                                            }`}>
-                                            {request.status === 'booked' ? '✓ Accepted' : '✗ Rejected'}
+                                        <div className="flex-1">
+                                            <div className="font-semibold text-sm text-teal-100">{request.patient_name}</div>
+                                            <div className="text-xs text-gray-500 flex items-center gap-1">
+                                                <Clock size={10} />
+                                                {request.time_slot || 'Time TBD'}
+                                            </div>
                                         </div>
-                                    )}
+                                    </div>
+
+                                    <div className="mt-3">
+                                        {request.meeting_link ? (
+                                            <div className="bg-teal-900/20 rounded p-2 mb-2 break-all text-[10px] text-teal-300 border border-teal-500/20">
+                                                {request.meeting_link}
+                                            </div>
+                                        ) : (
+                                            <div className="bg-yellow-500/10 rounded p-2 mb-2 text-[10px] text-yellow-500 border border-yellow-500/10 flex items-center gap-1">
+                                                <AlertTriangle size={10} />
+                                                Link not set
+                                            </div>
+                                        )}
+
+                                        <button
+                                            onClick={() => handleAddLink(request.id, request.meeting_link)}
+                                            className="w-full py-1.5 bg-[#161b26] hover:bg-[#1f2937] text-gray-300 hover:text-white rounded text-xs font-medium transition-colors border border-white/10 flex items-center justify-center gap-1"
+                                        >
+                                            <LinkIcon size={12} />
+                                            {request.meeting_link ? 'Update Link' : 'Add Meeting Link'}
+                                        </button>
+                                    </div>
                                 </div>
                             ))
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* Link Modal */}
+            {showLinkModal && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                    <div className="bg-[#161b26] p-6 rounded-2xl w-full max-w-sm border border-white/10 shadow-2xl">
+                        <h3 className="text-lg font-bold text-white mb-4">Meeting Link</h3>
+                        <p className="text-sm text-gray-400 mb-4">Paste the video consultation link (Google Meet, Zoom, etc.)</p>
+
+                        <input
+                            type="text"
+                            value={linkUrl}
+                            onChange={(e) => setLinkUrl(e.target.value)}
+                            className="w-full bg-[#0f131c] border border-white/10 rounded-lg p-3 text-white mb-4 focus:outline-none focus:border-teal-500"
+                            placeholder="https://meet.google.com/..."
+                        />
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowLinkModal(false)}
+                                className="flex-1 py-2 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={saveLink}
+                                className="flex-1 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-medium transition-colors"
+                            >
+                                Save Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <style dangerouslySetInnerHTML={{
                 __html: `
