@@ -106,25 +106,25 @@ const Assessments = () => {
     const progress = Math.round((Object.keys(responses).length / (questions.length || 1)) * 100);
 
     const assessmentTypes = [
-        { 
-            id: 'PHQ-9', 
-            label: 'Depression Assessment', 
+        {
+            id: 'PHQ-9',
+            label: 'Depression Assessment',
             desc: 'Patient Health Questionnaire - 9 items for depression screening',
             icon: Heart,
             gradient: 'from-purple-500 to-pink-500',
             bgGradient: 'from-purple-500/10 to-pink-500/10'
         },
-        { 
-            id: 'GAD-7', 
-            label: 'Anxiety Assessment', 
+        {
+            id: 'GAD-7',
+            label: 'Anxiety Assessment',
             desc: 'Generalized Anxiety Disorder - 7 item scale for anxiety evaluation',
             icon: Zap,
             gradient: 'from-blue-500 to-cyan-500',
             bgGradient: 'from-blue-500/10 to-cyan-500/10'
         },
-        { 
-            id: 'GHQ', 
-            label: 'General Health Assessment', 
+        {
+            id: 'GHQ',
+            label: 'General Health Assessment',
             desc: 'General Health Questionnaire for overall psychological wellbeing',
             icon: Shield,
             gradient: 'from-emerald-500 to-teal-500',
@@ -137,25 +137,25 @@ const Assessments = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0f131c] to-[#1a1025] text-white">
             {result ? (
-                <AssessmentResults 
-                    result={result} 
-                    onBack={() => setResult(null)} 
+                <AssessmentResults
+                    result={result}
+                    onBack={() => setResult(null)}
                 />
             ) : (
-                <div className="p-6 md:p-12">
-                    <div className="max-w-7xl mx-auto">
+                <div className="p-4 md:p-8">
+                    <div className="max-w-6xl mx-auto">
                         {/* Header */}
-                        <div className="text-center mb-12">
-                            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent">
+                        <div className="text-center mb-8">
+                            <h1 className="text-3xl md:text-4xl font-bold mb-3 bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent">
                                 Mental Health Assessments
                             </h1>
-                            <p className="text-neutral-400 text-lg">
+                            <p className="text-neutral-400 text-base">
                                 Select an assessment below to begin your evaluation
                             </p>
                         </div>
 
                         {/* Assessment Type Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                             {assessmentTypes.map((item) => {
                                 const Icon = item.icon;
                                 const isActive = activeTab === item.id;
@@ -163,49 +163,51 @@ const Assessments = () => {
                                     <button
                                         key={item.id}
                                         onClick={() => setActiveTab(item.id)}
-                                        className={`relative group text-left p-8 rounded-3xl transition-all duration-300 border-2 overflow-hidden
-                                            ${isActive 
-                                                ? 'border-white/30 scale-105 shadow-2xl' 
-                                                : 'border-white/10 hover:border-white/20 hover:scale-102'}`}
+                                        className={`relative group text-left p-5 rounded-2xl transition-all duration-300 border overflow-hidden
+                                            ${isActive
+                                                ? 'border-white/30 scale-105 shadow-xl'
+                                                : 'border-white/10 hover:border-white/20 hover:scale-[1.02]'}`}
                                     >
                                         <div className={`absolute inset-0 bg-gradient-to-br ${item.bgGradient} opacity-50 transition-opacity ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-70'}`}></div>
-                                        
-                                        <div className="relative z-10">
-                                            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-6 transform transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-105'}`}>
-                                                <Icon size={28} />
-                                            </div>
-                                            
-                                            <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
-                                                {item.id}
+
+                                        <div className="relative z-10 flex flex-col h-full">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center transform transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-105'}`}>
+                                                    <Icon size={24} />
+                                                </div>
                                                 {isActive && <CheckCircle size={20} className="text-green-400" />}
+                                            </div>
+
+                                            <h3 className="text-xl font-bold mb-1">
+                                                {item.id}
                                             </h3>
-                                            <p className="text-white/90 font-medium mb-2">{item.label}</p>
-                                            <p className="text-sm text-neutral-400 leading-relaxed">{item.desc}</p>
+                                            <p className="text-white/90 font-medium mb-1 text-sm">{item.label}</p>
+                                            <p className="text-xs text-neutral-400 leading-relaxed line-clamp-2">{item.desc}</p>
                                         </div>
                                     </button>
                                 );
                             })}
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* Main Questionnaire */}
                             <div className="lg:col-span-2">
-                                <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl rounded-3xl border border-white/10 p-8 md:p-10 shadow-2xl">
+                                <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl rounded-3xl border border-white/10 p-6 md:p-8 shadow-2xl">
                                     {/* Header with Progress */}
-                                    <div className="mb-8">
-                                        <div className="flex justify-between items-center mb-6">
-                                            <h2 className="text-3xl font-bold">{activeTab} Questionnaire</h2>
+                                    <div className="mb-6">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h2 className="text-2xl font-bold">{activeTab} Questionnaire</h2>
                                             <div className="text-right">
-                                                <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                                                <div className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                                                     {Object.keys(responses).length}/{questions.length}
                                                 </div>
-                                                <div className="text-xs text-neutral-500 uppercase tracking-wider">Completed</div>
+                                                <div className="text-[10px] text-neutral-500 uppercase tracking-wider">Completed</div>
                                             </div>
                                         </div>
 
                                         {/* Animated Progress Bar */}
-                                        <div className="relative h-3 bg-white/5 rounded-full overflow-hidden">
-                                            <div 
+                                        <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
+                                            <div
                                                 className={`absolute inset-y-0 left-0 bg-gradient-to-r ${currentAssessment.gradient} rounded-full transition-all duration-700 ease-out`}
                                                 style={{ width: `${progress}%` }}
                                             >
@@ -215,37 +217,37 @@ const Assessments = () => {
                                     </div>
 
                                     {loading ? (
-                                        <div className="flex flex-col items-center justify-center py-20">
-                                            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-t-4 border-purple-500"></div>
-                                            <p className="mt-4 text-neutral-400">Loading questions...</p>
+                                        <div className="flex flex-col items-center justify-center py-12">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-t-4 border-purple-500"></div>
+                                            <p className="mt-3 text-neutral-400 text-sm">Loading questions...</p>
                                         </div>
                                     ) : (
-                                        <div className="space-y-8">
+                                        <div className="space-y-6">
                                             {questions.map((q, idx) => {
                                                 const qId = idx.toString();
                                                 const isAnswered = responses[qId] !== undefined;
-                                                
+
                                                 return (
-                                                    <div key={idx} className="space-y-4">
-                                                        <div className="flex items-start gap-4">
-                                                            <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg ${isAnswered ? `bg-gradient-to-br ${currentAssessment.gradient}` : 'bg-white/10'}`}>
-                                                                {isAnswered ? <CheckCircle size={20} /> : idx + 1}
+                                                    <div key={idx} className="space-y-3">
+                                                        <div className="flex items-start gap-3">
+                                                            <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${isAnswered ? `bg-gradient-to-br ${currentAssessment.gradient}` : 'bg-white/10'}`}>
+                                                                {isAnswered ? <CheckCircle size={16} /> : idx + 1}
                                                             </div>
-                                                            <p className="text-lg text-neutral-200 leading-relaxed pt-2">
+                                                            <p className="text-base text-neutral-200 leading-snug pt-1">
                                                                 {q}
                                                             </p>
                                                         </div>
-                                                        
-                                                        <div className="ml-14 space-y-2">
+
+                                                        <div className="ml-11 space-y-2">
                                                             {Object.entries(options).map(([val, label]) => {
                                                                 const isSelected = responses[qId] === parseInt(val);
                                                                 return (
                                                                     <label
                                                                         key={val}
                                                                         className={`
-                                                                            flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200
+                                                                            flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200
                                                                             ${isSelected
-                                                                                ? `bg-gradient-to-r ${currentAssessment.gradient} shadow-lg`
+                                                                                ? `bg-gradient-to-r ${currentAssessment.gradient} shadow-lg scale-[1.01]`
                                                                                 : 'bg-white/5 hover:bg-white/10 border border-white/10'}
                                                                         `}
                                                                     >
@@ -257,14 +259,14 @@ const Assessments = () => {
                                                                             onChange={() => handleOptionSelect(qId, val)}
                                                                             className="hidden"
                                                                         />
-                                                                        <div className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center
+                                                                        <div className={`flex-shrink-0 w-4 h-4 rounded-full border flex items-center justify-center
                                                                             ${isSelected ? 'border-white bg-white' : 'border-white/30'}`}
                                                                         >
                                                                             {isSelected && (
-                                                                                <div className={`w-2.5 h-2.5 rounded-full bg-gradient-to-br ${currentAssessment.gradient}`}></div>
+                                                                                <div className={`w-2 h-2 rounded-full bg-gradient-to-br ${currentAssessment.gradient}`}></div>
                                                                             )}
                                                                         </div>
-                                                                        <span className={`text-base ${isSelected ? 'text-white font-medium' : 'text-neutral-300'}`}>
+                                                                        <span className={`text-sm ${isSelected ? 'text-white font-medium' : 'text-neutral-300'}`}>
                                                                             {label}
                                                                         </span>
                                                                     </label>
@@ -278,19 +280,19 @@ const Assessments = () => {
                                     )}
 
                                     {/* Submit Button */}
-                                    <div className="mt-8 pt-6 border-t border-white/10">
+                                    <div className="mt-6 pt-5 border-t border-white/10">
                                         <button
                                             onClick={handleSubmit}
                                             disabled={loading || Object.keys(responses).length < questions.length}
                                             className={`
-                                                w-full flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300
+                                                w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-base transition-all duration-300
                                                 ${Object.keys(responses).length < questions.length
                                                     ? 'bg-white/5 text-neutral-500 cursor-not-allowed'
-                                                    : `bg-gradient-to-r ${currentAssessment.gradient} hover:shadow-2xl hover:shadow-purple-500/30 transform hover:-translate-y-1`}
+                                                    : `bg-gradient-to-r ${currentAssessment.gradient} hover:shadow-xl hover:shadow-purple-500/20 transform hover:-translate-y-0.5`}
                                             `}
                                         >
                                             Submit Assessment
-                                            <ChevronRight size={24} />
+                                            <ChevronRight size={20} />
                                         </button>
                                     </div>
                                 </div>
@@ -298,63 +300,62 @@ const Assessments = () => {
 
                             {/* History Sidebar */}
                             <div className="space-y-6">
-                                <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl rounded-3xl border border-white/10 p-6 shadow-xl">
-                                    <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                                        <Activity size={20} className="text-green-400" />
+                                <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl rounded-3xl border border-white/10 p-5 shadow-xl">
+                                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                        <Activity size={18} className="text-green-400" />
                                         Assessment History
                                     </h3>
-                                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                                         {history.length === 0 ? (
-                                            <div className="text-center py-12">
-                                                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
-                                                    <ClipboardCheck size={24} className="text-neutral-500" />
+                                            <div className="text-center py-10">
+                                                <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-3">
+                                                    <ClipboardCheck size={20} className="text-neutral-500" />
                                                 </div>
-                                                <p className="text-neutral-500 text-sm">No assessments yet</p>
+                                                <p className="text-neutral-500 text-xs">No assessments yet</p>
                                             </div>
                                         ) : (
                                             history.map(h => {
                                                 const assessment = assessmentTypes.find(a => a.id === h.type);
                                                 return (
-                                                    <div 
-                                                        key={h.id} 
-                                                        className="group p-5 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all duration-300 hover:shadow-lg"
+                                                    <div
+                                                        key={h.id}
+                                                        className="group p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all duration-300 hover:shadow-md"
                                                     >
-                                                        <div className="flex justify-between items-start mb-3">
+                                                        <div className="flex justify-between items-start mb-2">
                                                             <div className="flex items-center gap-3">
-                                                                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${assessment?.gradient || 'from-gray-500 to-gray-600'} flex items-center justify-center text-xs font-bold`}>
+                                                                <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${assessment?.gradient || 'from-gray-500 to-gray-600'} flex items-center justify-center text-[10px] font-bold`}>
                                                                     {h.type}
                                                                 </div>
                                                                 <div>
-                                                                    <div className="font-semibold text-white">{h.type}</div>
-                                                                    <div className="text-xs text-neutral-500">
+                                                                    <div className="font-semibold text-white text-sm">{h.type}</div>
+                                                                    <div className="text-[10px] text-neutral-500">
                                                                         {new Date(h.date).toLocaleDateString()}
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                                                h.severity === 'Normal' || h.severity === 'Minimal' 
-                                                                    ? 'bg-green-500/20 text-green-400' 
-                                                                    : h.severity === 'Severe' 
-                                                                    ? 'bg-red-500/20 text-red-400' 
+                                                            <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${h.severity === 'Normal' || h.severity === 'Minimal'
+                                                                ? 'bg-green-500/20 text-green-400'
+                                                                : h.severity === 'Severe'
+                                                                    ? 'bg-red-500/20 text-red-400'
                                                                     : 'bg-yellow-500/20 text-yellow-400'
-                                                            }`}>
+                                                                }`}>
                                                                 {h.score}
                                                             </div>
                                                         </div>
-                                                        <div className="text-sm text-neutral-400 mb-3">{h.severity}</div>
+                                                        <div className="text-xs text-neutral-400 mb-2">{h.severity}</div>
                                                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <button
                                                                 onClick={() => window.open(`${API_URL}/api/assessments/export/${h.id}`, '_blank')}
-                                                                className="flex-1 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1"
+                                                                className="flex-1 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-semibold transition-all flex items-center justify-center gap-1"
                                                             >
-                                                                <Download size={12} />
+                                                                <Download size={10} />
                                                                 Report
                                                             </button>
                                                             <button
                                                                 onClick={() => window.location.href = '/app/consultation'}
-                                                                className="px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-xl transition-all"
+                                                                className="px-2 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-all"
                                                             >
-                                                                <Share2 size={12} />
+                                                                <Share2 size={10} />
                                                             </button>
                                                         </div>
                                                     </div>
