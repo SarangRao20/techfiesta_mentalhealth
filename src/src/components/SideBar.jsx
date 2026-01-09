@@ -81,12 +81,15 @@ function SideBar() {
     <div className="flex min-h-screen bg-[#0f131c] text-white overflow-x-hidden font-sans">
 
       {/* FIXED TOGGLE BUTTON - Stays in place, does not shift */}
-      <button
-        onClick={() => setOpen(!open)}
-        className="fixed top-6 left-6 z-50 p-1.5 text-white/50 hover:text-white transition-all duration-300"
-      >
-        <Menu size={26} />
-      </button>
+      <div className="w-20 bg-black/30" >
+        <button
+          onClick={() => setOpen(!open)}
+          className="fixed top-6 left-6 z-50 p-1.5 text-white/60 backdrop-blur-sm bg-black/40 border rounded-md hover:text-white transition-all duration-300"
+        >
+          <Menu size={18} />
+        </button>
+
+      </div>
 
       {/* Sidebar Container */}
       <aside

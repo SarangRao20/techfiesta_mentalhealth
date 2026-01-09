@@ -1,240 +1,161 @@
+import { useState, useEffect } from 'react';
 import { Stem } from './Stem';
 
 export function CreeperPlant({ growth }) {
-  const w = typeof window !== 'undefined' ? window.innerWidth : 1920;
-  const h = typeof window !== 'undefined' ? window.innerHeight : 1080;
+  const [dimensions, setDimensions] = useState({
+    w: typeof window !== 'undefined' ? window.innerWidth : 1920,
+    h: typeof window !== 'undefined' ? window.innerHeight : 1080
+  });
 
-  // Dense cherry blossom branches with many buds that bloom into flowers
+  useEffect(() => {
+    const handleResize = () => {
+      setDimensions({
+        w: window.innerWidth,
+        h: window.innerHeight
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const { w, h } = dimensions;
+
+  // Aesthetic framing vines that grow from the corners
+  // Removing mid-screen "floating" vines to fix the "randomly positioned" feel.
+  // Focusing on lush, dense growth originating strictly from the four corners/edges.
+
   const vinePaths = [
+    // Top Left - Lush Draping Vine (Primary)
     {
-      id: 'left-branch',
-      path: `M 20,${h - 20} Q 35,${h - 120} 45,${h - 220} T 55,${h - 420} T 65,${h - 620} T 75,${h - 820} T 110,180 T 160,80 T 270,30`,
+      id: 'tl-main',
+      path: `M 0,-10 Q 50,80 120,120 T 250,200 T 320,350`,
       leaves: [
-        { percent: 8, side: 'left' },
-        { percent: 15, side: 'right' },
-        { percent: 22, side: 'left' },
-        { percent: 29, side: 'right' },
-        { percent: 36, side: 'left' },
-        { percent: 43, side: 'right' },
-        { percent: 50, side: 'left' },
-        { percent: 57, side: 'right' },
-        { percent: 64, side: 'left' },
-        { percent: 71, side: 'right' },
-        { percent: 78, side: 'left' },
-        { percent: 85, side: 'right' },
-        { percent: 92, side: 'left' },
+        { percent: 5, side: 'right' }, { percent: 12, side: 'left' },
+        { percent: 18, side: 'right' }, { percent: 25, side: 'left' },
+        { percent: 32, side: 'right' }, { percent: 40, side: 'left' },
+        { percent: 48, side: 'right' }, { percent: 55, side: 'left' },
+        { percent: 62, side: 'right' }, { percent: 70, side: 'left' },
+        { percent: 78, side: 'right' }, { percent: 85, side: 'left' },
+        { percent: 92, side: 'right' }, { percent: 98, side: 'left' },
       ],
       buds: [
-        { percent: 10, side: 'right', bloomAt: 55 },
-        { percent: 12, side: 'left', bloomAt: 58 },
-        { percent: 16, side: 'right', bloomAt: 60 },
-        { percent: 18, side: 'left', bloomAt: 62 },
-        { percent: 20, side: 'right', bloomAt: 64 },
-        { percent: 24, side: 'left', bloomAt: 66 },
-        { percent: 26, side: 'right', bloomAt: 68 },
-        { percent: 28, side: 'left', bloomAt: 70 },
-        { percent: 32, side: 'right', bloomAt: 72 },
-        { percent: 34, side: 'left', bloomAt: 74 },
-        { percent: 38, side: 'right', bloomAt: 76 },
-        { percent: 42, side: 'left', bloomAt: 78 },
-        { percent: 44, side: 'right', bloomAt: 80 },
-        { percent: 48, side: 'left', bloomAt: 82 },
-        { percent: 52, side: 'right', bloomAt: 84 },
-        { percent: 54, side: 'left', bloomAt: 86 },
-        { percent: 58, side: 'right', bloomAt: 88 },
-        { percent: 60, side: 'left', bloomAt: 90 },
-        { percent: 62, side: 'right', bloomAt: 92 },
-        { percent: 66, side: 'left', bloomAt: 94 },
-        { percent: 68, side: 'right', bloomAt: 96 },
-        { percent: 72, side: 'left', bloomAt: 98 },
+        { percent: 15, side: 'left', bloomAt: 35 },
+        { percent: 30, side: 'right', bloomAt: 55 },
+        { percent: 50, side: 'left', bloomAt: 75 },
+        { percent: 75, side: 'right', bloomAt: 90 },
+        { percent: 90, side: 'left', bloomAt: 98 },
       ],
     },
+    // Top Left - Secondary Tendril (Hugging top edge)
     {
-      id: 'top-left-branch',
-      path: `M 270,30 Q 380,25 490,28 T 710,35 T ${w / 2 - 120},40`,
+      id: 'tl-top',
+      path: `M -10,20 Q 80,30 180,20 T 350,40`,
       leaves: [
-        { percent: 10, side: 'left' },
-        { percent: 20, side: 'right' },
-        { percent: 30, side: 'left' },
-        { percent: 40, side: 'right' },
-        { percent: 50, side: 'left' },
-        { percent: 60, side: 'right' },
-        { percent: 70, side: 'left' },
-        { percent: 80, side: 'right' },
-        { percent: 90, side: 'left' },
+        { percent: 20, side: 'left' }, { percent: 45, side: 'right' },
+        { percent: 70, side: 'left' }, { percent: 90, side: 'right' },
       ],
       buds: [
-        { percent: 8, side: 'right', bloomAt: 56 },
-        { percent: 12, side: 'left', bloomAt: 58 },
-        { percent: 15, side: 'right', bloomAt: 60 },
-        { percent: 18, side: 'left', bloomAt: 62 },
-        { percent: 22, side: 'right', bloomAt: 64 },
-        { percent: 25, side: 'left', bloomAt: 66 },
-        { percent: 28, side: 'right', bloomAt: 68 },
-        { percent: 32, side: 'left', bloomAt: 70 },
-        { percent: 35, side: 'right', bloomAt: 72 },
-        { percent: 38, side: 'left', bloomAt: 74 },
-        { percent: 42, side: 'right', bloomAt: 76 },
-        { percent: 45, side: 'left', bloomAt: 78 },
-        { percent: 48, side: 'right', bloomAt: 80 },
-        { percent: 52, side: 'left', bloomAt: 82 },
-        { percent: 55, side: 'right', bloomAt: 84 },
-        { percent: 58, side: 'left', bloomAt: 86 },
-        { percent: 62, side: 'right', bloomAt: 88 },
-        { percent: 65, side: 'left', bloomAt: 90 },
-        { percent: 68, side: 'right', bloomAt: 92 },
-        { percent: 72, side: 'left', bloomAt: 94 },
-        { percent: 75, side: 'right', bloomAt: 96 },
+        { percent: 40, side: 'right', bloomAt: 60 },
+        { percent: 85, side: 'left', bloomAt: 95 },
       ],
     },
+
+    // Top Right - Main Drape (Curving inwards)
     {
-      id: 'top-right-branch',
-      path: `M ${w / 2 + 120},40 Q ${w / 2 + 230},35 ${w / 2 + 340},28 T ${w - 270},30`,
+      id: 'tr-main',
+      path: `M ${w},-10 Q ${w - 60},80 ${w - 140},140 T ${w - 280},220`,
       leaves: [
-        { percent: 10, side: 'right' },
-        { percent: 20, side: 'left' },
-        { percent: 30, side: 'right' },
-        { percent: 40, side: 'left' },
-        { percent: 50, side: 'right' },
-        { percent: 60, side: 'left' },
-        { percent: 70, side: 'right' },
+        { percent: 10, side: 'left' }, { percent: 22, side: 'right' },
+        { percent: 35, side: 'left' }, { percent: 48, side: 'right' },
+        { percent: 60, side: 'left' }, { percent: 75, side: 'right' },
+        { percent: 88, side: 'left' },
+      ],
+      buds: [
+        { percent: 25, side: 'right', bloomAt: 45 },
+        { percent: 55, side: 'left', bloomAt: 75 },
+        { percent: 85, side: 'right', bloomAt: 95 },
+      ],
+    },
+    // Top Right - Secondary (Hugging right edge)
+    {
+      id: 'tr-side',
+      path: `M ${w},40 Q ${w - 40},100 ${w - 30},200 T ${w - 50},350`,
+      leaves: [
+        { percent: 15, side: 'left' }, { percent: 35, side: 'right' },
+        { percent: 55, side: 'left' }, { percent: 75, side: 'right' },
+        { percent: 95, side: 'left' },
+      ],
+      buds: [
+        { percent: 30, side: 'left', bloomAt: 50 },
+        { percent: 70, side: 'right', bloomAt: 85 },
+      ],
+    },
+
+    // Bottom Left - Climber (Tall and graceful)
+    {
+      id: 'bl-tall',
+      path: `M 10,${h + 10} Q 60,${h - 100} 100,${h - 250} T 180,${h - 450} T 300,${h - 600}`,
+      leaves: [
+        { percent: 5, side: 'right' }, { percent: 12, side: 'left' },
+        { percent: 18, side: 'right' }, { percent: 26, side: 'left' },
+        { percent: 34, side: 'right' }, { percent: 42, side: 'left' },
+        { percent: 50, side: 'right' }, { percent: 58, side: 'left' },
+        { percent: 66, side: 'right' }, { percent: 74, side: 'left' },
+        { percent: 82, side: 'right' }, { percent: 90, side: 'left' },
+        { percent: 98, side: 'right' },
+      ],
+      buds: [
+        { percent: 20, side: 'left', bloomAt: 40 },
+        { percent: 45, side: 'right', bloomAt: 60 },
+        { percent: 65, side: 'left', bloomAt: 80 },
+        { percent: 85, side: 'right', bloomAt: 95 },
+      ],
+    },
+    // Bottom Left - Floor Runner
+    {
+      id: 'bl-floor',
+      path: `M -10,${h - 20} Q 100,${h - 40} 250,${h - 30} T 450,${h - 50}`,
+      leaves: [
+        { percent: 15, side: 'right' }, { percent: 35, side: 'left' },
+        { percent: 55, side: 'right' }, { percent: 75, side: 'left' },
+        { percent: 95, side: 'right' },
+      ],
+      buds: [
+        { percent: 40, side: 'left', bloomAt: 60 },
+        { percent: 80, side: 'right', bloomAt: 90 },
+      ],
+    },
+
+    // Bottom Right - Climber
+    {
+      id: 'br-tall',
+      path: `M ${w - 20},${h + 10} Q ${w - 80},${h - 150} ${w - 150},${h - 300} T ${w - 300},${h - 480}`,
+      leaves: [
+        { percent: 8, side: 'left' }, { percent: 16, side: 'right' },
+        { percent: 24, side: 'left' }, { percent: 32, side: 'right' },
+        { percent: 40, side: 'left' }, { percent: 50, side: 'right' },
+        { percent: 60, side: 'left' }, { percent: 70, side: 'right' },
+        { percent: 80, side: 'left' }, { percent: 90, side: 'right' },
+      ],
+      buds: [
+        { percent: 25, side: 'right', bloomAt: 45 },
+        { percent: 55, side: 'left', bloomAt: 75 },
+        { percent: 85, side: 'right', bloomAt: 95 },
+      ],
+    },
+    // Bottom Right - Floor Runner
+    {
+      id: 'br-floor',
+      path: `M ${w + 10},${h - 30} Q ${w - 120},${h - 40} ${w - 280},${h - 50}`,
+      leaves: [
+        { percent: 20, side: 'left' }, { percent: 50, side: 'right' },
         { percent: 80, side: 'left' },
-        { percent: 90, side: 'right' },
       ],
       buds: [
-        { percent: 8, side: 'left', bloomAt: 57 },
-        { percent: 12, side: 'right', bloomAt: 59 },
-        { percent: 15, side: 'left', bloomAt: 61 },
-        { percent: 18, side: 'right', bloomAt: 63 },
-        { percent: 22, side: 'left', bloomAt: 65 },
-        { percent: 25, side: 'right', bloomAt: 67 },
-        { percent: 28, side: 'left', bloomAt: 69 },
-        { percent: 32, side: 'right', bloomAt: 71 },
-        { percent: 35, side: 'left', bloomAt: 73 },
-        { percent: 38, side: 'right', bloomAt: 75 },
-        { percent: 42, side: 'left', bloomAt: 77 },
-        { percent: 45, side: 'right', bloomAt: 79 },
-        { percent: 48, side: 'left', bloomAt: 81 },
-        { percent: 52, side: 'right', bloomAt: 83 },
-        { percent: 55, side: 'left', bloomAt: 85 },
-        { percent: 58, side: 'right', bloomAt: 87 },
-        { percent: 62, side: 'left', bloomAt: 89 },
-        { percent: 65, side: 'right', bloomAt: 91 },
-        { percent: 68, side: 'left', bloomAt: 93 },
-        { percent: 72, side: 'right', bloomAt: 95 },
-        { percent: 75, side: 'left', bloomAt: 97 },
+        { percent: 60, side: 'right', bloomAt: 80 },
       ],
-    },
-    {
-      id: 'right-branch',
-      path: `M ${w - 270},30 Q ${w - 160},80 ${w - 110},180 T ${w - 75},${h - 820} T ${w - 65},${h - 620} T ${w - 55},${h - 420} T ${w - 45},${h - 220} T ${w - 20},${h - 20}`,
-      leaves: [
-        { percent: 8, side: 'right' },
-        { percent: 15, side: 'left' },
-        { percent: 22, side: 'right' },
-        { percent: 29, side: 'left' },
-        { percent: 36, side: 'right' },
-        { percent: 43, side: 'left' },
-        { percent: 50, side: 'right' },
-        { percent: 57, side: 'left' },
-        { percent: 64, side: 'right' },
-        { percent: 71, side: 'left' },
-        { percent: 78, side: 'right' },
-        { percent: 85, side: 'left' },
-        { percent: 92, side: 'right' },
-      ],
-      buds: [
-        { percent: 10, side: 'left', bloomAt: 54 },
-        { percent: 12, side: 'right', bloomAt: 56 },
-        { percent: 16, side: 'left', bloomAt: 58 },
-        { percent: 18, side: 'right', bloomAt: 60 },
-        { percent: 20, side: 'left', bloomAt: 62 },
-        { percent: 24, side: 'right', bloomAt: 64 },
-        { percent: 26, side: 'left', bloomAt: 66 },
-        { percent: 28, side: 'right', bloomAt: 68 },
-        { percent: 32, side: 'left', bloomAt: 70 },
-        { percent: 34, side: 'right', bloomAt: 72 },
-        { percent: 38, side: 'left', bloomAt: 74 },
-        { percent: 42, side: 'right', bloomAt: 76 },
-        { percent: 44, side: 'left', bloomAt: 78 },
-        { percent: 48, side: 'right', bloomAt: 80 },
-        { percent: 52, side: 'left', bloomAt: 82 },
-        { percent: 54, side: 'right', bloomAt: 84 },
-        { percent: 58, side: 'left', bloomAt: 86 },
-        { percent: 60, side: 'right', bloomAt: 88 },
-        { percent: 62, side: 'left', bloomAt: 90 },
-        { percent: 66, side: 'right', bloomAt: 92 },
-        { percent: 68, side: 'left', bloomAt: 94 },
-        { percent: 72, side: 'right', bloomAt: 96 },
-      ],
-    },
-    {
-      id: 'bottom-right-branch',
-      path: `M ${w - 20},${h - 20} Q ${w - 110},${h - 28} ${w - 210},${h - 32} T ${w / 2 + 120},${h - 42}`,
-      leaves: [
-        { percent: 12, side: 'left' },
-        { percent: 24, side: 'right' },
-        { percent: 36, side: 'left' },
-        { percent: 48, side: 'right' },
-        { percent: 60, side: 'left' },
-        { percent: 72, side: 'right' },
-        { percent: 84, side: 'left' },
-      ],
-      buds: [
-        { percent: 10, side: 'right', bloomAt: 58 },
-        { percent: 15, side: 'left', bloomAt: 60 },
-        { percent: 20, side: 'right', bloomAt: 62 },
-        { percent: 28, side: 'left', bloomAt: 64 },
-        { percent: 32, side: 'right', bloomAt: 66 },
-        { percent: 35, side: 'left', bloomAt: 68 },
-        { percent: 40, side: 'right', bloomAt: 70 },
-        { percent: 44, side: 'left', bloomAt: 72 },
-        { percent: 50, side: 'right', bloomAt: 74 },
-        { percent: 55, side: 'left', bloomAt: 76 },
-        { percent: 62, side: 'right', bloomAt: 78 },
-        { percent: 68, side: 'left', bloomAt: 80 },
-        { percent: 70, side: 'right', bloomAt: 82 },
-        { percent: 76, side: 'left', bloomAt: 84 },
-        { percent: 80, side: 'right', bloomAt: 86 },
-        { percent: 82, side: 'left', bloomAt: 88 },
-        { percent: 88, side: 'right', bloomAt: 90 },
-      ],
-    },
-    {
-      id: 'bottom-left-branch',
-      path: `M ${w / 2 - 120},${h - 42} Q ${w / 2 - 230},${h - 38} 210,${h - 32} T 110,${h - 28} T 20,${h - 20}`,
-      leaves: [
-        { percent: 12, side: 'right' },
-        { percent: 24, side: 'left' },
-        { percent: 36, side: 'right' },
-        { percent: 48, side: 'left' },
-        { percent: 60, side: 'right' },
-        { percent: 72, side: 'left' },
-        { percent: 84, side: 'right' },
-      ],
-      buds: [
-        { percent: 10, side: 'left', bloomAt: 59 },
-        { percent: 14, side: 'right', bloomAt: 61 },
-        { percent: 18, side: 'left', bloomAt: 63 },
-        { percent: 20, side: 'right', bloomAt: 65 },
-        { percent: 26, side: 'left', bloomAt: 67 },
-        { percent: 30, side: 'right', bloomAt: 69 },
-        { percent: 32, side: 'left', bloomAt: 71 },
-        { percent: 38, side: 'right', bloomAt: 73 },
-        { percent: 42, side: 'left', bloomAt: 75 },
-        { percent: 44, side: 'right', bloomAt: 77 },
-        { percent: 50, side: 'left', bloomAt: 79 },
-        { percent: 54, side: 'right', bloomAt: 81 },
-        { percent: 56, side: 'left', bloomAt: 83 },
-        { percent: 62, side: 'right', bloomAt: 85 },
-        { percent: 66, side: 'left', bloomAt: 87 },
-        { percent: 68, side: 'right', bloomAt: 89 },
-        { percent: 74, side: 'left', bloomAt: 91 },
-        { percent: 78, side: 'right', bloomAt: 93 },
-        { percent: 80, side: 'left', bloomAt: 95 },
-        { percent: 86, side: 'right', bloomAt: 97 },
-      ],
-    },
+    }
   ];
 
   return (
