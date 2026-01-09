@@ -247,9 +247,9 @@ export default function Dashboard() {
                     <p className="text-sm font-semibold text-white/90 truncate">{consult.counsellor_name}</p>
                     <p className="text-xs text-white/40 truncate">Video Consultation • {new Date(consult.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
-                  {consult.meeting_link ? (
+                  {consult.meetingLink ? (
                     <a
-                      href={consult.meeting_link}
+                      href={consult.meetingLink}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-medium rounded-lg transition shadow-lg shadow-indigo-500/20"

@@ -78,6 +78,8 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 app.config['REMEMBER_COOKIE_SECURE'] = False
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=7)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///mental_health.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False

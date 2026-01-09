@@ -292,7 +292,9 @@ class PatientDetailedInsights(Resource):
                 'accommodation_type': patient.accommodation_type,
                 'current_emotional_state': current_emotional_state,
                 'current_emotional_intensity': current_emotional_intensity,
-                'risk_level': risk_level
+                'risk_level': risk_level,
+                'latest_consultation_id': has_access.id if has_access else None,
+                'latest_meeting_link': has_access.chat_video_link if has_access else None
             },
             'assessments': [{
                 'id': a.id,
