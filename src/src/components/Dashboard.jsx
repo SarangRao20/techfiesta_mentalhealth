@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { API_URL } from "../config";
+
+const API_URL = 'http://localhost:5000';
 
 export default function Dashboard() {
-  const navigate = useNavigate();
   const [stats, setStats] = useState({
     login_streak: 0,
     username: "",
@@ -17,23 +16,20 @@ export default function Dashboard() {
   const [ignite, setIgnite] = useState(false);
   const [moodIndex, setMoodIndex] = useState(1);
   const [loading, setLoading] = useState(true);
-  const[mood,setMood]=useState();
+  const [mood, setMood] = useState();
+  const [showCrisisMenu, setShowCrisisMenu] = useState(false);
   const moods = ["😔", "🙂", "😄", "🤩"];
   const moodLabels = ["Low", "Okay", "Happy", "Great"];
-  localStorage.setItem("mood",mood);
   
   useEffect(() => {
-    // Check onboarding status for students
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if (user.role === 'student' && !user.is_onboarded) {
-      navigate("/start-journey");
-      return;
+    if (mood) {
+      localStorage.setItem("mood", mood);
     }
-
-    // Fire ignites on page refresh
+  }, [mood]);
+  
+  useEffect(() => {
     setTimeout(() => setIgnite(true), 300);
 
-    // Quick Hydration from LocalStorage
     const cachedDash = localStorage.getItem("initial_dash");
     const cachedUser = localStorage.getItem("user");
     if (cachedDash) {
@@ -49,7 +45,6 @@ export default function Dashboard() {
       setLoading(false);
     }
     
-    // Fetch dashboard data
     const fetchDashboardData = async () => {
       try {
         const response = await fetch(`${API_URL}/api/dashboard`, {
@@ -59,8 +54,6 @@ export default function Dashboard() {
           const data = await response.json();
           let username = data.username || "";
           let full_name = data.full_name || "";
-
-          // No fallback needed if data is provided in dashboard itself
 
           setStats({
             login_streak: data.login_streak || 0,
@@ -73,7 +66,6 @@ export default function Dashboard() {
             recent_meditation_logs: data.recent_meditation_logs || []
           });
 
-          // Persistent Cache: Save for next instant-load
           localStorage.setItem("initial_dash", JSON.stringify(data));
         }
       } catch (error) {
@@ -84,7 +76,7 @@ export default function Dashboard() {
     };
 
     fetchDashboardData();
-  }, [navigate]);
+  }, []);
 
   if (loading) {
     return (
@@ -105,7 +97,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f131c] to-[#141923] p-8 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f131c] to-[#141923] p-8 text-white relative">
       <h1 className="text-3xl font-semibold mb-8 tracking-wide">
         Dashboard
       </h1>
@@ -257,6 +249,84 @@ export default function Dashboard() {
           </div>
         </Card>
       </div>
+
+      {/* Crisis Support Floating Button */}
+      <div className="fixed bottom-8 right-8 z-50">
+        {showCrisisMenu && (
+          <div className="mb-4 bg-white rounded-2xl shadow-2xl p-4 w-72 animate-slide-up">
+            <button
+              onClick={() => window.location.href = 'tel:14416'}
+              className="w-full flex items-center gap-3 p-3 hover:bg-red-50 rounded-xl transition-colors group"
+            >
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                📞
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-800">Crisis Support: 14416</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => window.location.href = '/app/ai-chat'}
+              className="w-full flex items-center gap-3 p-3 hover:bg-purple-50 rounded-xl transition-colors group mt-2"
+            >
+              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                💬
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-800">Chat Support</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => window.location.href = '/app/consultation'}
+              className="w-full flex items-center gap-3 p-3 hover:bg-blue-50 rounded-xl transition-colors group mt-2"
+            >
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                👨‍⚕️
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-800">Get Professional Help</p>
+              </div>
+            </button>
+          </div>
+        )}
+
+        <button
+          onClick={() => setShowCrisisMenu(!showCrisisMenu)}
+          className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-pink-600 text-white shadow-2xl hover:shadow-red-500/50 transition-all hover:scale-110 flex items-center justify-center font-bold text-2xl"
+        >
+          {showCrisisMenu ? '✕' : '🆘'}
+        </button>
+      </div>
+
+      <style>{`
+        .card-title {
+          font-size: 1rem;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.9);
+        }
+        @keyframes slide-up {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out;
+        }
+        @keyframes flame {
+          0%, 100% { transform: scale(1) rotate(-2deg); }
+          50% { transform: scale(1.1) rotate(2deg); }
+        }
+        .animate-flame {
+          animation: flame 1.5s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }
@@ -267,15 +337,6 @@ function Card({ children }) {
   return (
     <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 hover:border-white/20 transition">
       {children}
-    </div>
-  );
-}
-
-function Row({ label, value }) {
-  return (
-    <div className="flex justify-between border-b border-white/10 pb-1">
-      <span>{label}</span>
-      <span>{value}</span>
     </div>
   );
 }
