@@ -93,7 +93,7 @@ def get_dashboard_summary(user):
                 'time_slot': c.time_slot,
                 'date': c.session_datetime.isoformat() if c.session_datetime else None,
                 'status': c.status,
-                'meeting_link': c.chat_video_link
+                'meetingLink': c.chat_video_link
             } for c in ConsultationRequest.query.options(joinedload(ConsultationRequest.counsellor)).filter_by(user_id=user.id, status='booked').filter(ConsultationRequest.session_datetime >= datetime.utcnow()).order_by(ConsultationRequest.session_datetime.asc()).limit(3).all()
         ],
         'recent_meditation_logs': [

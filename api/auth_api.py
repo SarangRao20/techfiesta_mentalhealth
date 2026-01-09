@@ -57,6 +57,9 @@ class Login(Resource):
         print(f"DEBUG: DB User Fetch took {time.time() - start_time:.4f}s")
         
         if user and user.check_password(data['password']):
+            # Ensure session is permanent (respects PERMANENT_SESSION_LIFETIME)
+            session.permanent = True
+            
             step_start = time.time()
             login_user(user, remember=True)
             print(f"DEBUG: Flask-Login login_user took {time.time() - step_start:.4f}s")
