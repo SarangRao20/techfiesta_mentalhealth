@@ -39,7 +39,7 @@ export default function Register() {
     });
 
     if (send.ok) {
-      navigate("/start-journey");
+      navigate("/signin");
     } else {
       const errorData = await send.json();
       alert(errorData.message || "Registration failed. Please try again.");
