@@ -18,6 +18,7 @@ import {
   LogOut,
   X
 } from "lucide-react";
+import GlobalCrisisButton from "./GlobalCrisisButton";
 
 function SideBar() {
   const [open, setOpen] = useState(false);
@@ -220,6 +221,9 @@ function SideBar() {
       >
 
         <Outlet />
+
+        {/* Global SOS Button - Floating above content */}
+        <GlobalCrisisButton />
 
       </main>
 
