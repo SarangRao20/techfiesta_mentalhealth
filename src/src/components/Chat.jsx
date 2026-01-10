@@ -640,7 +640,7 @@ const Chat = () => {
                     <div ref={messagesEndRef} />
                 </div>
 
-                <div className="px-6 py-4 border-t border-white/5 bg-[#0f131c]">
+                <div className="px-4 py-4 pr-20 border-t border-white/5 bg-[#0f131c]">
                     <div className="flex items-center gap-3">
                         <input
                             type="text"
@@ -653,7 +653,7 @@ const Chat = () => {
                         <button
                             onClick={handleSend}
                             disabled={!input.trim()}
-                            className="w-11 h-11 rounded-2xl bg-[#8e74ff] hover:bg-[#9d84ff] text-white disabled:opacity-40 disabled:hover:bg-[#8e74ff] transition-all flex items-center justify-center"
+                            className="w-11 h-11 rounded-2xl bg-[#8e74ff] hover:bg-[#9d84ff] text-white disabled:opacity-40 transition-all flex items-center justify-center"
                         >
                             <Send className="w-5 h-5" />
                         </button>
