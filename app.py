@@ -246,6 +246,6 @@ api.add_namespace(counsellor_ns, path='/counsellor')
 
 # Initialize SocketIO
 from api.chat_socket import socketio
-socketio.init_app(app)
+socketio.init_app(app, cors_allowed_origins=allowed_origins, async_mode='threading', manage_session=False)
 
 # SocketIO initialization is done above: socketio.init_app(app)
