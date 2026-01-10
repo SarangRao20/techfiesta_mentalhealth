@@ -55,12 +55,12 @@ function TasksManager() {
       alert("Please enter a task title");
       return;
     }
-    
+
     if (!start) {
       alert("Please select a start time");
       return;
     }
-    
+
     if (!end) {
       alert("Please select an end time");
       return;
@@ -110,7 +110,7 @@ function TasksManager() {
       if (res.ok) {
         const updatedTask = await res.json();
         // Update the task in state
-        setTasks(prevTasks => 
+        setTasks(prevTasks =>
           prevTasks.map(t => (t.id === id ? updatedTask : t))
         );
       } else {
@@ -169,7 +169,7 @@ function TasksManager() {
               {percent}%
             </span>
           </div>
-          
+
           <div className="mt-4 text-center text-sm text-white/60">
             {completed} of {tasks.length} tasks completed
           </div>
@@ -249,13 +249,12 @@ function TasksManager() {
           <div className="space-y-3">
             {tasks.map(t => {
               const isCompleted = t.done === true || t.status === 'completed';
-              
+
               return (
                 <div
                   key={t.id}
-                  className={`flex items-start justify-between border-b border-white/10 pb-3 transition-opacity ${
-                    isCompleted ? 'opacity-60' : 'opacity-100'
-                  }`}
+                  className={`flex items-start justify-between border-b border-white/10 pb-3 transition-opacity ${isCompleted ? 'opacity-60' : 'opacity-100'
+                    }`}
                 >
                   <div className="flex items-start gap-3 flex-1">
                     <input
