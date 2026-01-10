@@ -5,8 +5,8 @@ from datetime import datetime
 from database import db
 from db_models import CommunityChatLog, User
 
-# Initialize SocketIO
-socketio = SocketIO(cors_allowed_origins="*", manage_session=False, async_mode='threading')
+# Initialize SocketIO (will be bound to app via init_app)
+socketio = SocketIO(cors_allowed_origins="*", manage_session=False, async_mode='threading', logger=True, engineio_logger=False)
 
 @socketio.on('connect')
 def handle_connect():
