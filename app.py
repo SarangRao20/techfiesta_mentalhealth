@@ -78,6 +78,8 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 app.config['REMEMBER_COOKIE_SECURE'] = False
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=7)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///mental_health.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -244,6 +246,6 @@ api.add_namespace(counsellor_ns, path='/counsellor')
 
 # Initialize SocketIO
 from api.chat_socket import socketio
-socketio.init_app(app)
+socketio.init_app(app, cors_allowed_origins=allowed_origins, async_mode='threading', manage_session=False)
 
 # SocketIO initialization is done above: socketio.init_app(app)

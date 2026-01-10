@@ -191,7 +191,18 @@ const CounsellorDashboardNew = () => {
                                         )}
                                     </div>
                                     <div className="flex-1">
-                                        <h1 className="text-3xl font-bold text-white mb-1">{selectedPatient.full_name}</h1>
+                                        <div className="flex items-center justify-between">
+                                            <h1 className="text-3xl font-bold text-white mb-1">{selectedPatient.full_name}</h1>
+                                            {insights.patient_info.latest_consultation_id && (
+                                                <button
+                                                    onClick={() => handleAddLink(insights.patient_info.latest_consultation_id, insights.patient_info.latest_meeting_link)}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 border border-indigo-500/30 rounded-xl transition-all text-sm font-semibold shadow-lg shadow-indigo-500/10 group"
+                                                >
+                                                    <LinkIcon size={16} className="group-hover:rotate-12 transition-transform" />
+                                                    {insights.patient_info.latest_meeting_link ? 'Update Meeting Link' : 'Share Meeting Link'}
+                                                </button>
+                                            )}
+                                        </div>
                                         <div className="flex items-center gap-4 text-sm text-gray-400">
                                             <span className="bg-white/5 px-3 py-1 rounded-full border border-white/5">{selectedPatient.email}</span>
                                             <span className={`px-3 py-1 rounded-full font-medium ${insights.patient_info.risk_level === 'critical' ? 'bg-red-500/20 text-red-400' :

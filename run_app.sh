@@ -5,6 +5,10 @@ echo "Starting TechFiesta Mental Health App..."
 # Kill running processes on exit
 trap "kill 0" EXIT
 
+# Start Ollama
+echo "Launching Ollama Server..."
+ollama serve &
+
 # Start Backend
 echo "Launching Backend (Python)..."
 python main.py &

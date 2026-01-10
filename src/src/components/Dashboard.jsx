@@ -17,7 +17,6 @@ export default function Dashboard() {
   });
   const [ignite, setIgnite] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [showCrisisMenu, setShowCrisisMenu] = useState(false);
 
   useEffect(() => {
     setTimeout(() => setIgnite(true), 300);
@@ -216,15 +215,7 @@ export default function Dashboard() {
             <QuickActionTile icon="🔒" label="Venting Hall" sub="Private Space" to="/app/private-venting" delay="100" />
             <QuickActionTile icon="💬" label="Community" sub="Realtime Chat" to="/app/community" delay="200" />
             <QuickActionTile icon="📝" label="Assess" sub="Check-in" to="/app/assessments" delay="300" />
-            <div className="mt-auto pt-4 border-t border-white/5">
-              <button
-                onClick={() => setShowCrisisMenu(!showCrisisMenu)}
-                className="w-full flex items-center justify-between p-4 rounded-xl bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 transition group cursor-pointer"
-              >
-                <span className="text-sm font-semibold text-red-400">SOS Support</span>
-                <span className="text-red-400 group-hover:translate-x-1 transition">→</span>
-              </button>
-            </div>
+            <QuickActionTile icon="📚" label="Library" sub="Resources" to="/app/resources" delay="400" />
           </div>
         </Card>
 
@@ -247,9 +238,9 @@ export default function Dashboard() {
                     <p className="text-sm font-semibold text-white/90 truncate">{consult.counsellor_name}</p>
                     <p className="text-xs text-white/40 truncate">Video Consultation • {new Date(consult.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
-                  {consult.meeting_link ? (
+                  {consult.meetingLink ? (
                     <a
-                      href={consult.meeting_link}
+                      href={consult.meetingLink}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-medium rounded-lg transition shadow-lg shadow-indigo-500/20"
@@ -293,32 +284,7 @@ export default function Dashboard() {
 
       </div>
 
-      {/* CRISIS MENU OVERLAY (If needed, separate from Quick Actions or redundant) */}
-      {/* Kept minimal as integrated in Quick Actions card now, but kept absolute logic if user needs global access */}
-      {showCrisisMenu && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowCrisisMenu(false)}>
-          <div className="bg-[#1a1f2e] border border-white/10 rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-scale-up" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-white mb-4">Emergency Support</h3>
-            <div className="space-y-3">
-              <button onClick={() => window.location.href = 'tel:14416'} className="w-full flex items-center gap-4 p-4 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/10 text-left transition">
-                <span className="text-2xl">📞</span>
-                <div>
-                  <p className="font-bold text-red-400">Helpline: 14416</p>
-                  <p className="text-xs text-red-400/60">24/7 Crisis Support</p>
-                </div>
-              </button>
-              <button onClick={() => window.location.href = '/app/chat'} className="w-full flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-left transition">
-                <span className="text-2xl">💬</span>
-                <div>
-                  <p className="font-bold text-white">Chat Support</p>
-                  <p className="text-xs text-white/50">Talk to a counselor</p>
-                </div>
-              </button>
-            </div>
-            <button onClick={() => setShowCrisisMenu(false)} className="mt-6 w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-medium text-white/60 transition">Cancel</button>
-          </div>
-        </div>
-      )}
+
 
       <style>{`
         .card-title {

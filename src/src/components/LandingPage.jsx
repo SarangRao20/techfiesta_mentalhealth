@@ -61,7 +61,7 @@ const LandingPage = () => {
                   d="M12 21C12 21 4 13.5 4 8a4 4 0 0 1 8 0 4 4 0 0 1 8 0c0 5.5-8 13-8 13z" />
               </svg>
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-[#c495e6] to-[#e4bef2] bg-clip-text text-transparent">MindWell</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-[#c495e6] to-[#e4bef2] bg-clip-text text-transparent">CarePulse</span>
           </a>
 
           {/* Nav links */}
@@ -70,18 +70,19 @@ const LandingPage = () => {
               Features
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#c495e6] to-[#e4bef2] group-hover:w-full transition-all duration-300"></span>
             </a>
+            <a href="#statistics" className="text-gray-400 hover:text-[#c495e6] transition-all duration-300 font-medium relative group">
+              Impact
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#c495e6] to-[#e4bef2] group-hover:w-full transition-all duration-300"></span>
+            </a>
             <a href="#testimonials" className="text-gray-400 hover:text-[#c495e6] transition-all duration-300 font-medium relative group">
               Stories
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#c495e6] to-[#e4bef2] group-hover:w-full transition-all duration-300"></span>
             </a>
-            <a href="#why-mindwell" className="text-gray-400 hover:text-[#c495e6] transition-all duration-300 font-medium relative group">
+            <a href="#why-CarePulse" className="text-gray-400 hover:text-[#c495e6] transition-all duration-300 font-medium relative group">
               Why Us
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#c495e6] to-[#e4bef2] group-hover:w-full transition-all duration-300"></span>
             </a>
-            <a href="#resources" className="text-gray-400 hover:text-[#c495e6] transition-all duration-300 font-medium relative group">
-              Resources
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#c495e6] to-[#e4bef2] group-hover:w-full transition-all duration-300"></span>
-            </a>
+
             <a href="#faq" className="text-gray-400 hover:text-[#c495e6] transition-all duration-300 font-medium relative group">
               FAQ
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#c495e6] to-[#e4bef2] group-hover:w-full transition-all duration-300"></span>
@@ -275,7 +276,7 @@ const LandingPage = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              How <span className="bg-gradient-to-r from-[#c495e6] to-[#e4bef2] bg-clip-text text-transparent">MindWell Works</span>
+              How <span className="bg-gradient-to-r from-[#c495e6] to-[#e4bef2] bg-clip-text text-transparent">CarePulse Works</span>
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
               Your path to better mental health in four simple steps
@@ -350,12 +351,12 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Why Choose MindWell Section */}
-      <section id="why-mindwell" className="py-24 relative bg-gradient-to-b from-transparent to-purple-500/5 scroll-mt-20">
+      {/* Why Choose CarePulse Section */}
+      <section id="why-CarePulse" className="py-24 relative bg-gradient-to-b from-transparent to-purple-500/5 scroll-mt-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              Why Choose <span className="bg-gradient-to-r from-[#c495e6] to-[#e4bef2] bg-clip-text text-transparent">MindWell?</span>
+              Why Choose <span className="bg-gradient-to-r from-[#c495e6] to-[#e4bef2] bg-clip-text text-transparent">CarePulse?</span>
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
               We're different because we understand students
@@ -514,7 +515,7 @@ const LandingPage = () => {
           <div className="space-y-6">
             {[
               {
-                q: "Is MindWell really confidential?",
+                q: "Is CarePulse really confidential?",
                 a: "Yes, absolutely. All your data is encrypted and private. We never share your information with parents, schools, or anyone else without your explicit permission, except in cases where we're legally required to ensure your safety."
               },
               {
@@ -530,8 +531,8 @@ const LandingPage = () => {
                 a: "Our AI chatbot has crisis detection capabilities and will immediately provide you with emergency resources. You can also call the National Suicide Prevention Lifeline at 988 or text HOME to 741741 for immediate support."
               },
               {
-                q: "Can I use MindWell on my phone?",
-                a: "Yes! MindWell is fully responsive and works on all devices - smartphones, tablets, and computers. You can access your account anywhere, anytime."
+                q: "Can I use CarePulse on my phone?",
+                a: "Yes! CarePulse is fully responsive and works on all devices - smartphones, tablets, and computers. You can access your account anywhere, anytime."
               },
               {
                 q: "Do I need parental consent?",
@@ -590,7 +591,7 @@ const LandingPage = () => {
                       d="M12 21C12 21 4 13.5 4 8a4 4 0 0 1 8 0 4 4 0 0 1 8 0c0 5.5-8 13-8 13z" />
                   </svg>
                 </div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-[#c495e6] to-[#e4bef2] bg-clip-text text-transparent">MindWell</span>
+                <span className="text-2xl font-bold bg-gradient-to-r from-[#c495e6] to-[#e4bef2] bg-clip-text text-transparent">CarePulse</span>
               </div>
               <p className="text-gray-400 leading-relaxed">Supporting student mental health with professional, accessible, and confidential care.</p>
             </div>
@@ -632,7 +633,7 @@ const LandingPage = () => {
           </div>
 
           <div className="border-t border-white/10 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 MindWell. All rights reserved. Made with 💜 for student wellness.</p>
+            <p>&copy; 2024 CarePulse. All rights reserved. Made with 💜 for student wellness.</p>
           </div>
         </div>
       </footer>

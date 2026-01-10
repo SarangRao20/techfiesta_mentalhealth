@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { MessageSquare, Heart, Share2, MoreHorizontal, Send, Filter, User, X, Shield, Plus, CornerDownRight, Sparkles, Image as ImageIcon, Smile, Clock, Zap, ArrowRight, Activity, MessageCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MessageSquare, Heart, Share2, MoreHorizontal, Send, Shield, Clock, MessageCircle, Sparkles, User, Users, Hash } from "lucide-react";
 import { API_URL } from "../config";
 import CommunityChat from "./CommunityChat";
 
@@ -9,7 +9,7 @@ export default function Community() {
   const [anonymous, setAnonymous] = useState(true);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("chat"); // DEFAULT TO CHAT as requested
+  const [activeTab, setActiveTab] = useState("chat"); // Default to chat as requested
   const [currentUser, setCurrentUser] = useState(null);
   const [isPosting, setIsPosting] = useState(false);
   const [emotion, setEmotion] = useState(null);
@@ -125,90 +125,75 @@ export default function Community() {
   });
 
   return (
-    <div className="flex flex-col h-screen bg-[#08090a] text-[#f0f1f2] overflow-hidden font-sans selection:bg-white selection:text-black">
-      {/* Texture Layer */}
-      <div className="fixed inset-0 opacity-[0.02] pointer-events-none mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />
+    <div className="min-h-screen bg-[#0f131c] text-white p-4 md:p-8 font-sans relative flex flex-col items-center">
 
-      {/* Bespoke Layout Container */}
-      <div className="flex-1 flex overflow-hidden relative">
-
-        {/* Left Nav Strip (Very Modern/Minimalist) */}
-        <div className="w-[100px] flex flex-col items-center py-10 border-r border-[#1a1b1c] bg-[#0c0d0e] z-30">
-          <div className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center mb-16 shadow-2xl">
-            <Activity size={22} strokeWidth={2.5} />
+      {/* Header Container - Clean & Integrated */}
+      <div className="w-full max-w-[1400px] flex flex-col md:flex-row justify-between items-center mb-8 gap-6 shrink-0 border-b border-white/5 pb-8">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <MessageSquare size={24} />
           </div>
-
-          <nav className="flex-1 flex flex-col gap-10">
-            {[
-              { id: 'chat', icon: <MessageCircle size={24} />, label: 'Lounge' },
-              { id: 'venting', icon: <Sparkles size={24} />, label: 'Support' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center gap-2 group transition-all ${activeTab === tab.id ? 'text-white' : 'text-[#444546] hover:text-[#88898a]'
-                  }`}
-              >
-                <div className={`p-3 rounded-2xl transition-all ${activeTab === tab.id ? 'bg-[#1a1b1c] scale-110' : 'group-hover:bg-[#151617]'}`}>
-                  {tab.icon}
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">{tab.label}</span>
-              </button>
-            ))}
-          </nav>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white/95 uppercase">Community Lounge</h1>
+            <p className="text-white/40 text-sm font-medium">Real-time support and shared perspectives.</p>
+          </div>
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 flex flex-col relative bg-[#08090a] overflow-hidden">
-          {activeTab === 'chat' ? (
-            <div className="flex-1">
-              <CommunityChat user={currentUser} />
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full px-10 py-12 overflow-hidden">
-              <header className="mb-12 flex justify-between items-end">
-                <div>
-                  <h1 className="text-5xl font-black text-white tracking-widest uppercase italic mb-4 leading-none">The Collective</h1>
-                  <p className="text-[#6a6b6c] text-[11px] font-black uppercase tracking-[0.4em]">Realtime Human Support Interface</p>
-                </div>
-                <div className="flex gap-10 mb-2">
-                  {['all', 'mine', 'anonymous'].map(f => (
-                    <button
-                      key={f}
-                      onClick={() => setFilter(f)}
-                      className={`text-[10px] font-black uppercase tracking-[0.3em] transition-all relative pb-2 ${filter === f ? 'text-white border-b-2 border-white' : 'text-[#4a4b4c] hover:text-[#88898a]'
-                        }`}
-                    >
-                      {f}
-                    </button>
-                  ))}
-                </div>
-              </header>
+        {/* Tab Switcher - Dashboard Style */}
+        <div className="bg-[#151a23] p-1.5 rounded-2xl flex gap-1 border border-white/5 shadow-2xl">
+          {[
+            { id: 'chat', label: 'Live Chat', icon: <Hash size={18} /> },
+            { id: 'venting', label: 'Support Feed', icon: <Users size={18} /> }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === tab.id
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                : 'text-white/30 hover:text-white/60 hover:bg-white/5'
+                }`}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-              {/* Minimalist Composer */}
-              <div className="mb-12 bg-[#0c0d0e] border border-[#1a1b1c] rounded-[2.5rem] p-8 shadow-2xl group transition-all hover:border-[#2a2b2c]">
-                <div className="flex items-start gap-8">
-                  <div className="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center text-2xl font-black shadow-xl shrink-0">
-                    {anonymous ? "?" : (currentUser?.username?.charAt(0).toUpperCase() || "H")}
+      {/* Main Content Area - Expansive w-full */}
+      <div className="w-full max-w-[1400px] flex-1 flex flex-col relative overflow-hidden">
+        {activeTab === 'chat' ? (
+          <div className="flex-1 h-full min-h-[600px]">
+            <CommunityChat user={currentUser} />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto px-2 pb-20 custom-scrollbar-hub">
+            <div className="max-w-4xl mx-auto flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+              {/* Inline Composer - Premium Dashboard Card Style */}
+              <div className="bg-[#151a23] border border-white/5 rounded-3xl p-8 shadow-xl relative group mt-4">
+                <div className="flex gap-6 items-start">
+                  <div className="w-14 h-14 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-2xl text-indigo-400 shrink-0">
+                    {anonymous ? "👻" : (currentUser?.username?.charAt(0).toUpperCase() || "U")}
                   </div>
                   <div className="flex-1">
                     <textarea
-                      rows={newPost.length > 60 ? 4 : 2}
+                      rows={newPost.length > 50 ? 4 : 2}
                       value={newPost}
                       onChange={(e) => setNewPost(e.target.value)}
-                      className="w-full bg-transparent border-none focus:ring-0 text-white placeholder:text-[#3a3b3c] resize-none py-2 text-2xl font-medium leading-relaxed tracking-tight"
-                      placeholder="Contribute your current state..."
+                      className="w-full bg-transparent border-none focus:ring-0 text-white placeholder:text-white/20 resize-none py-2 text-lg font-medium transition-all"
+                      placeholder="Contribute a thought to the community..."
                     />
 
-                    <div className="flex items-center justify-between pt-8 border-t border-[#1a1b1c] mt-6">
+                    <div className="flex items-center justify-between pt-6 border-t border-white/5 mt-6">
                       <div className="flex gap-3">
-                        {["Focus", "Healing", "Grateful"].map(tag => (
+                        {["Support", "Healing", "Grateful"].map(tag => (
                           <button
                             key={tag}
                             onClick={() => setEmotion(emotion === tag ? null : tag)}
-                            className={`text-[9px] px-5 py-2 rounded-full font-black uppercase tracking-widest transition-all border ${emotion === tag
-                                ? 'bg-white border-white text-black'
-                                : 'bg-transparent border-[#1a1b1c] text-[#5a5b5c] hover:border-[#3a3b3c] hover:text-white'
+                            className={`text-[10px] px-4 py-2 rounded-xl font-bold uppercase tracking-widest transition-all border ${emotion === tag
+                                ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                                : 'bg-white/5 border-white/5 text-white/30 hover:text-white hover:border-white/10'
                               }`}
                           >
                             {tag}
@@ -219,22 +204,22 @@ export default function Community() {
                       <div className="flex items-center gap-8">
                         <label className="flex items-center gap-3 cursor-pointer group/anon">
                           <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} className="hidden" />
-                          <div className={`w-10 h-6 rounded-full transition-all relative ${anonymous ? 'bg-white' : 'bg-[#1a1b1c]'}`}>
-                            <div className={`absolute top-1 w-4 h-4 rounded-full transition-all ${anonymous ? 'right-1 bg-black' : 'left-1 bg-[#4a4b4c]'}`} />
+                          <div className={`w-10 h-6 rounded-full transition-all relative ${anonymous ? 'bg-indigo-600 shadow-md' : 'bg-white/10'}`}>
+                            <div className={`absolute top-1 w-4 h-4 rounded-full transition-all ${anonymous ? 'right-1 bg-white' : 'left-1 bg-white/40'}`} />
                           </div>
-                          <span className="text-[10px] font-black uppercase tracking-widest text-[#4a4b4c] group-hover/anon:text-white">Anon</span>
+                          <span className="text-xs font-bold text-white/40 group-hover/anon:text-white/60">Anonymous</span>
                         </label>
 
                         <button
                           onClick={handleSubmit}
                           disabled={!newPost.trim() || isPosting}
-                          className={`h-14 px-10 rounded-full font-black text-[12px] uppercase tracking-[0.3em] flex items-center gap-3 transition-all ${newPost.trim()
-                              ? 'bg-white text-black shadow-2xl hover:scale-105 active:scale-95'
-                              : 'bg-[#151617] text-[#3a3b3c] cursor-not-allowed'
+                          className={`px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all flex items-center gap-3 ${newPost.trim()
+                              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500 active:scale-95'
+                              : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5'
                             }`}
                         >
-                          {isPosting ? <Clock size={16} className="animate-spin" /> : <ArrowRight size={18} />}
-                          Signal
+                          {isPosting ? <Clock size={16} className="animate-spin" /> : <Send size={16} />}
+                          Publish
                         </button>
                       </div>
                     </div>
@@ -242,16 +227,35 @@ export default function Community() {
                 </div>
               </div>
 
-              {/* High-End Feed Flow */}
-              <div className="flex-1 overflow-y-auto space-y-8 pb-32 custom-scrollbar-minimal">
+              {/* Simple Filter Bar */}
+              <div className="flex items-center justify-between px-2">
+                <div className="flex bg-[#151a23] p-1.5 rounded-2xl border border-white/5 gap-1">
+                  {['all', 'mine', 'anonymous'].map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setFilter(f)}
+                      className={`px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${filter === f ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'
+                        }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+                <div className="text-[10px] text-white/20 font-bold uppercase tracking-[0.2em]">
+                  {filteredPosts.length} Combined Threads
+                </div>
+              </div>
+
+              {/* Posts Feed Grid - Spacious & Clean */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {loading ? (
-                  <div className="flex flex-col items-center justify-center py-20 grayscale opacity-40">
-                    <div className="w-10 h-10 border-4 border-white/10 border-t-white rounded-full animate-spin mb-4" />
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em]">Calibrating Stream</p>
+                  <div className="col-span-full py-40 flex flex-col items-center opacity-30">
+                    <div className="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4" />
+                    <p className="text-xs font-bold uppercase tracking-[0.3em]">Connecting Perspectives</p>
                   </div>
                 ) : filteredPosts.length > 0 ? (
                   filteredPosts.map(post => (
-                    <Post
+                    <PostCard
                       key={post.id}
                       post={post}
                       onLike={() => handleLike(post.id)}
@@ -259,35 +263,29 @@ export default function Community() {
                     />
                   ))
                 ) : (
-                  <div className="text-center py-32 opacity-10">
-                    <Shield size={100} strokeWidth={0.5} className="mx-auto mb-8" />
-                    <p className="text-[20px] font-black uppercase tracking-[0.5em]">System Idle</p>
+                  <div className="col-span-full text-center py-40 opacity-10 border-2 border-dashed border-white/5 rounded-[3rem]">
+                    <Shield size={64} strokeWidth={1} className="mx-auto mb-6" />
+                    <p className="text-lg font-bold tracking-widest uppercase italic">Silence is the first step...</p>
                   </div>
                 )}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <style dangerouslySetInnerHTML={{
         __html: `
-          .custom-scrollbar-minimal::-webkit-scrollbar { width: 1px; }
-          .custom-scrollbar-minimal::-webkit-scrollbar-track { background: transparent; }
-          .custom-scrollbar-minimal::-webkit-scrollbar-thumb { background: #1a1b1c; }
-          
-          @keyframes slideInUp {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-          }
-          .animate-post-v2 { animation: slideInUp 0.8s cubic-bezier(0.2, 1, 0.2, 1) both; }
+          .custom-scrollbar-hub::-webkit-scrollbar { width: 4px; }
+          .custom-scrollbar-hub::-webkit-scrollbar-track { background: transparent; }
+          .custom-scrollbar-hub::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 20px; }
         `
       }} />
     </div>
   );
 }
 
-function Post({ post, onLike, onReply }) {
+function PostCard({ post, onLike, onReply }) {
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyContent, setReplyContent] = useState("");
 
@@ -300,96 +298,99 @@ function Post({ post, onLike, onReply }) {
   };
 
   return (
-    <div className="bg-transparent border-t border-[#1a1b1c] py-12 group animate-post-v2">
-      <div className="flex gap-10">
-        <div className="w-14 shrink-0 flex flex-col items-center gap-6">
-          <div className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-black border transition-all duration-500 ${post.anonymous
-              ? "bg-transparent border-[#1a1b1c] text-[#4a4b4c]"
-              : "bg-white border-white text-black"
+    <div className="bg-[#151a23] rounded-[2rem] p-8 border border-white/5 hover:border-indigo-500/20 transition-all duration-300 group flex flex-col h-full shadow-lg">
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base shadow-inner ${post.anonymous ? "bg-white/5 text-white/30" : "bg-indigo-600/10 text-indigo-400 border border-indigo-500/10"
             }`}>
-            {post.anonymous ? "?" : post.author.charAt(0).toUpperCase()}
+            {post.anonymous ? "👤" : post.author.charAt(0).toUpperCase()}
           </div>
-          {post.is_owner && (
-            <div className="text-[8px] font-black uppercase tracking-[0.3em] text-[#4a4b4c]">Origin</div>
-          )}
-        </div>
-
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-6">
-              <span className="text-[12px] font-black uppercase tracking-[0.2em] text-white">
-                {post.anonymous ? "Anonymous" : post.author}
-              </span>
-              <span className="text-[10px] text-[#4a4b4c] font-black uppercase tracking-widest">
-                {new Date(post.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-              </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-white/95 text-[15px] tracking-tight">
+                {post.anonymous ? "Anonymous Space" : post.author}
+              </h3>
+              {post.is_owner && (
+                <span className="text-[9px] bg-indigo-600/20 text-indigo-400 px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider">You</span>
+              )}
             </div>
-            <button className="text-[#2a2b2c] hover:text-white transition-colors">
-              <MoreHorizontal size={20} />
-            </button>
+            <p className="text-[10px] text-white/20 font-bold uppercase tracking-widest mt-0.5">
+              {new Date(post.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+            </p>
           </div>
+        </div>
+        <button className="text-white/10 hover:text-white transition-colors p-2 rounded-xl hover:bg-white/5">
+          <MoreHorizontal size={20} />
+        </button>
+      </div>
 
-          <p className="text-[20px] lg:text-[24px] text-[#c0c1c2] leading-tight font-medium tracking-tight mb-8 whitespace-pre-wrap max-w-2xl">
-            {post.content}
-          </p>
+      <p className="text-[15px] text-white/80 leading-relaxed mb-8 flex-1">
+        {post.content}
+      </p>
 
-          <div className="flex items-center gap-12 mb-8">
-            <button
-              onClick={onLike}
-              className={`flex items-center gap-3 font-black text-[11px] uppercase tracking-widest transition-all ${post.liked_by_me ? 'text-white' : 'text-[#4a4b4c] hover:text-white'
-                }`}
-            >
-              <Heart size={18} className={`${post.liked_by_me ? 'fill-white text-white' : ''}`} />
-              {post.likes || 0}
-            </button>
-
-            <button
-              onClick={() => setShowReplyInput(!showReplyInput)}
-              className={`flex items-center gap-3 font-black text-[11px] uppercase tracking-widest transition-all ${showReplyInput ? 'text-white' : 'text-[#4a4b4c] hover:text-white'
-                }`}
-            >
-              <MessageSquare size={18} />
-              {post.responses?.length || 0}
-            </button>
-
-            <button className="text-[#3a3b3c] hover:text-white transition-colors">
-              <Share2 size={16} />
-            </button>
-          </div>
-
-          {/* Reply Section Integration */}
-          {showReplyInput && (
-            <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-              <div className="flex gap-4">
-                <input
-                  autoFocus
-                  value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder="Offer collective wisdom..."
-                  className="flex-1 bg-transparent border-b border-[#1a1b1c] focus:border-white transition-all text-sm py-2 text-white placeholder:text-[#3a3b3c] focus:ring-0"
-                  onKeyDown={(e) => e.key === 'Enter' && handleReplySubmit()}
-                />
-                <button onClick={handleReplySubmit} className="text-[10px] font-black uppercase tracking-widest text-white hover:line-through">Submit</button>
+      {/* Recursive Replies Section */}
+      {post.responses && post.responses.length > 0 && (
+        <div className="mb-6 space-y-4 border-l-2 border-white/5 pl-6">
+          {post.responses.slice(0, 3).map((r, i) => (
+            <div key={i} className="animate-in fade-in duration-500">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-bold text-indigo-400/50 text-[11px] uppercase tracking-wide">{r.author}</span>
+                <span className="text-[9px] text-white/10 font-bold">{new Date(r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
+              <p className="text-white/40 text-[13px] leading-relaxed">{r.content}</p>
             </div>
-          )}
-
-          {/* Recursive Threads (Cleaned up) */}
-          {post.responses && post.responses.length > 0 && (
-            <div className="space-y-6 pl-4 border-l border-white/5">
-              {post.responses.map(resp => (
-                <div key={resp.id} className="pt-2">
-                  <div className="flex items-center gap-4 mb-2">
-                    <span className="text-[9px] font-black text-[#5a5b5c] uppercase tracking-widest">{resp.author}</span>
-                    <span className="w-1 h-1 bg-[#2a2b2c] rounded-full" />
-                    <span className="text-[8px] text-[#3a3b3c] font-black uppercase">{new Date(resp.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  </div>
-                  <p className="text-[14px] text-[#88898a] leading-relaxed max-w-xl">{resp.content}</p>
-                </div>
-              ))}
-            </div>
+          ))}
+          {post.responses.length > 3 && (
+            <p className="text-[11px] text-indigo-400/30 font-bold italic">+{post.responses.length - 3} more supportive perspectives</p>
           )}
         </div>
+      )}
+
+      {/* Inline Reply Input */}
+      {showReplyInput && (
+        <div className="mb-6 animate-in slide-in-from-top-2 duration-300">
+          <div className="flex gap-3">
+            <input
+              autoFocus
+              value={replyContent}
+              onChange={(e) => setReplyContent(e.target.value)}
+              placeholder="Offer support..."
+              className="flex-1 bg-white/[0.03] border border-white/5 rounded-2xl px-5 py-3 text-sm text-white focus:border-indigo-500/50 transition-all focus:ring-0 placeholder:text-white/10 shadow-inner"
+              onKeyDown={(e) => e.key === 'Enter' && handleReplySubmit()}
+            />
+            <button
+              onClick={handleReplySubmit}
+              className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-400 hover:text-white px-5 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Card Action Hub */}
+      <div className="flex items-center justify-between pt-6 border-t border-white/5">
+        <div className="flex items-center gap-8">
+          <button
+            onClick={onLike}
+            className={`flex items-center gap-3 transition-all ${post.liked_by_me ? 'text-rose-500' : 'text-white/20 hover:text-rose-500'}`}
+          >
+            <Heart size={20} className={`${post.liked_by_me ? 'fill-rose-500' : ''}`} />
+            <span className="text-xs font-bold tracking-widest">{post.likes || 0}</span>
+          </button>
+
+          <button
+            onClick={() => setShowReplyInput(!showReplyInput)}
+            className={`flex items-center gap-3 transition-all ${showReplyInput ? 'text-indigo-400' : 'text-white/20 hover:text-indigo-400'}`}
+          >
+            <MessageSquare size={20} />
+            <span className="text-xs font-bold tracking-widest">{post.responses?.length || 0}</span>
+          </button>
+        </div>
+
+        <button className="text-white/10 hover:text-white transition-all transform hover:scale-110">
+          <Share2 size={18} />
+        </button>
       </div>
     </div>
   );

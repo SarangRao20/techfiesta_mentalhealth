@@ -37,13 +37,13 @@ const SignIn = () => {
         if (data.user.initial_dash) {
           localStorage.setItem("initial_dash", JSON.stringify(data.user.initial_dash));
         }
-        
+
         // Check onboarding status for students
         if (data.user.role === 'student' && !data.user.is_onboarded) {
           navigate("/start-journey");
           return;
         }
-        
+
         // Role-based navigation
         if (['teacher', 'mentor'].includes(data.user.role.toLowerCase())) {
           navigate("/app/mentor");
@@ -71,7 +71,7 @@ const SignIn = () => {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold">Welcome Back</h1>
           <p className="text-gray-400 text-sm mt-1">
-            Sign in to continue your NiVana journey
+            Sign in to continue your CarePulse journey
           </p>
         </div>
 
