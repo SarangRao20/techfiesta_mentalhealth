@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { API_URL } from '../config';
-import { Send, MessageSquare, Shield, Users, Hash, MoreHorizontal, Clock, Zap, ArrowRight, Circle } from 'lucide-react';
+import { Send, Hash, MessageSquare, Shield, Info, MoreHorizontal, User, Users, Search } from 'lucide-react';
 
 const ROOMS = [
-    { id: 'Anxiety Support', name: 'Anxiety', icon: '😰', description: 'Real-time support for anxiety and panic.' },
-    { id: 'Depression Support', name: 'Depression', icon: '😔', description: 'A safe space for those facing depression.' },
-    { id: 'Mindfulness', name: 'Mindfulness', icon: '🧘', description: 'Collective meditation discussions.' },
-    { id: 'General Wellness', name: 'Wellness', icon: '🌱', description: 'General health and wellbeing journey.' },
+    { id: 'Anxiety Support', name: 'Anxiety Support', icon: '😰', description: 'Real-time support for anxiety management.' },
+    { id: 'Depression Support', name: 'Depression Support', icon: '😔', description: 'A safe space for depression discussions.' },
+    { id: 'Mindfulness', name: 'Mindfulness', icon: '🧘', description: 'Co-meditation and wellness.' },
+    { id: 'General Wellness', name: 'General Wellness', icon: '🌱', description: 'Share wellness tips and stories.' },
 ];
 
 export default function CommunityChat({ user }) {
@@ -16,17 +16,26 @@ export default function CommunityChat({ user }) {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState("");
     const [isConnected, setIsConnected] = useState(false);
+
+    // Use ref to avoid stale room state in socket listeners
+    const currentRoomRef = useRef(currentRoom);
     const messagesEndRef = useRef(null);
+
+    useEffect(() => {
+        currentRoomRef.current = currentRoom;
+    }, [currentRoom]);
 
     useEffect(() => {
         const newSocket = io(API_URL, {
             withCredentials: true,
-            transports: ['websocket', 'polling']
+            transports: ['websocket', 'polling'],
+            reconnectionAttempts: 5,
+            timeout: 10000,
         });
 
         newSocket.on('connect', () => {
             setIsConnected(true);
-            newSocket.emit('join', { room: currentRoom });
+            newSocket.emit('join', { room: currentRoomRef.current });
         });
 
         newSocket.on('disconnect', () => {
@@ -34,8 +43,12 @@ export default function CommunityChat({ user }) {
         });
 
         newSocket.on('message', (msg) => {
-            setMessages((prev) => [...prev, msg]);
-            scrollToBottom();
+            // Only add message if it belongs to the current room
+            // This prevents "vanishing" or "leaking" issues when switching rooms
+            if (msg.room === currentRoomRef.current) {
+                setMessages((prev) => [...prev, msg]);
+                scrollToBottom();
+            }
         });
 
         newSocket.on('history', (history) => {
@@ -43,164 +56,199 @@ export default function CommunityChat({ user }) {
             setTimeout(scrollToBottom, 50);
         });
 
+        newSocket.on('error', (err) => {
+            console.error("Socket Error:", err);
+        });
+
         setSocket(newSocket);
-        return () => newSocket.close();
-    }, []);
+
+        return () => {
+            if (newSocket) newSocket.close();
+        };
+    }, []); // Only run once on mount
 
     useEffect(() => {
         if (!socket || !isConnected) return;
-        socket.emit('leave', { room: currentRoom });
-        setMessages([]);
+
+        // Clean switch
+        socket.emit('leave', { room: messages.length > 0 ? messages[0].room : '' });
+        setMessages([]); // Clear locally while waiting for history
         socket.emit('join', { room: currentRoom });
     }, [currentRoom]);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        // Use requestAnimationFrame for smoother performance
+        requestAnimationFrame(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        });
     };
 
     const handleSendMessage = (e) => {
         e.preventDefault();
-        if (!newMessage.trim() || !socket) return;
-        socket.emit('message', { room: currentRoom, msg: newMessage });
+        if (!newMessage.trim() || !socket || !isConnected) return;
+
+        socket.emit('message', {
+            room: currentRoom,
+            msg: newMessage.trim()
+        });
         setNewMessage("");
     };
 
     const activeRoomData = ROOMS.find(r => r.id === currentRoom);
 
     return (
-        <div className="flex h-full w-full bg-[#08090a] text-[#c0c1c2] overflow-hidden font-sans relative">
-            {/* Grain/Texture Overlay to avoid "Flat AI" look */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />
+        <div className="flex h-full w-full bg-[#151a23] text-white overflow-hidden font-sans border border-white/5 rounded-3xl shadow-2xl relative">
 
-            {/* Custom Vertical Channel Nav (Less Generic) */}
-            <div className="w-[70px] flex flex-col items-center py-6 border-r border-[#1a1b1c] bg-[#0c0d0e] z-20">
-                <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white mb-8 shadow-2xl shadow-indigo-600/40">
-                    <Zap size={20} fill="currentColor" />
+            {/* Sidebar */}
+            <div className="w-72 md:w-80 bg-[#1c212c]/50 flex flex-col border-r border-white/5 hidden lg:flex">
+                <div className="p-6 border-b border-white/5">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xs font-bold text-white/30 uppercase tracking-[0.2em]">Channels</h3>
+                        <button className="text-white/20 hover:text-white transition-colors">
+                            <Search size={14} />
+                        </button>
+                    </div>
                 </div>
 
-                <div className="flex-1 space-y-4">
+                <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar-chat">
                     {ROOMS.map((room) => (
                         <button
                             key={room.id}
                             onClick={() => setCurrentRoom(room.id)}
-                            className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl transition-all duration-300 relative group ${currentRoom === room.id
-                                    ? 'bg-[#1a1b1c] text-white shadow-xl scale-105'
-                                    : 'text-slate-600 hover:text-white hover:bg-[#1a1b1c]'
-                                }`}
+                            className={`w-full text-left p-3 rounded-xl transition-all duration-200 flex items-center gap-4 group ${currentRoom === room.id
+                                ? 'bg-indigo-600/10 text-white border border-indigo-600/20 shadow-lg shadow-indigo-600/5'
+                                : 'hover:bg-white/5 text-white/30 hover:text-white/60 border border-transparent'}`}
                         >
-                            {room.icon}
-                            {currentRoom === room.id && (
-                                <div className="absolute -left-1 w-1 h-6 bg-indigo-500 rounded-full" />
-                            )}
-                            <div className="absolute left-[70px] px-3 py-2 bg-[#1a1b1c] text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 border border-white/5">
-                                {room.name}
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all shadow-inner ${currentRoom === room.id ? 'bg-indigo-600 text-white shadow-indigo-600/40' : 'bg-[#1c212c] text-white/20'
+                                }`}>
+                                {room.icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-bold truncate tracking-tight ${currentRoom === room.id ? 'text-white' : ''}`}>
+                                    {room.name}
+                                </p>
+                                <p className="text-[10px] text-white/20 truncate font-semibold uppercase tracking-tight">Active Now</p>
                             </div>
                         </button>
                     ))}
                 </div>
+
+                {/* Status Section */}
+                <div className="p-6 border-t border-white/5 bg-[#1c212c]/80 backdrop-blur-xl">
+                    <div className="flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-600/10 flex items-center justify-center text-sm font-bold text-indigo-400 border border-indigo-500/10">
+                            {user?.username?.charAt(0).toUpperCase() || "U"}
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                            <p className="text-xs font-bold text-white truncate">{user?.username || 'Guest'}</p>
+                            <div className="flex items-center gap-1.5">
+                                <div className={`w-1.5 h-1.5 rounded-full shadow-sm animate-pulse ${isConnected ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+                                <span className="text-[9px] text-white/30 uppercase font-bold tracking-widest">{isConnected ? 'Connected' : 'Connecting...'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Main Chat Hub */}
-            <div className="flex-1 flex flex-col min-w-0 bg-[#08090a] relative">
-                {/* Minimalist Header */}
-                <header className="h-[72px] px-8 flex items-center justify-between border-b border-[#1a1b1c] bg-[#08090a]/90 backdrop-blur-md z-10">
-                    <div className="flex items-center gap-6">
+            {/* Chat Content */}
+            <div className="flex-1 flex flex-col bg-[#0f131c]">
+                <header className="h-[72px] px-8 flex items-center justify-between border-b border-white/5 bg-[#151a23]/40 backdrop-blur-xl z-20">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-[#1c212c] border border-white/5 flex items-center justify-center text-2xl shadow-inner">
+                            {activeRoomData?.icon}
+                        </div>
                         <div>
-                            <h3 className="text-xl font-black text-white tracking-tight uppercase italic">{activeRoomData?.name} Hub</h3>
-                            <div className="flex items-center gap-2 mt-0.5">
-                                <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-indigo-500' : 'bg-red-500'}`} />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#4a4b4c]">
-                                    {isConnected ? 'Realtime Verified' : 'Sync Interrupted'}
-                                </span>
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-base font-bold text-white tracking-tight">{currentRoom}</h3>
+                                <div className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${isConnected ? 'bg-indigo-600/20 text-indigo-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                                    {isConnected ? 'Sync Local' : 'Offline'}
+                                </div>
                             </div>
+                            <p className="text-[10px] text-white/30 font-medium tracking-wide mt-0.5">{activeRoomData?.description}</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="text-[10px] bg-[#1a1b1c] px-3 py-1.5 rounded-full font-black text-[#6a6b6c] uppercase tracking-widest border border-white/5">
-                            {user?.username || 'Guest'}
-                        </div>
-                        <button className="text-[#3a3b3c] hover:text-white transition-colors">
-                            <MoreHorizontal size={20} />
+                        <button className="text-white/20 hover:text-white transition-colors">
+                            <Info size={18} />
+                        </button>
+                        <button className="p-2.5 rounded-xl border border-white/5 text-white/20 hover:text-white hover:bg-white/5 transition-all">
+                            <MoreHorizontal size={18} />
                         </button>
                     </div>
                 </header>
 
-                {/* Message Flow */}
-                <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8 custom-scrollbar">
+                {/* Messages Hub */}
+                <main className="flex-1 overflow-y-auto px-8 py-8 space-y-6 custom-scrollbar-chat relative">
                     {messages.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center grayscale opacity-20">
-                            <span className="text-6xl mb-4">💬</span>
-                            <p className="text-[12px] font-black uppercase tracking-[0.4em]">The lounge is quiet</p>
+                        <div className="h-full flex flex-col items-center justify-center opacity-10">
+                            <Users size={48} className="mb-4" />
+                            <p className="text-xs font-bold tracking-[0.4em] uppercase">This room is waiting for your voice</p>
                         </div>
                     ) : (
                         messages.map((msg, idx) => {
                             const isMe = msg.username === user?.username;
-                            const prevMessage = idx > 0 ? messages[idx - 1] : null;
-                            const isGroupStart = !prevMessage || prevMessage.username !== msg.username;
+                            const showMeta = idx === 0 || messages[idx - 1].username !== msg.username;
 
                             return (
-                                <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                                    <div className={`max-w-[80%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                                        {isGroupStart && (
-                                            <span className="text-[9px] font-black text-[#5a5b5c] uppercase tracking-widest mb-2 px-1">
-                                                {isMe ? 'You' : msg.username} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        )}
-                                        <div className={`px-5 py-3.5 rounded-3xl text-[15px] font-medium leading-relaxed tracking-tight ${isMe
-                                                ? 'bg-white text-black rounded-tr-none shadow-[4px_4px_20px_-5px_rgba(255,255,255,0.2)]'
-                                                : 'bg-[#151617] text-[#e0e1e2] rounded-tl-none border border-[#252627]'
-                                            }`}>
-                                            {msg.content}
+                                <div key={msg.id || idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+                                    {showMeta && (
+                                        <div className={`flex items-center gap-2 mb-2 px-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.1em]">{isMe ? 'You' : msg.username}</span>
+                                            <span className="text-[8px] text-white/20 font-bold">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                         </div>
+                                    )}
+
+                                    <div className={`relative px-5 py-3 rounded-2xl border transition-all duration-300 max-w-[85%] lg:max-w-[70%] shadow-lg ${isMe
+                                        ? 'bg-indigo-600 border-indigo-500 text-white rounded-tr-none shadow-indigo-600/10'
+                                        : 'bg-[#1c212c] border-white/5 text-white/80 rounded-tl-none'
+                                        }`}>
+                                        <p className="text-[14px] leading-relaxed font-medium tracking-tight whitespace-pre-wrap">{msg.content}</p>
                                     </div>
                                 </div>
                             );
                         })
                     )}
                     <div ref={messagesEndRef} />
-                </div>
+                </main>
 
-                {/* Input Matrix */}
-                <div className="px-8 pb-8 pt-4">
-                    <form
-                        onSubmit={handleSendMessage}
-                        className="relative flex items-center bg-[#111213] rounded-3xl border border-[#252627] focus-within:border-[#3a3b3c] transition-all p-2 pr-4 shadow-2xl"
-                    >
-                        <div className="w-10 h-10 flex items-center justify-center text-[#4a4b4c]">
-                            <Hash size={18} />
+                {/* Input Hub */}
+                <footer className="p-6 border-t border-white/5 bg-[#151a23]/20">
+                    <form onSubmit={handleSendMessage} className="max-w-[1000px] mx-auto flex items-center gap-3">
+                        <div className="flex-1 bg-[#1c212c]/60 border border-white/5 rounded-[1.25rem] px-5 py-4 focus-within:border-indigo-500/40 transition-all shadow-inner relative group">
+                            <input
+                                autoFocus
+                                type="text"
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                placeholder={`Say something in #${currentRoom.toLowerCase().replace(' ', '-')}`}
+                                className="w-full bg-transparent border-none text-white text-[14px] focus:ring-0 placeholder:text-white/10 font-medium"
+                            />
                         </div>
-                        <input
-                            type="text"
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            placeholder={`Speak your mind in #${activeRoomData?.name.toLowerCase()}...`}
-                            className="flex-1 bg-transparent border-none text-white text-[15px] focus:ring-0 placeholder:text-[#3a3b3c] font-medium py-3"
-                        />
                         <button
                             type="submit"
                             disabled={!newMessage.trim() || !isConnected}
-                            className={`px-6 py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all ${newMessage.trim()
-                                    ? 'bg-white text-black shadow-xl scale-105 active:scale-95'
-                                    : 'text-[#3a3b3c] cursor-not-allowed'
+                            className={`h-[56px] px-8 rounded-2xl transition-all flex items-center justify-center gap-3 ${newMessage.trim()
+                                    ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20 hover:bg-indigo-500 hover:scale-[1.02] active:scale-95'
+                                    : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5'
                                 }`}
                         >
-                            Send
+                            <span className="text-xs font-bold uppercase tracking-[0.2em] hidden sm:inline">Send</span>
+                            <Send size={16} />
                         </button>
                     </form>
-                    <div className="flex items-center justify-center gap-4 mt-4 opacity-30">
-                        <div className="h-[1px] flex-1 bg-gradient-to-l from-[#252627] to-transparent" />
-                        <span className="text-[8px] font-black uppercase tracking-[0.3em]">Encrypted Data Stream</span>
-                        <div className="h-[1px] flex-1 bg-gradient-to-r from-[#252627] to-transparent" />
+                    <div className="flex items-center justify-center gap-3 mt-4 opacity-10">
+                        <Shield size={10} className="text-indigo-400" />
+                        <p className="text-[8px] font-bold text-white uppercase tracking-[0.3em]">Secure Peer-to-Peer Subsystem</p>
                     </div>
-                </div>
+                </footer>
             </div>
 
             <style dangerouslySetInnerHTML={{
                 __html: `
-                    .custom-scrollbar::-webkit-scrollbar { width: 2px; }
-                    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                    .custom-scrollbar::-webkit-scrollbar-thumb { background: #252627; }
+                    .custom-scrollbar-chat::-webkit-scrollbar { width: 4px; }
+                    .custom-scrollbar-chat::-webkit-scrollbar-track { background: transparent; }
+                    .custom-scrollbar-chat::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
                 `
             }} />
         </div>

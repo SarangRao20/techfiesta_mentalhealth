@@ -25,3 +25,4 @@ Flask-Session
 Flask-Caching
 celery
 groq
+flask_socketio
