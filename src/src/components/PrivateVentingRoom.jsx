@@ -17,22 +17,27 @@ const PrivateVentingRoom = () => {
     const [isRecording, setIsRecording] = useState(false);
     const [duration, setDuration] = useState(0);
     const [maxDb, setMaxDb] = useState(0);
-    const [currentDb, setCurrentDb] = useState(0);
+    const [currentDb, setCurrentDb] = useState(0); // Added for live display
+    const [avgDb, setAvgDb] = useState(0);
     const [screamCount, setScreamCount] = useState(0);
     const [showSoundReport, setShowSoundReport] = useState(false);
-    const [isScreaming, setIsScreaming] = useState(false);
+    const [isScreaming, setIsScreaming] = useState(false); // Visual Feedback State
 
     const canvasRef = useRef(null);
     const audioContextRef = useRef(null);
     const analyserRef = useRef(null);
+    const sourceRef = useRef(null);
     const rafIdRef = useRef(null);
     const streamRef = useRef(null);
     const timerRef = useRef(null);
-
+    // Refs for safe access inside animation frame
+    const dbReadingsRef = useRef([]);
+    const isScreamingRef = useRef(false);
     const isRecordingRef = useRef(false);
-    const maxDbRef = useRef(0);
-    const screamDebounceRef = useRef(null);
-    const screamDurationRef = useRef(null);
+    const maxDbRef = useRef(0); // Track max locally to avoid stale closures
+    const screamDebounceRef = useRef(null); // Minimum time between scream counts
+    const screamDurationRef = useRef(null); // To keep visual state active for a bit
+    const lastUiUpdateRef = useRef(0); // Throttle UI updates
 
     useEffect(() => {
         return () => {
@@ -113,89 +118,233 @@ const PrivateVentingRoom = () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             streamRef.current = stream;
+
+            // Ensure previous context is closed
+            if (audioContextRef.current) {
+                audioContextRef.current.close().catch(() => { });
+            }
+
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
             audioContextRef.current = audioContext;
+
             const analyser = audioContext.createAnalyser();
             analyser.fftSize = 256;
+            analyser.smoothingTimeConstant = 0.5; // More responsive
             analyserRef.current = analyser;
+
             const source = audioContext.createMediaStreamSource(stream);
             source.connect(analyser);
+            sourceRef.current = source;
+
             setIsRecording(true);
-            isRecordingRef.current = true;
+            isRecordingRef.current = true; // Use Ref for loop
             setDuration(0);
-            maxDbRef.current = 0;
+            setMaxDb(0);
+            setCurrentDb(0);
+            maxDbRef.current = 0; // Reset ref
             setScreamCount(0);
-            timerRef.current = setInterval(() => setDuration(prev => prev + 1), 1000);
+            dbReadingsRef.current = [];
+            isScreamingRef.current = false;
+            setIsScreaming(false);
+
+            timerRef.current = setInterval(() => {
+                setDuration(prev => prev + 1);
+            }, 1000);
+
             drawVisualizer();
         } catch (err) {
-            alert("Please enable microphone access to scream into the void.");
+            console.error("Error accessing microphone:", err);
+            alert("Could not access microphone. Please allow permissions.");
         }
     };
 
-    const stopRecording = () => {
-        isRecordingRef.current = false;
+    const stopRecording = async () => {
+        if (!isRecordingRef.current) return;
+
+        isRecordingRef.current = false; // Stop loop immediately
         setIsRecording(false);
         setIsScreaming(false);
+
         if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
         if (timerRef.current) clearInterval(timerRef.current);
-        if (audioContextRef.current) audioContextRef.current.close();
-        if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+        if (audioContextRef.current) audioContextRef.current.close().catch(e => console.log(e));
+        if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
+
+        // Calculate stats
+        const readings = dbReadingsRef.current;
+        const avg = readings.length > 0 ? readings.reduce((a, b) => a + b, 0) / readings.length : 0;
+        setAvgDb(avg);
+        // Use the Ref for reliable max value
+        setMaxDb(maxDbRef.current);
         setShowSoundReport(true);
+
+        // Save to backend
+        try {
+            await fetch(`${API_URL}/api/venting/sound_session`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    duration: duration,
+                    max_decibel: maxDbRef.current,
+                    avg_decibel: avg,
+                    scream_count: screamCount, // Use state here
+                    session_type: 'sound_venting'
+                })
+            });
+        } catch (e) {
+            console.error("Failed to save sound session", e);
+        }
     };
 
     const drawVisualizer = () => {
         if (!analyserRef.current || !canvasRef.current) return;
+
         const bufferLength = analyserRef.current.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
 
         const draw = () => {
-            if (!isRecordingRef.current) return;
+            if (!isRecordingRef.current) return; // Check Ref instead of State
             rafIdRef.current = requestAnimationFrame(draw);
+
             analyserRef.current.getByteFrequencyData(dataArray);
 
+            // Calculate Volume / Energy
             let sum = 0;
-            for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
-            const db = (sum / bufferLength / 255) * 100;
-            if (db > maxDbRef.current) maxDbRef.current = Math.round(db);
-            setCurrentDb(Math.round(db));
+            for (let i = 0; i < bufferLength; i++) {
+                sum += dataArray[i];
+            }
+            const average = sum / bufferLength;
+            // Normalize approx 0-100 relative to 255 max
+            const db = (average / 255) * 100;
 
-            if (db > 35) {
-                if (!screamDebounceRef.current) {
-                    setIsScreaming(true);
-                    setScreamCount(p => p + 1);
-                    screamDebounceRef.current = setTimeout(() => { screamDebounceRef.current = null; }, 1000);
-                }
-                if (screamDurationRef.current) clearTimeout(screamDurationRef.current);
-                screamDurationRef.current = setTimeout(() => setIsScreaming(false), 300);
+            dbReadingsRef.current.push(db);
+
+            // Track Max accurately using Ref
+            if (db > maxDbRef.current) {
+                maxDbRef.current = Math.round(db);
+                // setMaxDb(maxDbRef.current); // Removed to avoid confusion, only update curr
             }
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const barWidth = (canvas.width / bufferLength) * 2;
+            // Update Live UI (Throttled ~ 100ms)
+            const now = Date.now();
+            if (now - lastUiUpdateRef.current > 100) {
+                setCurrentDb(Math.round(db));
+                lastUiUpdateRef.current = now;
+            }
+
+            // SCREAM DETECTION LOGIC
+            // Threshold updated to 30 based on user feedback
+            const SCREAM_THRESHOLD = 35;
+
+            if (db > SCREAM_THRESHOLD) {
+                // Trigger scream effects
+                if (!isScreamingRef.current) {
+                    isScreamingRef.current = true;
+                    setIsScreaming(true);
+
+                    // Haptic Feedback
+                    if (navigator.vibrate) navigator.vibrate(200);
+
+                    // Increment count only if enough time has passed since last scream (debounce)
+                    // e.g., 2 seconds
+                    if (!screamDebounceRef.current) {
+                        setScreamCount(prev => prev + 1);
+                        screamDebounceRef.current = setTimeout(() => {
+                            screamDebounceRef.current = null;
+                        }, 2000);
+                    }
+                }
+
+                // Reset "stop screaming" timer
+                if (screamDurationRef.current) clearTimeout(screamDurationRef.current);
+                screamDurationRef.current = setTimeout(() => {
+                    isScreamingRef.current = false;
+                    setIsScreaming(false);
+                }, 300); // 300ms of silence/low vol to stop effect
+
+            }
+
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, width, height);
+
+            const barWidth = (width / bufferLength) * 2.5;
+            let barHeight;
             let x = 0;
+
             for (let i = 0; i < bufferLength; i++) {
-                const barH = dataArray[i] * 0.8;
-                ctx.fillStyle = isScreaming ? `rgb(255, ${Math.random() * 50}, 0)` : `rgb(100, 50, 255)`;
-                ctx.fillRect(x, canvas.height - barH, barWidth, barH);
+                barHeight = dataArray[i] * 1.5; // Scale up
+
+                // Dynamic coloring
+                let r, g, b;
+                if (isScreamingRef.current) {
+                    // Angry/Intense colors
+                    r = 255; // Always red
+                    g = Math.random() * 50; // Flicker black/red
+                    b = Math.random() * 50;
+                } else {
+                    // Calm/Normal gradient
+                    r = barHeight + (25 * (i / bufferLength));
+                    g = 250 * (i / bufferLength);
+                    b = 50;
+                }
+
+                ctx.fillStyle = `rgb(${r},${g},${b})`;
+                ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+
                 x += barWidth + 1;
             }
         };
+
         draw();
     };
 
     return (
-        <div className={`min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-700 ${isScreaming ? 'bg-[#1a0000]' : ''}`}>
+        <div className={`min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-100 ${isScreaming ? 'bg-[#1a0505]' : 'bg-black'}`}>
+            {/* Dynamic Background */}
+            <div className="absolute inset-0 bg-gradient-to-t from-orange-950/40 via-neutral-950 to-neutral-950" />
 
-            <div className={`absolute inset-0 transition-opacity duration-1000 ${isBurning ? 'opacity-40' : 'opacity-10'}`}>
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#f97316_0%,_transparent_70%)]" />
-            </div>
+            {/* Visual Feedback Overlay (Shake & Flash) */}
+            {isScreaming && (
+                <div className="absolute inset-0 z-0 animate-scream-shake opacity-80 pointer-events-none">
+                    <div className="absolute inset-0 bg-red-600/10 mix-blend-overlay" />
+                    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-900/40 via-transparent to-transparent animate-pulse-fast" />
+                </div>
+            )}
 
             <div className="relative w-full max-w-2xl z-10 flex flex-col items-center">
 
-                <div className="mb-12 flex gap-1 bg-white/5 p-1 rounded-full border border-white/10 backdrop-blur-md">
-                    <button onClick={() => setMode('text')} className={`px-8 py-2 rounded-full text-sm font-medium transition-all ${mode === 'text' ? 'bg-orange-600 text-white shadow-lg' : 'text-white/40 hover:text-white'}`}>Burn Burden</button>
-                    <button onClick={() => setMode('sound')} className={`px-8 py-2 rounded-full text-sm font-medium transition-all ${mode === 'sound' ? 'bg-purple-600 text-white shadow-lg' : 'text-white/40 hover:text-white'}`}>Scream Void</button>
+                {/* Header with Mode Toggle */}
+                <div className="mb-8 text-center space-y-4">
+                    <h1 className={`text-4xl font-light text-white tracking-[0.2em] uppercase font-serif transition-all ${isScreaming ? 'text-red-500 scale-110 tracking-[0.3em] font-bold' : ''}`}>
+                        {isScreaming ? "LET IT OUT!" : "The Void"}
+                    </h1>
+                    <p className="text-neutral-500 font-light">
+                        {mode === 'text' ? "Release your burdens. Let them burn." : "Scream into the void. Let it out."}
+                    </p>
+
+                    <div className="flex items-center justify-center gap-4 bg-white/5 p-1 rounded-full backdrop-blur-md inline-flex">
+                        <button
+                            onClick={() => setMode('text')}
+                            className={`px-6 py-2 rounded-full text-sm transition-all duration-300 ${mode === 'text' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/50' : 'text-neutral-400 hover:text-white'}`}
+                        >
+                            <span className="flex items-center gap-2"><Flame size={14} /> Burning</span>
+                        </button>
+                        <button
+                            onClick={() => setMode('sound')}
+                            className={`px-6 py-2 rounded-full text-sm transition-all duration-300 ${mode === 'sound' ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' : 'text-neutral-400 hover:text-white'}`}
+                        >
+                            <span className="flex items-center gap-2"><Volume2 size={14} /> Screaming</span>
+                        </button>
+                    </div>
                 </div>
 
                 {mode === 'text' ? (
@@ -291,68 +440,95 @@ const PrivateVentingRoom = () => {
                     </div>
                 ) : (
 
-                    <div className="w-full max-w-md bg-[#151a23] p-8 rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden">
-                        {/* Subtle Background Gradient for Card */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 pointer-events-none" />
+                    /* Sound Venting UI */
+                    <div className="w-full relative">
+                        <div className={`bg-[#1a1a1a] border border-white/5 rounded-xl shadow-2xl p-8 flex flex-col items-center transition-all duration-75 ${isScreaming ? 'border-red-500/50 shadow-[0_0_50px_rgba(220,38,38,0.3)]' : ''}`}>
 
-                        {!showSoundReport ? (
-                            <div className="flex flex-col items-center relative z-10">
-                                <canvas ref={canvasRef} width={400} height={150} className="w-full mb-8 rounded-xl bg-white/[0.02]" />
+                            {!showSoundReport ? (
+                                <>
+                                    {/* Visualizer Canvas */}
+                                    <div className={`w-full h-64 bg-black/50 rounded-lg mb-8 overflow-hidden relative border transition-all duration-75 ${isScreaming ? 'border-red-500 scale-[1.02]' : 'border-white/5'}`}>
+                                        <canvas
+                                            ref={canvasRef}
+                                            width={600}
+                                            height={256}
+                                            className="w-full h-full"
+                                        />
+                                        {!isRecording && (
+                                            <div className="absolute inset-0 flex items-center justify-center text-neutral-500">
+                                                Press Start to calibrate microphone
+                                            </div>
+                                        )}
+                                        {isRecording && (
+                                            <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
+                                                <div className="text-xs font-mono text-purple-400">
+                                                    {currentDb} dB | {new Date(duration * 1000).toISOString().substr(14, 5)}
+                                                </div>
+                                                {screamCount > 0 && (
+                                                    <div className="text-xs font-bold text-red-500 animate-pulse">
+                                                        SCREAMS: {screamCount}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
 
-                                <div className="relative">
-                                    {isRecording && (
-                                        <div className="absolute inset-0 rounded-full bg-red-500/20 animate-ping" />
-                                    )}
+                                    {/* Controls */}
+                                    <div className="flex flex-col items-center gap-4">
+                                        {!isRecording ? (
+                                            <button
+                                                onClick={startRecording}
+                                                className="w-20 h-20 rounded-full bg-neutral-800 border-2 border-purple-500/50 flex items-center justify-center hover:scale-110 hover:border-purple-400 hover:shadow-[0_0_30px_rgba(168,85,247,0.4)] transition-all duration-300 group"
+                                            >
+                                                <Mic className="w-8 h-8 text-purple-400 group-hover:text-white" />
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={stopRecording}
+                                                className={`w-20 h-20 rounded-full border-2 flex items-center justify-center hover:scale-105 transition-all duration-100 ${isScreaming ? 'bg-red-600 border-red-400 shadow-[0_0_40px_rgba(220,38,38,0.6)] animate-pulse-fast' : 'bg-red-900/20 border-red-500 animate-pulse hover:shadow-[0_0_30px_rgba(239,68,68,0.4)]'}`}
+                                            >
+                                                <Square className={`w-8 h-8 ${isScreaming ? 'text-white fill-white' : 'text-red-500 fill-red-500'}`} />
+                                            </button>
+                                        )}
+                                        <p className={`text-sm tracking-wider uppercase transition-colors ${isScreaming ? 'text-red-400 font-bold animate-pulse' : 'text-neutral-500'}`}>
+                                            {isRecording ? (isScreaming ? "SCREAM!" : "Listening...") : "Tap to Start Session"}
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="animate-fade-in-up text-center w-full">
+                                    <Activity className="w-16 h-16 text-purple-500 mx-auto mb-4" />
+                                    <h3 className="text-2xl font-light text-white mb-6">Session Complete</h3>
+
+                                    <div className="grid grid-cols-2 gap-4 mb-8">
+                                        <div className="bg-white/5 p-4 rounded-lg">
+                                            <div className="text-3xl font-bold text-white mb-1">{duration}s</div>
+                                            <div className="text-xs text-neutral-500 uppercase">Duration</div>
+                                        </div>
+                                        <div className="bg-white/5 p-4 rounded-lg">
+                                            <div className="text-3xl font-bold text-purple-400 mb-1">{maxDb}</div>
+                                            <div className="text-xs text-neutral-500 uppercase">Max Intensity (dB)</div>
+                                        </div>
+                                        {/* Scream Count UI */}
+                                        <div className="bg-white/5 p-4 rounded-lg">
+                                            <div className="text-3xl font-bold text-red-500 mb-1">{screamCount}</div>
+                                            <div className="text-xs text-neutral-500 uppercase">Screams Released</div>
+                                        </div>
+                                        <div className="bg-white/5 p-4 rounded-lg">
+                                            <div className="text-3xl font-bold text-white mb-1">{Math.round(avgDb)}</div>
+                                            <div className="text-xs text-neutral-500 uppercase">Average Intensity</div>
+                                        </div>
+                                    </div>
+
                                     <button
-                                        onClick={isRecording ? stopRecording : startRecording}
-                                        className={`
-                                            relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl
-                                            ${isRecording
-                                                ? 'bg-gradient-to-br from-red-500 to-red-600 scale-100 shadow-red-500/30'
-                                                : 'bg-gradient-to-br from-indigo-500 to-purple-600 hover:scale-105 shadow-indigo-500/30 hover:shadow-indigo-500/50'}
-                                        `}
+                                        onClick={() => setShowSoundReport(false)}
+                                        className="px-8 py-3 bg-white text-black font-serif rounded-full hover:bg-purple-500 hover:text-white transition-all"
                                     >
-                                        {isRecording ? <Square fill="white" size={24} /> : <Mic color="white" size={28} />}
+                                        Start New Session
                                     </button>
                                 </div>
-
-                                <div className="mt-8 text-center space-y-1">
-                                    <p className={`text-sm font-bold tracking-wider transition-colors duration-300 ${isRecording ? 'text-red-400 animate-pulse' : 'text-white/60'}`}>
-                                        {isRecording ? 'LISTENING...' : 'TAP TO START'}
-                                    </p>
-                                    <p className="text-xs text-white/30 font-medium">
-                                        {isRecording ? `${currentDb} dB` : 'Scream into the void'}
-                                    </p>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="text-center animate-fade-in relative z-10">
-                                <div className="w-16 h-16 mx-auto bg-emerald-500/10 rounded-full flex items-center justify-center mb-6">
-                                    <Activity className="text-emerald-400" size={32} />
-                                </div>
-
-                                <h2 className="text-xl text-white font-semibold mb-2">Void Cleansed</h2>
-                                <p className="text-sm text-white/40 mb-8">You released your tension into the abyss.</p>
-
-                                <div className="grid grid-cols-2 gap-3 mb-8">
-                                    <div className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl">
-                                        <p className="text-[10px] text-white/40 uppercase font-bold tracking-wider mb-1">Screams Released</p>
-                                        <p className="text-2xl text-white font-bold">{screamCount}</p>
-                                    </div>
-                                    <div className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl">
-                                        <p className="text-[10px] text-white/40 uppercase font-bold tracking-wider mb-1">Max Intensity</p>
-                                        <p className="text-2xl text-white font-bold">{maxDbRef.current} <span className="text-xs font-normal text-white/30">dB</span></p>
-                                    </div>
-                                </div>
-
-                                <button
-                                    onClick={() => setShowSoundReport(false)}
-                                    className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10 py-3 rounded-xl transition-all font-medium text-sm"
-                                >
-                                    Start New Session
-                                </button>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
@@ -501,9 +677,42 @@ const PrivateVentingRoom = () => {
                     50% { opacity: 1; filter: brightness(1.4); }
                 }
 
-                @keyframes fade-in {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
+                @keyframes fade-in-up {
+                    0% { opacity: 0; transform: translateY(10px); }
+                    100% { opacity: 1; transform: translateY(0); }
+                }
+                .animate-fade-in-up {
+                    animation: fade-in-up 0.5s ease-out forwards;
+                }
+                
+                /* Scream Animations */
+                @keyframes vibrate {
+                    0% { transform: translate(0, 0); }
+                    20% { transform: translate(-2px, 2px); }
+                    40% { transform: translate(-2px, -2px); }
+                    60% { transform: translate(2px, 2px); }
+                    80% { transform: translate(2px, -2px); }
+                    100% { transform: translate(0, 0); }
+                }
+                .animate-vibrate {
+                    animation: vibrate 0.1s linear infinite;
+                }
+
+                @keyframes scream-shake {
+                    0%, 100% { transform: translateX(0); }
+                    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px) translateY(2px); }
+                    20%, 40%, 60%, 80% { transform: translateX(5px) translateY(-2px); }
+                }
+                .animate-scream-shake {
+                    animation: scream-shake 0.2s linear infinite;
+                }
+
+                @keyframes pulse-fast {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.6; }
+                }
+                .animate-pulse-fast {
+                    animation: pulse-fast 0.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
                 }
             `}</style>
         </div >
