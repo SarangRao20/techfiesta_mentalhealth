@@ -89,7 +89,9 @@ function SideBar() {
     <div className="flex min-h-screen bg-[#0f131c] text-white overflow-x-hidden font-sans">
 
       {/* FIXED TOGGLE BUTTON - Stays in place, does not shift */}
-      <div className="w-20 bg-black/30" >
+      <div className= {`
+        ${open? '':'w-20 bg-black/30 transition-transform duration-300 ease-out' }
+        `} >
         <button
           onClick={() => setOpen(!open)}
           className="fixed top-6 left-6 z-50 p-1.5 text-white/60 backdrop-blur-sm bg-black/40 border rounded-md hover:text-white transition-all duration-300"
@@ -138,7 +140,7 @@ function SideBar() {
               {/* Only show these for students */}
               {role.toLowerCase() === 'student' && (
                 <>
-                  <NavItem icon={MessageSquare} label="AI Companion" href="chat" />
+                  <NavItem icon={MessageSquare} label="AI Dost" href="chat" />
                   <NavItem icon={CheckSquare} label="Tasks" href="tasks-manager" />
                 </>
               )}
@@ -161,9 +163,10 @@ function SideBar() {
                   <>
                     <NavItem icon={ClipboardList} label="Assessments" href="assessments" />
                     <NavItem icon={Eye} label="Inkblot" href="inkblot" />
+                     <NavItem icon={UserCog} label="Consult" href="consultation" />
                   </>
                 )}
-                <NavItem icon={UserCog} label="Consult" href="consultation" />
+               
               </div>
             )}
 
