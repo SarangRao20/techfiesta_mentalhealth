@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, Clock, ArrowRight, Play, Video, X, ExternalLink } from 'lucide-react';
+import { BookOpen, Clock, ArrowRight, Play, Video, X } from 'lucide-react';
 import { API_URL } from '../config';
 
 const Resources = () => {
@@ -36,92 +36,79 @@ const Resources = () => {
       id: 1,
       category: 'anxiety',
       title: "Understanding Anxiety: A Student's Guide",
-      description: 'Anxiety is a normal response to stress, but when it becomes overwhelming......',
-      readTime: '5 min read',
-      helpfulFor: ['mild anxiety', 'exam stress', 'social anxiety']
+      description: "Anxiety is common in students. Learn symptoms, causes, and what actually helps long-term...",
+      readTime: '6 min read',
+      helpfulFor: ['mild anxiety', 'exam stress', 'social anxiety'],
+      url: "https://www.apa.org/topics/anxiety"
     },
     {
       id: 2,
       category: 'stress',
       title: 'Coping with Academic Pressure',
-      description: 'Academic pressure is real, but there are proven strategies......',
+      description: "Academic pressure is real. Here are proven strategies to reduce stress and avoid burnout...",
       readTime: '7 min read',
-      helpfulFor: ['exam anxiety', 'perfectionism', 'burnout']
+      helpfulFor: ['exam anxiety', 'perfectionism', 'burnout'],
+      url: "https://www.sciencedirect.com/science/article/pii/S2666915323001968"
     },
     {
       id: 3,
       category: 'wellness',
       title: 'Building Healthy Sleep Habits',
-      description: 'Quality sleep is fundamental to mental health......',
+      description: "Sleep directly affects mood, memory, and focus. Learn sleep hygiene methods that work...",
       readTime: '6 min read',
-      helpfulFor: ['insomnia', 'fatigue', 'mood issues']
+      helpfulFor: ['insomnia', 'fatigue', 'mood issues'],
+      url: "https://www.sleepfoundation.org/mental-health"
     },
     {
       id: 4,
       category: 'depression',
       title: 'Recognizing Depression Signs',
-      description: 'Learn to identify early warning signs and when to seek help......',
+      description: "Understand the early warning signs of depression and when to seek professional support...",
       readTime: '8 min read',
-      helpfulFor: ['low mood', 'loss of interest', 'fatigue']
+      helpfulFor: ['low mood', 'loss of interest', 'fatigue'],
+      url: "https://www.nimh.nih.gov/health/topics/depression"
     },
     {
       id: 5,
       category: 'wellness',
-      title: 'Mindful Eating for Mental Health',
-      description: 'The connection between nutrition and mental wellbeing......',
+      title: 'Exercise and Mental Health',
+      description: "How movement impacts stress hormones, sleep, and anxiety — backed by evidence...",
       readTime: '5 min read',
-      helpfulFor: ['stress eating', 'mood regulation', 'energy levels']
+      helpfulFor: ['low energy', 'stress relief', 'mood improvement'],
+      url: "https://www.who.int/news-room/fact-sheets/detail/physical-activity"
     },
     {
       id: 6,
       category: 'stress',
       title: 'Time Management for Students',
-      description: 'Effective strategies to reduce stress through better time management......',
+      description: "Realistic time-management methods for students to reduce stress and stop procrastination...",
       readTime: '6 min read',
-      helpfulFor: ['overwhelm', 'procrastination', 'deadlines']
-    },
-    {
-      id: 7,
-      category: 'anxiety',
-      title: 'Managing Social Anxiety',
-      description: 'Practical tips for navigating social situations with confidence......',
-      readTime: '7 min read',
-      helpfulFor: ['social situations', 'public speaking', 'meeting new people']
-    },
-    {
-      id: 8,
-      category: 'depression',
-      title: 'Finding Motivation When Depressed',
-      description: 'Small steps to maintain daily routines during difficult times......',
-      readTime: '6 min read',
-      helpfulFor: ['lack of motivation', 'daily routines', 'self-care']
-    },
-    {
-      id: 9,
-      category: 'wellness',
-      title: 'Exercise and Mental Health',
-      description: 'How physical activity impacts your emotional wellbeing......',
-      readTime: '5 min read',
-      helpfulFor: ['low energy', 'stress relief', 'mood improvement']
+      helpfulFor: ['overwhelm', 'procrastination', 'deadlines'],
+      url: "https://www.mind.org.uk/information-support/tips-for-everyday-living/stress/"
     }
   ];
+
+  // Helper to get YouTube ID
+  const getYoutubeId = (url) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
 
   const videos = [
     {
       id: 101,
-      title: "Daily Mindfulness Practice",
+      title: "Daily Mindfulness Practice (10 min)",
       category: "Anxiety",
       duration: "10:30",
-      url: "https://www.youtube.com/embed/inpok4MKVLM", // Sample
-      thumbnail: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=400"
+      url: "https://www.youtube.com/embed/inpok4MKVLM",
     },
     {
       id: 102,
-      title: "Understanding Stress Biology",
+      title: "Managing Stress (BBC)",
       category: "Stress",
-      duration: "15:45",
-      url: "https://www.youtube.com/embed/Mc7pU78kP38",
-      thumbnail: "https://images.unsplash.com/photo-1499209974431-9dac3dc5c27d?auto=format&fit=crop&q=80&w=400"
+      duration: "02:23",
+      url: "https://www.youtube.com/embed/5vc-1FhGE9E",
     },
     {
       id: 103,
@@ -129,36 +116,38 @@ const Resources = () => {
       category: "Wellness",
       duration: "08:20",
       url: "https://www.youtube.com/embed/nm1TxQj9IsQ",
-      thumbnail: "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&q=80&w=400"
     }
-  ];
+  ].map(v => ({
+    ...v,
+    thumbnail: `https://img.youtube.com/vi/${getYoutubeId(v.url)}/maxresdefault.jpg`
+  }));
 
   const filteredArticles = selectedCategory === 'All Resources'
     ? articles
     : articles.filter(article => article.category === selectedCategory.toLowerCase());
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800 text-gray-100 p-4 md:p-8">
+    <div className="min-h-screen text-white p-6 md:p-12">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-10 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-3 text-blue-400">
+        <div className="mb-12 text-center">
+          <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
             Mental Health Resources
           </h1>
-          <p className="text-lg text-gray-400">
-            Comprehensive tools and information for your mental wellness journey
+          <p className="text-white/60 text-lg max-w-2xl mx-auto">
+            Curated tools and guides to support your mental wellness journey.
           </p>
         </div>
 
         {/* Category Filter */}
-        <div className="mb-10 flex flex-wrap gap-3 justify-center">
+        <div className="mb-12 flex flex-wrap gap-2 justify-center">
           {categories.map((category) => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-5 py-2 rounded-full font-medium transition-all ${selectedCategory === category
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+              className={`px-6 py-2.5 rounded-full font-medium text-sm transition-all border ${selectedCategory === category
+                ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/25'
+                : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:border-white/20 hover:text-white'
                 }`}
             >
               {category}
@@ -166,126 +155,140 @@ const Resources = () => {
           ))}
         </div>
 
-        {/* Articles Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <BookOpen className="w-7 h-7 text-blue-400" />
-          <h2 className="text-2xl font-semibold text-gray-100">Self-Help Articles</h2>
-        </div>
-
-        {/* Articles Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredArticles.map((article) => (
-            <div
-              key={article.id}
-              className="bg-slate-800 rounded-xl p-5 border border-slate-700 hover:border-slate-600 transition-all"
-            >
-              {/* Category Badge and Read Time */}
-              <div className="flex items-center justify-between mb-3">
-                <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-600 text-white">
-                  {article.category}
-                </span>
-                <div className="flex items-center gap-1 text-gray-400 text-sm">
-                  <Clock className="w-4 h-4" />
-                  <span>{article.readTime}</span>
-                </div>
-              </div>
-
-              {/* Title */}
-              <h3 className="text-lg font-semibold text-gray-100 mb-2">
-                {article.title}
-              </h3>
-
-              {/* Description */}
-              <p className="text-gray-400 text-sm mb-3">
-                {article.description}
-              </p>
-
-              {/* Helpful For */}
-              <div className="mb-4">
-                <p className="text-xs text-gray-500 mb-2">Helpful for:</p>
-                <p className="text-sm text-gray-300">
-                  {article.helpfulFor.join(', ')}
-                </p>
-              </div>
-
-              {/* Read More Button */}
-              <button className="flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm font-medium">
-                <BookOpen className="w-4 h-4" />
-                Read More
-                <ArrowRight className="w-4 h-4" />
-              </button>
+        {/* Articles Section */}
+        <div className="mb-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
+              <BookOpen className="w-6 h-6" />
             </div>
-          ))}
-        </div>
+            <h2 className="text-2xl font-semibold text-white/90">Must-Read Articles</h2>
+          </div>
 
-        {/* Videos Header */}
-        <div className="flex items-center gap-3 mb-6 mt-16">
-          <Video className="w-7 h-7 text-purple-400" />
-          <h2 className="text-2xl font-semibold text-gray-100">Guided Video Sessions</h2>
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredArticles.map((article) => (
+              <div
+                key={article.id}
+                className="group flex flex-col justify-between bg-[#141923] rounded-2xl p-6 border border-white/10 hover:border-white/20 hover:shadow-xl hover:shadow-black/20 transition-all duration-300"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-white/5 border border-white/10 text-blue-300 uppercase tracking-wider">
+                      {article.category}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-white/40 text-xs font-medium">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{article.readTime}</span>
+                    </div>
+                  </div>
 
-        {/* Videos Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          {videos.filter(v => selectedCategory === 'All Resources' || v.category === selectedCategory).map(video => (
-            <div key={video.id} className="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 hover:border-purple-500/50 transition-all group">
-              <div className="relative aspect-video">
-                <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <h3 className="text-lg font-bold text-white/90 mb-3 group-hover:text-blue-400 transition-colors line-clamp-2">
+                    {article.title}
+                  </h3>
+
+                  <p className="text-white/50 text-sm leading-relaxed mb-6 line-clamp-3">
+                    {article.description}
+                  </p>
+                </div>
+
+                <div>
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {article.helpfulFor.map(tag => (
+                      <span key={tag} className="text-[10px] text-white/30 bg-white/[0.02] px-2 py-1 rounded">#{tag}</span>
+                    ))}
+                  </div>
+
                   <button
                     onClick={() => {
-                      setPlayingVideo(video);
-                      logActivity('video_watch', { video_id: video.id, title: video.title });
+                      window.open(article.url, "_blank", "noopener,noreferrer");
+                      logActivity('article_open', { article_id: article.id, title: article.title, url: article.url });
                     }}
-                    className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black"
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 font-medium text-sm transition-all group-hover:border-blue-500/30 group-hover:text-white"
                   >
-                    <Play fill="currentColor" size={20} />
+                    Read Article
+                    <ArrowRight className="w-4 h-4 opacity-50 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
-                <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/80 rounded text-[10px] font-mono">{video.duration}</div>
               </div>
-              <div className="p-4">
-                <div className="text-[10px] uppercase tracking-widest text-purple-400 font-bold mb-1">{video.category}</div>
-                <h4 className="font-semibold text-white group-hover:text-purple-300 transition-colors line-clamp-1">{video.title}</h4>
-              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Videos Section */}
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400">
+              <Video className="w-6 h-6" />
             </div>
-          ))}
+            <h2 className="text-2xl font-semibold text-white/90">Guided Sessions</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {videos
+              .filter(v => selectedCategory === 'All Resources' || v.category === selectedCategory)
+              .map(video => (
+                <div
+                  key={video.id}
+                  onClick={() => {
+                    setPlayingVideo(video);
+                    logActivity('video_watch', { video_id: video.id, title: video.title, url: video.url });
+                  }}
+                  className="cursor-pointer group bg-[#141923] rounded-2xl overflow-hidden border border-white/10 hover:border-purple-500/40 hover:shadow-2xl hover:shadow-purple-900/10 transition-all duration-300"
+                >
+                  <div className="relative aspect-video overflow-hidden">
+                    <img
+                      src={video.thumbnail}
+                      alt={video.title}
+                      className="w-full h-full object-cover opacity-80 group-hover:scale-105 group-hover:opacity-100 transition-all duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+
+                    <div className="absolute inset-0 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                      <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/40 group-hover:bg-purple-500 group-hover:border-purple-400 group-hover:text-white transition-colors">
+                        <Play className="w-5 h-5 ml-1 text-white" fill="currentColor" />
+                      </div>
+                    </div>
+
+                    <span className="absolute bottom-3 right-3 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[10px] font-mono text-white/90 border border-white/10">
+                      {video.duration}
+                    </span>
+                  </div>
+
+                  <div className="p-5">
+                    <div className="text-[10px] uppercase tracking-widest text-purple-400 font-bold mb-2">
+                      {video.category}
+                    </div>
+                    <h4 className="text-base font-medium text-white/90 group-hover:text-white line-clamp-1 mb-1">
+                      {video.title}
+                    </h4>
+                    <p className="text-xs text-white/40">Watch now</p>
+                  </div>
+                </div>
+              ))}
+          </div>
         </div>
 
         {/* Empty State */}
         {filteredArticles.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-xl text-gray-400">No articles found in this category</p>
+          <div className="text-center py-24 bg-white/5 rounded-3xl border border-white/5 border-dashed">
+            <p className="text-lg text-white/40">No resources found for this category yet.</p>
+            <button
+              onClick={() => setSelectedCategory('All Resources')}
+              className="mt-4 text-sm text-blue-400 hover:text-blue-300 hover:underline"
+            >
+              View all resources
+            </button>
           </div>
         )}
 
-        {/* Support Section */}
-        <div className="mt-16 bg-slate-800 rounded-xl p-6 border border-slate-700">
-          <h3 className="text-xl font-semibold mb-3 text-blue-400">
-            Need More Support?
-          </h3>
-          <p className="text-gray-400 mb-5">
-            If you're experiencing a mental health crisis or need immediate support, please reach out to a professional or contact a crisis helpline.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-slate-700/50 rounded-lg p-4">
-              <h4 className="font-medium text-gray-200 mb-1">Crisis Helpline</h4>
-              <p className="text-sm text-gray-400">Available 24/7 for immediate support</p>
-            </div>
-            <div className="bg-slate-700/50 rounded-lg p-4">
-              <h4 className="font-medium text-gray-200 mb-1">Chat Support</h4>
-              <p className="text-sm text-gray-400">Connect with a counselor online</p>
-            </div>
-          </div>
-        </div>
         {/* Video Modal */}
         {playingVideo && (
-          <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-            <div className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+          <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/20 ring-1 ring-white/10">
               <button
                 onClick={() => setPlayingVideo(null)}
-                className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white backdrop-blur-md transition-all"
+                className="absolute top-4 right-4 z-10 p-2 bg-black/50 hover:bg-white/20 rounded-full text-white/70 hover:text-white backdrop-blur-md transition-all border border-white/10"
               >
-                <X size={24} />
+                <X size={20} />
               </button>
               <iframe
                 src={playingVideo.url + "?autoplay=1"}
@@ -294,10 +297,6 @@ const Resources = () => {
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               ></iframe>
-              <div className="absolute bottom-4 left-6">
-                <h3 className="text-xl font-bold text-white">{playingVideo.title}</h3>
-                <p className="text-sm text-neutral-400">{playingVideo.category} Session</p>
-              </div>
             </div>
           </div>
         )}
