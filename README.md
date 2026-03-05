@@ -4,7 +4,7 @@
 ![Stack](https://img.shields.io/badge/stack-PERN+Redis-blue.svg)
 ![AI](https://img.shields.io/badge/AI-Ollama+Gemini-orange.svg)
 
-Nivana is a next-generation, **machine-centric** mental health ecosystem. It uses intent-aware LLMs, proactive trend analysis, and a high-performance event-driven architecture to suggest interventions before a crisis occurs.
+Nivana is a next-generation, **machine-centric** mental health ecosystem. It uses intent-aware LLMs, proactive trend analysis, and a high-performance event-driven architecture to suggest interventions before a crisis occurs.Built for TechFiesta 2026
 
 ---
 
