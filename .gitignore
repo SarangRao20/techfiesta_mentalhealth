@@ -1,8 +1,25 @@
-# Ignore integrate folder
-integrate/
-# Ignore Python cache and bytecode
+# Python
 __pycache__/
-*.pycinstance/mental_health.db
-instance/mental_health.db
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# Environment
 .env
+
+# Database
+instance/mental_health.db
+*.rdb
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.html
+rendered_*
+
+# Integrations
+integrate/
 Kokoro-82M/
