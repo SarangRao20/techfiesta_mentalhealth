@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from flask_restx import Api
 from flask_cors import CORS
 ## Removed inkblot import; will define inkblot routes in routes.py
-from database import db, r_sessions, r_streaks, cache
+from database import db, r_sessions, r_streaks, cache, get_redis_url_with_db
 from flask_migrate import Migrate
 import redis
 from flask_session import Session
@@ -111,7 +111,7 @@ Session(app)
 
 # API Caching with Redis
 app.config['CACHE_TYPE'] = 'RedisCache'
-app.config['CACHE_REDIS_URL'] = f"{app.config['REDIS_URL']}/2"
+app.config['CACHE_REDIS_URL'] = get_redis_url_with_db(app.config['REDIS_URL'], 2)
 app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 cache.init_app(app)
 

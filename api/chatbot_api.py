@@ -8,16 +8,19 @@ from utils.celery_app import celery
 from flask import current_app
 from models.prompts import INTENT_SYSTEM_PROMPT, CONVO_SYSTEM_PROMPT
 import redis
-import time
+import json
+import uuid
+import datetime
+from database import get_redis_url_with_db
+import hashlib
 import os
 import sys
-import hashlib
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'models'))
 from json_sanitizer import extract_json
 from flask import current_app
 
-r_context = redis.from_url(f"{os.environ.get('REDIS_URL', 'redis://localhost:6379')}/3")
-r_streaks = redis.from_url(f"{os.environ.get('REDIS_URL', 'redis://localhost:6379')}/4")
+r_context = redis.from_url(get_redis_url_with_db(os.environ.get('REDIS_URL', 'redis://localhost:6379'), 3))
+r_streaks = redis.from_url(get_redis_url_with_db(os.environ.get('REDIS_URL', 'redis://localhost:6379'), 4))
 from utils.common import update_user_streak
 
 @celery.task
