@@ -21,7 +21,8 @@ def get_redis_url_with_db(base_url, db_index):
     # Celery requires CERT_NONE but redis-py requires none. Replace it for redis-py clients.
     base_url = base_url.replace("ssl_cert_reqs=CERT_NONE", "ssl_cert_reqs=none")
     parsed = urllib.parse.urlparse(base_url)
-    new_parsed = parsed._replace(path=f'/{db_index}')
+    # Upstash free tier ONLY supports DB 0. Ignore requested db_index and force 0.
+    new_parsed = parsed._replace(path='/0')
     return urllib.parse.urlunparse(new_parsed)
 
 try:
