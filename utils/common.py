@@ -561,29 +561,38 @@ def update_user_streak(r_streaks, user):
     last_key = f"streak_last_active:{user_id}"
     
     today = datetime.utcnow().date()
-    last_active_raw = r_streaks.get(last_key)
+    
+    # Use pipeline to fetch both keys at once
+    pipe = r_streaks.pipeline()
+    pipe.get(last_key)
+    pipe.get(count_key)
+    last_active_raw, current_count_raw = pipe.execute()
+    
+    # Start a new pipeline for writing
+    pipe = r_streaks.pipeline()
     
     # If key doesn't exist in Redis, seed it from DB
     if not last_active_raw and user.last_streak_date:
-        r_streaks.set(last_key, user.last_streak_date.strftime('%Y-%m-%d'))
-        r_streaks.set(count_key, user.login_streak)
         last_active_raw = user.last_streak_date.strftime('%Y-%m-%d').encode()
+        current_count_raw = str(user.login_streak).encode()
 
     new_count = 1
     if last_active_raw:
         last_active = datetime.strptime(last_active_raw.decode(), '%Y-%m-%d').date()
         if last_active == today:
-            return int(r_streaks.get(count_key) or 1)
+            new_count = int(current_count_raw) if current_count_raw else 1
         elif last_active == today - timedelta(days=1):
-            new_count = r_streaks.incr(count_key)
+            new_count = (int(current_count_raw) if current_count_raw else 1) + 1
+            pipe.set(count_key, new_count)
         else:
             new_count = 1
-            r_streaks.set(count_key, new_count)
+            pipe.set(count_key, new_count)
     else:
         new_count = 1
-        r_streaks.set(count_key, new_count)
+        pipe.set(count_key, new_count)
         
-    r_streaks.set(last_key, today.strftime('%Y-%m-%d'))
+    pipe.set(last_key, today.strftime('%Y-%m-%d'))
+    pipe.execute()
     
     # Sync to DB in background
     sync_streak_to_db.delay(user_id, new_count)
