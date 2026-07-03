@@ -80,11 +80,12 @@ app.config['LANGUAGES'] = {
 app.config['BABEL_DEFAULT_LOCALE'] = 'hi'
 app.config['BABEL_DEFAULT_TIMEZONE'] = 'UTC'
 
-# Session Configuration for Localhost/Dev
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = False
-app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
-app.config['REMEMBER_COOKIE_SECURE'] = False
+# Session Configuration
+app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'None'
+app.config['REMEMBER_COOKIE_SECURE'] = True
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=7)
 
