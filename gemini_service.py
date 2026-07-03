@@ -10,10 +10,12 @@ from google.genai import types
 
 # Initialize Gemini client with API key from environment
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise RuntimeError("GEMINI_API_KEY environment variable not set. Please set it in your environment.")
+client = None
+if GEMINI_API_KEY:
+    client = genai.Client(api_key=GEMINI_API_KEY)
+else:
+    logging.warning("GEMINI_API_KEY not found in environment. Gemini features will not work.")
 
-client = genai.Client(api_key=GEMINI_API_KEY)
 
 
 # Crisis keywords for detection
@@ -94,34 +96,134 @@ def chat_with_ai(message, user_context=None, chat_history=None, emotional_constr
             "crisis_keywords": []
         }
 
-def analyze_assessment_results(assessment_type, responses, score):
-    """Analyze assessment results and provide recommendations using Gemini"""
+def analyze_assessment_results(assessment_type, score, severity, urgency, help_needed):
+    """Analyze assessment results and provide a three-tier recommendation using Gemini"""
+    if not client:
+        raise RuntimeError("GEMINI_API_KEY is missing. Cannot use this feature.")
+        
     max_retries = 3
     retry_delay = 2  # seconds
     
     for attempt in range(max_retries):
         try:
-            prompt = f"""Analyze the following mental health assessment results and provide personalized recommendations:
+            prompt = f"""You are a compassionate mental health professional creating assessment reports. Generate a JSON response with three different perspectives for a {assessment_type} assessment result.
 
-Assessment Type: {assessment_type}
-Score: {score}
-Responses: {json.dumps(responses)}
+**Assessment Details:**
+- Type: {assessment_type}
+- Score: {score}
+- Severity: {severity}
+- Urgency: {urgency}
 
-Please provide:
-1. An interpretation of the score and what it means
-2. Specific, actionable recommendations for improvement
-3. Suggested coping strategies
-4. Whether professional consultation is recommended
+**Clinical Context & Insight Metrics to Consider:**
 
-Respond in JSON format with these fields:
-- interpretation: string
-- recommendations: array of strings
-- coping_strategies: array of strings
-- professional_help_recommended: boolean
-- urgency_level: string (low/medium/high)
-"""
+For {assessment_type} assessments, analyze these key dimensions:
+
+1. **Emotional Patterns:**
+   - Mood stability vs. fluctuations
+   - Anhedonia (loss of pleasure) indicators
+   - Emotional reactivity and regulation capacity
+   - Presence of hopelessness or despair
+
+2. **Behavioral Indicators:**
+   - Sleep disturbances (insomnia, hypersomnia, fragmented sleep)
+   - Appetite changes (increased/decreased)
+   - Social withdrawal vs. engagement
+   - Energy levels and psychomotor changes
+   - Self-care and daily functioning
+
+3. **Cognitive Markers:**
+   - Concentration and decision-making capacity
+   - Negative self-perception and self-worth
+   - Rumination patterns
+   - Suicidal ideation (if score indicates)
+
+4. **Resilience & Protective Factors:**
+   - Coping mechanisms currently in use
+   - Social support network strength
+   - Help-seeking behavior
+   - Previous treatment response (if applicable)
+
+5. **Risk Factors:**
+   - Crisis indicators (suicidal thoughts, self-harm)
+   - Functional impairment level (academic, social, occupational)
+   - Co-occurring symptoms (anxiety, trauma, substance use)
+   - Barriers to treatment engagement
+
+**Use these metrics to create data-driven, personalized insights in all three tiers.**
+
+Create three distinct reports:
+
+1. **user_safe**: For the student (warm, hopeful, non-clinical)
+   - Use encouraging, uplifting language based on protective factors identified
+   - Focus on strengths and growth opportunities
+   - Avoid clinical jargon or alarming terms
+   - Emphasize that help is available and recovery is possible
+   - Include 3-4 practical self-care recommendations targeting behavioral patterns
+   - Include 2-3 coping strategies addressing emotional regulation
+   - Acknowledge challenges without catastrophizing
+
+2. **mentor_view**: For teachers/mentors (balanced, actionable)
+   - Clear guidance on how to support the student based on cognitive/behavioral markers
+   - 3-4 specific action items for mentor (e.g., academic accommodations, check-in frequency)
+   - Red flags to watch for derived from risk assessment
+   - When to involve counselor (thresholds based on urgency level)
+   - Practical classroom/academic support suggestions
+   - Environmental modifications to support student
+
+3. **counsellor_detailed**: For mental health professionals (clinical, comprehensive)
+   - Clinical interpretation with DSM-5 context
+   - Detailed risk assessment covering:
+     * Suicide risk level with specific indicators from responses
+     * Functional impairment across domains (academic, social, self-care)
+     * Treatment urgency timeline
+   - Evidence-based treatment recommendations:
+     * Psychotherapy modalities (CBT, DBT, IPT as appropriate)
+     * Medication consultation considerations
+     * Crisis intervention needs
+   - Key clinical insights integrating all metric dimensions above
+   - Differential diagnosis considerations (rule-outs, comorbidities)
+   - Follow-up monitoring plan with specific milestones
+   - Protective factors to leverage in treatment
+
+Return ONLY valid JSON in this exact format:
+{{
+  "user_safe": {{
+    "title": "Your Wellness Check-In Results",
+    "interpretation": "main message here",
+    "positive_reinforcement": "encouraging statement",
+    "recommendations": ["rec1", "rec2", "rec3"],
+    "coping_strategies": ["strategy1", "strategy2"],
+    "encouragement": "final uplifting message",
+    "when_to_seek_help": "guidance text or null"
+  }},
+  "mentor_view": {{
+    "student_status": "{severity}",
+    "guidance": "main guidance for mentor",
+    "action_items": ["action1", "action2", "action3"],
+    "red_flags": ["flag1", "flag2"],
+    "support_suggestions": ["suggestion1", "suggestion2"],
+    "severity_indicator": "{urgency}",
+    "requires_counselor": {str(help_needed).lower()}
+  }},
+  "counsellor_detailed": {{
+    "score_range": "Score Range Standard",
+    "raw_score": {score},
+    "severity_category": "{severity}",
+    "urgency_level": "{urgency}",
+    "professional_help_recommended": {str(help_needed).lower()},
+    "clinical_interpretation": "detailed clinical analysis",
+    "risk_assessment": {{
+      "suicide_risk": "assessment",
+      "functional_impairment": "assessment",
+      "treatment_urgency": "{urgency}"
+    }},
+    "key_insights": ["insight1", "insight2", "insight3"],
+    "treatment_recommendations": ["rec1", "rec2", "rec3"],
+    "differential_considerations": ["consideration1", "consideration2"]
+  }}
+}}"""
             response = client.models.generate_content(
-                model="gemini-2.0-flash-exp", 
+                model="gemini-2.5-flash", 
                 contents=prompt,
                 config=types.GenerateContentConfig(
                      response_mime_type="application/json"
@@ -132,13 +234,7 @@ Respond in JSON format with these fields:
                 return json.loads(response.text)
             except json.JSONDecodeError as jde:
                 logging.error(f"JSON decode error in analyze_assessment_results: {jde}\nRaw response: {response.text}")
-                return {
-                    "interpretation": response.text[:200] + "..." if len(response.text) > 200 else response.text,
-                    "recommendations": ["Please consult with a mental health professional for proper evaluation."],
-                    "coping_strategies": ["Practice deep breathing", "Maintain regular sleep schedule", "Stay connected with friends and family"],
-                    "professional_help_recommended": True,
-                    "urgency_level": "medium"
-                }
+                raise Exception("Invalid JSON returned by Gemini")
         
         except Exception as e:
             # Check if it's a rate limit error
@@ -153,13 +249,7 @@ Respond in JSON format with these fields:
             else:
                 logging.error(f"Error analyzing assessment: {e}", exc_info=True)
             
-            return {
-                "interpretation": f"Unable to analyze results at this time. Error: {e}",
-                "recommendations": ["Please consult with a mental health professional for proper evaluation."],
-                "coping_strategies": ["Practice deep breathing", "Maintain regular sleep schedule", "Stay connected with friends and family"],
-                "professional_help_recommended": True,
-                "urgency_level": "medium"
-            }
+            raise e
 
 def suggest_assessment(user_message, chat_history=None):
     """Suggest appropriate assessment based on conversation using Gemini"""

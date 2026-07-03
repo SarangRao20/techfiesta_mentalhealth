@@ -2,8 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Flame, Mic, Volume2, Activity, Square } from 'lucide-react';
 
 // Note: Ensure API_URL is defined or replace with your endpoint
-const API_URL = 'http://localhost:5000';
-
+import { API_URL } from '../config';
 const PrivateVentingRoom = () => {
     const [mode, setMode] = useState('text');
     const [text, setText] = useState('');

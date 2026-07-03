@@ -246,151 +246,22 @@ def generate_analysis(assessment_type, score):
     
     help_needed = urgency in ["medium", "high", "critical"]
     
-    # Use Groq API to generate personalized, three-tier analysis
     try:
-        prompt = f"""You are a compassionate mental health professional creating assessment reports. Generate a JSON response with three different perspectives for a {assessment_type} assessment result.
-
-**Assessment Details:**
-- Type: {assessment_type}
-- Score: {score}/{max_score}
-- Severity: {severity}
-- Urgency: {urgency}
-
-**Clinical Context & Insight Metrics to Consider:**
-
-For {assessment_type} assessments, analyze these key dimensions:
-
-1. **Emotional Patterns:**
-   - Mood stability vs. fluctuations
-   - Anhedonia (loss of pleasure) indicators
-   - Emotional reactivity and regulation capacity
-   - Presence of hopelessness or despair
-
-2. **Behavioral Indicators:**
-   - Sleep disturbances (insomnia, hypersomnia, fragmented sleep)
-   - Appetite changes (increased/decreased)
-   - Social withdrawal vs. engagement
-   - Energy levels and psychomotor changes
-   - Self-care and daily functioning
-
-3. **Cognitive Markers:**
-   - Concentration and decision-making capacity
-   - Negative self-perception and self-worth
-   - Rumination patterns
-   - Suicidal ideation (if score indicates)
-
-4. **Resilience & Protective Factors:**
-   - Coping mechanisms currently in use
-   - Social support network strength
-   - Help-seeking behavior
-   - Previous treatment response (if applicable)
-
-5. **Risk Factors:**
-   - Crisis indicators (suicidal thoughts, self-harm)
-   - Functional impairment level (academic, social, occupational)
-   - Co-occurring symptoms (anxiety, trauma, substance use)
-   - Barriers to treatment engagement
-
-**Use these metrics to create data-driven, personalized insights in all three tiers.**
-
-Create three distinct reports:
-
-1. **user_safe**: For the student (warm, hopeful, non-clinical)
-   - Use encouraging, uplifting language based on protective factors identified
-   - Focus on strengths and growth opportunities
-   - Avoid clinical jargon or alarming terms
-   - Emphasize that help is available and recovery is possible
-   - Include 3-4 practical self-care recommendations targeting behavioral patterns
-   - Include 2-3 coping strategies addressing emotional regulation
-   - Acknowledge challenges without catastrophizing
-
-2. **mentor_view**: For teachers/mentors (balanced, actionable)
-   - Clear guidance on how to support the student based on cognitive/behavioral markers
-   - 3-4 specific action items for mentor (e.g., academic accommodations, check-in frequency)
-   - Red flags to watch for derived from risk assessment
-   - When to involve counselor (thresholds based on urgency level)
-   - Practical classroom/academic support suggestions
-   - Environmental modifications to support student
-
-3. **counsellor_detailed**: For mental health professionals (clinical, comprehensive)
-   - Clinical interpretation with DSM-5 context
-   - Detailed risk assessment covering:
-     * Suicide risk level with specific indicators from responses
-     * Functional impairment across domains (academic, social, self-care)
-     * Treatment urgency timeline
-   - Evidence-based treatment recommendations:
-     * Psychotherapy modalities (CBT, DBT, IPT as appropriate)
-     * Medication consultation considerations
-     * Crisis intervention needs
-   - Key clinical insights integrating all metric dimensions above
-   - Differential diagnosis considerations (rule-outs, comorbidities)
-   - Follow-up monitoring plan with specific milestones
-   - Protective factors to leverage in treatment
-
-Return ONLY valid JSON in this exact format:
-{{
-  "user_safe": {{
-    "title": "Your Wellness Check-In Results",
-    "interpretation": "main message here",
-    "positive_reinforcement": "encouraging statement",
-    "recommendations": ["rec1", "rec2", "rec3"],
-    "coping_strategies": ["strategy1", "strategy2"],
-    "encouragement": "final uplifting message",
-    "when_to_seek_help": "guidance text or null"
-  }},
-  "mentor_view": {{
-    "student_status": "{severity}",
-    "guidance": "main guidance for mentor",
-    "action_items": ["action1", "action2", "action3"],
-    "red_flags": ["flag1", "flag2"] or [],
-    "support_suggestions": ["suggestion1", "suggestion2"],
-    "severity_indicator": "{urgency}",
-    "requires_counselor": {str(help_needed).lower()}
-  }},
-  "counsellor_detailed": {{
-    "score_range": "{max_score} points ({assessment_type} Standard)",
-    "raw_score": {score},
-    "severity_category": "{severity}",
-    "urgency_level": "{urgency}",
-    "professional_help_recommended": {str(help_needed).lower()},
-    "clinical_interpretation": "detailed clinical analysis",
-    "risk_assessment": {{
-      "suicide_risk": "assessment",
-      "functional_impairment": "assessment",
-      "treatment_urgency": "{urgency}"
-    }},
-    "key_insights": ["insight1", "insight2", "insight3"],
-    "treatment_recommendations": ["rec1", "rec2", "rec3"],
-    "differential_considerations": ["consideration1", "consideration2"] or []
-  }}
-}}"""
-
-        response = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": "You are a compassionate mental health professional creating personalized assessment reports. Always respond with valid JSON only."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=2000
+        # Route to Gemini for heavy 3-tier JSON generation to optimize free-tier limits
+        from gemini_service import analyze_assessment_results
+        analysis = analyze_assessment_results(
+            assessment_type=assessment_type, 
+            score=score, 
+            severity=severity, 
+            urgency=urgency, 
+            help_needed=help_needed
         )
-        
-        analysis_text = response.choices[0].message.content.strip()
-        
-        # Remove code fences if present
-        if analysis_text.startswith("```json"):
-            analysis_text = analysis_text[7:]
-        if analysis_text.startswith("```"):
-            analysis_text = analysis_text[3:]
-        if analysis_text.endswith("```"):
-            analysis_text = analysis_text[:-3]
-        
-        analysis = json.loads(analysis_text.strip())
         return analysis
         
     except Exception as e:
-        print(f"Groq API Error: {e}")
-        # Fallback to basic hardcoded analysis if Groq fails
+        import logging
+        logging.error(f"Gemini API Error in common.py generate_analysis: {e}")
+        # Fallback to basic hardcoded analysis if Gemini fails
         return generate_fallback_analysis(assessment_type, score, severity, urgency, help_needed)
 
 def generate_fallback_analysis(assessment_type, score, severity, urgency, help_needed):

@@ -19,9 +19,8 @@ from flask_session import Session
 from flask_caching import Cache
 import json
 
-# app.py mein ye add karo
-from ollama import Client
-
+from groq import Groq
+from flask_jwt_extended import JWTManager
 # Load environment variables
 load_dotenv()
 
@@ -41,20 +40,28 @@ app = Flask(__name__, template_folder='old_tries/templates', static_folder='old_
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Global Ollama client
-ollama_client = Client(host='http://localhost:11434')
-app.config['OLLAMA_CLIENT'] = ollama_client
-app.config['INTENT_MODEL'] = 'intent_classifier:latest'
-app.config['CONVO_MODEL'] = 'convo_LLM:latest'
+# Global Groq client
+groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+app.config['GROQ_CLIENT'] = groq_client
+app.config['INTENT_MODEL'] = 'llama3-8b-8192'
+app.config['CONVO_MODEL'] = 'llama3-70b-8192'
+
+# JWT Configuration
+app.config['JWT_SECRET_KEY'] = os.environ.get("JWT_SECRET_KEY", "super-secret-jwt-key")
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
+jwt = JWTManager(app)
 
 
 # Selective origins to allow credentials (wildcard '*' won't work with supports_credentials=True)
 allowed_origins = [
     "http://localhost:5173", 
     "http://127.0.0.1:5173", 
-    "http://localhost:3000",
     "http://localhost:3000"
 ]
+
+frontend_url = os.environ.get("FRONTEND_URL")
+if frontend_url:
+    allowed_origins.append(frontend_url)
 CORS(app, resources={r"/api/*": {"origins": allowed_origins}}, supports_credentials=True)
 
 api = Api(app, 
@@ -248,4 +255,3 @@ api.add_namespace(counsellor_ns, path='/counsellor')
 from api.chat_socket import socketio
 socketio.init_app(app, cors_allowed_origins=allowed_origins, async_mode='threading', manage_session=False)
 
-# SocketIO initialization is done above: socketio.init_app(app)

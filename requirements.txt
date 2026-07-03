@@ -26,3 +26,5 @@ Flask-Caching
 celery
 groq
 flask_socketio
+gunicorn
+eventlet

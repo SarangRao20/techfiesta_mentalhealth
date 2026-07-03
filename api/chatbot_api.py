@@ -3,11 +3,10 @@ from flask_restx import Namespace, Resource, fields
 from flask_login import login_required, current_user
 from db_models import ChatSession, ChatMessage, ChatIntent, CrisisAlert
 from database import db, cache
-import requests
-from ollama import Client
 import json
 from utils.celery_app import celery
 from flask import current_app
+from models.prompts import INTENT_SYSTEM_PROMPT, CONVO_SYSTEM_PROMPT
 import redis
 import time
 import os
@@ -213,24 +212,30 @@ class Chat(Resource):
             else:
                 current_app.logger.info(f"💾 Cache MISS for message hash: {msg_hash[:8]}...")
 
-        # Main Logic: Use Direct Ollama Models from app.config (2-tier system)
+        # Main Logic: Use Direct Groq Models from app.config (2-tier system)
         try:
-            # Get Ollama client and models from app config
-            ollama_client = current_app.config.get('OLLAMA_CLIENT')
-            intent_model = current_app.config.get('INTENT_MODEL', 'intent_classifier:latest')
-            convo_model = current_app.config.get('CONVO_MODEL', 'convo_LLM:latest')
+            # Get Groq client and models from app config
+            groq_client = current_app.config.get('GROQ_CLIENT')
+            intent_model = current_app.config.get('INTENT_MODEL', 'llama3-8b-8192')
+            convo_model = current_app.config.get('CONVO_MODEL', 'llama3-70b-8192')
             
-            if not ollama_client:
-                raise Exception("Ollama client not configured in app.config")
+            if not groq_client:
+                raise Exception("Groq client not configured in app.config")
             
             # STEP 1: Intent Classification
             current_app.logger.info(f"🔍 Classifying intent for: {user_message[:50]}...")
-            intent_resp = ollama_client.generate(
+            intent_prompt = f"User Message: '{user_message}'"
+            
+            intent_resp = groq_client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": INTENT_SYSTEM_PROMPT},
+                    {"role": "user", "content": intent_prompt}
+                ],
                 model=intent_model,
-                prompt=user_message,
-                stream=False
+                temperature=0.0,
+                response_format={"type": "json_object"}
             )
-            intent_raw = intent_resp['response'].strip()
+            intent_raw = intent_resp.choices[0].message.content.strip()
             current_app.logger.info(f"📊 Intent response: {intent_raw[:100]}...")
             
             # Parse intent JSON
@@ -245,12 +250,16 @@ class Chat(Resource):
             
             # STEP 2: Generate Conversation Response
             current_app.logger.info(f"💬 Generating response with convo_LLM")
-            convo_resp = ollama_client.generate(
+            convo_resp = groq_client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": CONVO_SYSTEM_PROMPT},
+                    {"role": "user", "content": f"JSON Context: {intent_raw}\n\nUser Message: {user_message}"}
+                ],
                 model=convo_model,
-                prompt=user_message + "\n" + intent_raw,
-                stream=False
+                temperature=0.1,
+                response_format={"type": "json_object"}
             )
-            convo_raw = convo_resp['response'].strip()
+            convo_raw = convo_resp.choices[0].message.content.strip()
             current_app.logger.info(f"🤖 Convo response: {convo_raw[:100]}...")
             
             # Parse conversation response

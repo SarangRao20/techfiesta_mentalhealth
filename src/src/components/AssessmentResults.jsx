@@ -104,14 +104,14 @@ const AssessmentResults = ({ result, onBack }) => {
 
                         {/* Two Column Layout */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Implications */}
+                            {/* Positive Reinforcement */}
                             <div className="bg-[#1a1a1a] rounded-xl border border-white/5 p-6">
                                 <h4 className="font-semibold mb-4 flex items-center gap-2">
                                     <Heart className="text-pink-400" size={18} />
-                                    Impact on Your Life
+                                    Your Strengths
                                 </h4>
                                 <p className="text-sm text-neutral-400 leading-relaxed">
-                                    {result?.analysis?.implication || result?.analysis?.user_safe?.implication}
+                                    {result?.analysis?.positive_reinforcement || result?.analysis?.user_safe?.positive_reinforcement || "You're taking the right steps by checking in with yourself."}
                                 </p>
                             </div>
 
@@ -132,41 +132,39 @@ const AssessmentResults = ({ result, onBack }) => {
                             </div>
                         </div>
 
-                        {/* Protective Factors */}
-                        {result?.analysis?.user_safe?.protective_factors && (
+                        {/* Coping Strategies */}
+                        {(result?.analysis?.coping_strategies || result?.analysis?.user_safe?.coping_strategies) && (
                             <div className="bg-gradient-to-br from-green-900/20 to-blue-900/20 rounded-xl border border-green-500/20 p-6">
                                 <h4 className="font-semibold mb-4 flex items-center gap-2 text-green-300">
                                     <Shield className="text-green-400" size={18} />
-                                    Your Strengths
+                                    Coping Strategies
                                 </h4>
                                 <ul className="space-y-2">
-                                    {result.analysis.user_safe.protective_factors.map((factor, i) => (
+                                    {(result.analysis.coping_strategies || result.analysis.user_safe.coping_strategies).map((strategy, i) => (
                                         <li key={i} className="text-sm text-neutral-300 flex gap-2">
                                             <CheckCircle className="text-green-400 flex-shrink-0 mt-0.5" size={14} />
-                                            <span>{factor}</span>
+                                            <span>{strategy}</span>
                                         </li>
                                     ))}
                                 </ul>
                             </div>
                         )}
 
-                        {/* Next Steps */}
-                        {result?.analysis?.user_safe?.next_steps && (
-                            <div className="bg-[#1a1a1a] rounded-xl border border-white/5 p-6">
-                                <h4 className="font-semibold mb-4 flex items-center gap-2 text-purple-400">
-                                    <Target size={18} />
-                                    Recommended Next Steps
-                                </h4>
-                                <ul className="space-y-3">
-                                    {result.analysis.user_safe.next_steps.map((step, i) => (
-                                        <li key={i} className="text-sm text-neutral-300 flex gap-3 p-3 bg-white/5 rounded-lg">
-                                            <span className="text-purple-400 font-bold">{i + 1}.</span>
-                                            <span>{step}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
+                        {/* Encouragement / When to seek help */}
+                        <div className="bg-[#1a1a1a] rounded-xl border border-white/5 p-6">
+                            <h4 className="font-semibold mb-4 flex items-center gap-2 text-purple-400">
+                                <Sparkles size={18} />
+                                A Note For You
+                            </h4>
+                            <p className="text-sm text-neutral-300 mb-3">
+                                {result?.analysis?.encouragement || result?.analysis?.user_safe?.encouragement || "Your feelings are valid, and reaching out shows strength."}
+                            </p>
+                            {(result?.analysis?.when_to_seek_help || result?.analysis?.user_safe?.when_to_seek_help) && (
+                                <p className="text-sm text-purple-300 font-medium">
+                                    💡 {result?.analysis?.when_to_seek_help || result?.analysis?.user_safe?.when_to_seek_help}
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     {/* Right Column - User Insights */}

@@ -169,11 +169,11 @@ def send_email(subject: str, body: str, to_email: str, sender_type: str = 'user'
         app.logger.info(f"EMAIL (stub) to {to_email}: {subject} | {body}")
         return False
 
-@app.route('/')
-def index():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return render_template('landing.html')
+# @app.route('/')
+# def home():
+#     if current_user.is_authenticated:
+#         return redirect(url_for('routes.dashboard'))
+#     return render_template('home.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -436,7 +436,7 @@ def chat():
     history_context = [{"role": "user" if msg.message_type == "user" else "assistant", "content": msg.content} for msg in chat_history[-10:]]
         
     # --- EMOTIONAL VD UPDATE ---
-    from emotional_core import emotional_core
+    from old_tries.emotional_core import emotional_core
     try:
         # Update internal state based on user message
         current_emotional_state = emotional_core.update_state(chat_session, message)
@@ -489,8 +489,7 @@ def chat():
         'bot_message': ai_result['response'],
         'crisis_detected': ai_result['crisis_detected'],
         'assessment_suggestion': assessment_suggestion if assessment_suggestion['suggested_assessment'] != 'none' else None
-    }
-    
+    }    
     return jsonify(response)
 
 @app.route('/debug_vd')
@@ -508,7 +507,7 @@ def debug_vd():
     else:
         return jsonify({"error": f"Session object {session_id} not found in DB"})
         
-    from emotional_core import emotional_core
+    from old_tries.emotional_core import emotional_core
     state = emotional_core.get_state(chat_session)
     history = emotional_core._load_history(chat_session)
     

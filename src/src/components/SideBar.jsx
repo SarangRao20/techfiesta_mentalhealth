@@ -89,27 +89,32 @@ function SideBar() {
   return (
     <div className="flex min-h-screen bg-[#0f131c] text-white overflow-x-hidden font-sans">
 
-      {/* FIXED TOGGLE BUTTON - Stays in place, does not shift */}
-      <div className= {`
-        ${open? '':'w-20 bg-black/30 transition-transform duration-300 ease-out' }
-        `} >
+      {/* FIXED TOGGLE BUTTON - Visible mainly on mobile */}
+      <div className="md:hidden">
         <button
           onClick={() => setOpen(!open)}
           className="fixed top-6 left-6 z-50 p-1.5 text-white/60 backdrop-blur-sm bg-black/40 border rounded-md hover:text-white transition-all duration-300"
         >
-          <Menu size={18} />
+          {open ? <X size={18} /> : <Menu size={18} />}
         </button>
-
       </div>
+
+      {/* Mobile Overlay */}
+      {open && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-30 md:hidden backdrop-blur-sm"
+          onClick={() => setOpen(false)}
+        />
+      )}
 
       {/* Sidebar Container */}
       <aside
         className={`
           fixed top-0 left-0 h-screen z-40
           bg-[#0e1116]
-          transition-[width] duration-500 ease-in-out
-          ${open ? "w-64" : "w-0"}
-          overflow-hidden
+          transition-transform duration-300 ease-in-out
+          ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+          w-64
           border-r border-white/5
         `}
       >
@@ -217,10 +222,10 @@ function SideBar() {
       {/* Main Content Area */}
       <main
         className={`
-    flex-1 transition-[margin] duration-500 ease-in-out
-    ${open ? "ml-64" : "ml-0"}
-    min-h-screen
-  `}
+          flex-1 transition-all duration-300 ease-in-out
+          w-full md:ml-64
+          min-h-screen
+        `}
       >
 
         <Outlet />

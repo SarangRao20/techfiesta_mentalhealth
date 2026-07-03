@@ -4,7 +4,6 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import hashlib
 import json
-from sqlalchemy.dialects.postgresql import JSONB
 
 class Organization(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -109,7 +108,7 @@ class OnboardingResponse(db.Model):
     __tablename__ = 'onboarding_response'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
-    responses = db.Column(JSONB, nullable=False)  # Store all onboarding answers as JSON
+    responses = db.Column(db.JSON, nullable=False)  # Store all onboarding answers as JSON
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationship
@@ -121,11 +120,11 @@ class ChatSession(db.Model):
     session_start = db.Column(db.DateTime, default=datetime.utcnow)
     session_end = db.Column(db.DateTime)
     crisis_flag = db.Column(db.Boolean, default=False, index=True)
-    keywords_detected = db.Column(JSONB)  # JSON string of detected keywords
+    keywords_detected = db.Column(db.JSON)  # JSON string of detected keywords
     
     # Emotional Vector Dynamics (VD) State
-    emotional_vectors = db.Column(JSONB)  # JSON string of current vectors (valence, arousal, etc.)
-    emotional_history = db.Column(JSONB)  # JSON string of historical snapshots for trend analysis
+    emotional_vectors = db.Column(db.JSON)  # JSON string of current vectors (valence, arousal, etc.)
+    emotional_history = db.Column(db.JSON)  # JSON string of historical snapshots for trend analysis
 
     # Relationship
     messages = db.relationship('ChatMessage', backref='session', lazy=True, cascade='all, delete-orphan')
@@ -136,7 +135,7 @@ class ChatMessage(db.Model):
     message_type = db.Column(db.String(10), nullable=False)  # user, bot
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    crisis_keywords = db.Column(JSONB)  # JSON string of crisis keywords in this message
+    crisis_keywords = db.Column(db.JSON)  # JSON string of crisis keywords in this message
 
 class ChatIntent(db.Model):
     """Store intent analysis for each user message for analytics"""
@@ -145,7 +144,7 @@ class ChatIntent(db.Model):
     message_id = db.Column(db.Integer, db.ForeignKey('chat_message.id', ondelete='SET NULL'), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False, index=True)
     user_message = db.Column(db.Text, nullable=False)
-    intent_data = db.Column(JSONB, nullable=False)  # Full intent JSON
+    intent_data = db.Column(db.JSON, nullable=False)  # Full intent JSON
     emotional_state = db.Column(db.String(50))
     intent_type = db.Column(db.String(50))
     emotional_intensity = db.Column(db.String(20))
@@ -165,7 +164,7 @@ class CrisisAlert(db.Model):
     alert_type = db.Column(db.String(50), nullable=False)  # 'self_harm', 'high_distress'
     severity = db.Column(db.String(20), nullable=False)  # 'critical', 'high', 'moderate'
     message_snippet = db.Column(db.Text)
-    intent_summary = db.Column(JSONB)
+    intent_summary = db.Column(db.JSON)
     acknowledged = db.Column(db.Boolean, default=False, index=True)
     acknowledged_by = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='SET NULL'))
     acknowledged_at = db.Column(db.DateTime)
@@ -175,10 +174,10 @@ class Assessment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     assessment_type = db.Column(db.String(10), nullable=False)  # PHQ-9, GAD-7, GHQ
-    responses = db.Column(JSONB, nullable=False)  # JSON string of responses
+    responses = db.Column(db.JSON, nullable=False)  # JSON string of responses
     score = db.Column(db.Integer, nullable=False)
     severity_level = db.Column(db.String(50), nullable=False)
-    recommendations = db.Column(JSONB)
+    recommendations = db.Column(db.JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
@@ -236,8 +235,8 @@ class SoundVentingSession(db.Model):
 class InkblotResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    responses = db.Column(JSONB, nullable=False) # Blot index -> short response
-    story_elaborations = db.Column(JSONB) # Blot index -> detailed story
+    responses = db.Column(db.JSON, nullable=False) # Blot index -> short response
+    story_elaborations = db.Column(db.JSON) # Blot index -> detailed story
     sharing_status = db.Column(db.Boolean, default=False)
     pdf_path = db.Column(db.String(256))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -252,7 +251,7 @@ class UserActivityLog(db.Model):
     action = db.Column(db.String(50)) # start, complete, submit, result_generated
     duration = db.Column(db.Integer) # in seconds
     result_value = db.Column(db.Float) # e.g., assessment score, max decibel
-    extra_data = db.Column(JSONB) # Any additional context
+    extra_data = db.Column(db.JSON) # Any additional context
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     date = db.Column(db.Date, default=datetime.utcnow().date, index=True)
 
@@ -279,7 +278,7 @@ class ConsultationRequest(db.Model):
     attachment_id = db.Column(db.Integer)     # ID of the report in its table
     
     # Multiple attachments support (new field)
-    attachments = db.Column(JSONB)  # Array of {type: 'assessment'|'inkblot', id: int}
+    attachments = db.Column(db.JSON)  # Array of {type: 'assessment'|'inkblot', id: int}
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
