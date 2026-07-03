@@ -28,3 +28,4 @@ flask_socketio
 gunicorn
 eventlet
 Flask-JWT-Extended
+supabase
