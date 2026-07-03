@@ -8,7 +8,6 @@ python-dotenv
 pandas
 matplotlib
 pyttsx3
-openai-whisper
 langchain
 langchain-community
 langchain-core
