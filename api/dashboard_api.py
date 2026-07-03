@@ -113,8 +113,9 @@ def precalculate_dashboard_task(user_id):
     import sys
     import os
     # Ensure root directory is in sys.path
-    if os.getcwd() not in sys.path:
-        sys.path.append(os.getcwd())
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if root_dir not in sys.path:
+        sys.path.append(root_dir)
     import app as flask_app
     from database import cache
     from db_models import User

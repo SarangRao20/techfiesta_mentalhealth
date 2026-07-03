@@ -534,8 +534,11 @@ def generate_fallback_analysis(assessment_type, score, severity, urgency, help_n
 @celery.task
 def sync_streak_to_db(user_id, streak_count):
     """Sync Redis streak count to database"""
-    from database import db
+    import sys
+    import os
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     import app as flask_app
+    from database import db
     from db_models import User
     with flask_app.app.app_context():
         user = User.query.get(user_id)
