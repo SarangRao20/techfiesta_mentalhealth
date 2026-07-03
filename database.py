@@ -18,6 +18,8 @@ REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379')
 
 def get_redis_url_with_db(base_url, db_index):
     if not base_url: return base_url
+    # Celery requires CERT_NONE but redis-py requires none. Replace it for redis-py clients.
+    base_url = base_url.replace("ssl_cert_reqs=CERT_NONE", "ssl_cert_reqs=none")
     parsed = urllib.parse.urlparse(base_url)
     new_parsed = parsed._replace(path=f'/{db_index}')
     return urllib.parse.urlunparse(new_parsed)

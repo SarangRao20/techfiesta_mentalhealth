@@ -111,7 +111,7 @@ Session(app)
 
 # API Caching with Redis
 app.config['CACHE_TYPE'] = 'RedisCache'
-app.config['CACHE_REDIS_URL'] = get_redis_url_with_db(app.config['REDIS_URL'], 2)
+app.config['CACHE_REDIS_URL'] = get_redis_url_with_db(app.config['REDIS_URL'], 2).replace("ssl_cert_reqs=CERT_NONE", "ssl_cert_reqs=none")
 app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 cache.init_app(app)
 
