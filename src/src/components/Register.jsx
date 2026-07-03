@@ -62,7 +62,7 @@ export default function Register() {
             Create Your Account
           </h3>
           <p className="text-gray-400 text-xs mt-1">
-            Join CarePulse and begin your journey
+            Join Nivana and begin your journey
           </p>
         </div>
 
