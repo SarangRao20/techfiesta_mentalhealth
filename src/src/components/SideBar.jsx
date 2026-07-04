@@ -191,7 +191,7 @@ function SideBar() {
                 ) : (
                   <div className="h-4 border-b border-white/5 mb-2 mx-2" />
                 )}
-                <NavItem icon={Wind} label="Venting" href="private-venting" collapsed={collapsed} onClick={() => setOpen(false)} />
+                <NavItem icon={Wind} label="The Void" href="private-venting" collapsed={collapsed} onClick={() => setOpen(false)} />
                 <NavItem icon={Brain} label="Meditation" href="meditation-hub" collapsed={collapsed} onClick={() => setOpen(false)} />
               </div>
             )}
