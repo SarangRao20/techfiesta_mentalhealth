@@ -12,6 +12,9 @@ class Organization(db.Model):
     
     users = db.relationship('User', backref='organization')
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 class RoutineTask(db.Model):
     __tablename__ = 'routine_tasks'
     id = db.Column(db.Integer, primary_key=True)
@@ -71,6 +74,9 @@ class User(UserMixin, db.Model):
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'))
     is_onboarded = db.Column(db.Boolean, default=False, nullable=False)  # Onboarding status
     
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     # Relationships
     mentor = db.relationship('User', remote_side=[id], backref='students')
     chat_sessions = db.relationship('ChatSession', backref='user', lazy=True, cascade='all, delete-orphan')
@@ -113,6 +119,9 @@ class OnboardingResponse(db.Model):
     
     # Relationship
     user = db.relationship('User', backref='onboarding_responses')
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 class ChatSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -303,6 +312,9 @@ class CommunityChatLog(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     
     user = db.relationship('User', backref='chat_logs')
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def as_dict(self):
         return {
