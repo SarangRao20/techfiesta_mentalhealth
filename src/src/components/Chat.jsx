@@ -392,6 +392,7 @@ const Chat = () => {
             const res = await fetch(`${API_URL}/api/chatbot/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({
                     message: userMessage,
                     session_id: null
