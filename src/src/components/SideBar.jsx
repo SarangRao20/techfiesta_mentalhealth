@@ -79,9 +79,15 @@ function SideBar() {
         headers: { "Content-Type": "application/json" },
         credentials: 'include'
       });
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("initial_dash");
       navigate("/signin");
     } catch (error) {
       console.error("Logout failed", error);
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("initial_dash");
       navigate("/signin");
     }
   };

@@ -61,8 +61,9 @@ class Login(Resource):
             session.permanent = True
             
             step_start = time.time()
-            login_user(user, remember=True)
-            print(f"DEBUG: Flask-Login login_user took {time.time() - step_start:.4f}s")
+            from flask_jwt_extended import create_access_token
+            access_token = create_access_token(identity=str(user.id))
+            print(f"DEBUG: JWT token generation took {time.time() - step_start:.4f}s")
             
             # Auto-mark non-students as onboarded (only students need onboarding)
             if user.role in ['teacher', 'admin', 'counsellor'] and not user.is_onboarded:
@@ -87,16 +88,20 @@ class Login(Resource):
 
             print(f"DEBUG: TOTAL LOGIN TIME: {time.time() - start_time:.4f}s")
 
-            return {'message': 'Login successful', 'user': {
-                'id': user.id,
-                'username': user.username,
-                'role': user.role,
-                'full_name': user.full_name,
-                'login_streak': streak_count,
-                'organization_id': user.organization_id,
-                'organization_name': user.organization.name if user.organization else None,
-                'is_onboarded': user.is_onboarded
-            }}, 200
+            return {
+                'message': 'Login successful',
+                'token': access_token,
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'role': user.role,
+                    'full_name': user.full_name,
+                    'login_streak': streak_count,
+                    'organization_id': user.organization_id,
+                    'organization_name': user.organization.name if user.organization else None,
+                    'is_onboarded': user.is_onboarded
+                }
+            }, 200
         return {'message': 'Invalid credentials'}, 401
 
 @ns.route('/register')
@@ -150,7 +155,6 @@ class Logout(Resource):
     @login_required
     def post(self):
         """User logout"""
-        logout_user()
         return {'message': 'Logout successful'}, 200
 
 @ns.route('/organizations')

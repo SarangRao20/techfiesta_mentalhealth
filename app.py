@@ -51,6 +51,12 @@ app.config['JWT_SECRET_KEY'] = os.environ.get("JWT_SECRET_KEY", "super-secret-jw
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 jwt = JWTManager(app)
 
+@jwt.user_lookup_loader
+def user_lookup_callback(_jwt_header, jwt_data):
+    from db_models import User
+    identity = jwt_data["sub"]
+    return User.query.get(int(identity))
+
 
 # Selective origins to allow credentials (wildcard '*' won't work with supports_credentials=True)
 allowed_origins = [
@@ -136,6 +142,16 @@ def get_locale():
 babel.init_app(app, locale_selector=get_locale)
 
 migrate = Migrate(app, db)
+
+# Monkeypatch flask_login to use JWT under the hood
+import flask_login
+from flask_jwt_extended import jwt_required, current_user as jwt_current_user
+
+def jwt_login_required(fn):
+    return jwt_required()(fn)
+
+flask_login.login_required = jwt_login_required
+flask_login.current_user = jwt_current_user
 
 login_manager = LoginManager()
 login_manager.init_app(app)

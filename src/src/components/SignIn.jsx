@@ -34,6 +34,7 @@ const SignIn = () => {
       if (response.ok) {
         // Instant Dash: Store initial data
         localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("token", data.token);
         if (data.user.initial_dash) {
           localStorage.setItem("initial_dash", JSON.stringify(data.user.initial_dash));
         }
