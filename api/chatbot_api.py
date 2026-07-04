@@ -274,6 +274,13 @@ class Chat(Resource):
             bot_message = reply_json.get('response') or reply_json.get('bot_message') or convo_raw
             suggested_feature = reply_json.get('suggested_feature', None)
             
+            # Suppress suggested feature for casual chats or neutral/mild conversations
+            intent_type = intent_data.get('intent_type', 'casual_chat')
+            emotional_state = intent_data.get('emotional_state', 'neutral')
+            emotional_intensity = intent_data.get('emotional_intensity', 'mild')
+            if intent_type == 'casual_chat' or (emotional_state == 'neutral' and emotional_intensity == 'mild'):
+                suggested_feature = None
+
             current_app.logger.info(f"✅ Parsed - Feature: {suggested_feature}")
             
             # CRISIS KEYWORD SAFETY CHECK (Override Ollama if crisis keywords detected)
