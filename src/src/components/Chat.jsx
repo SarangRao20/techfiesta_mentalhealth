@@ -396,9 +396,7 @@ const Chat = () => {
                 body: JSON.stringify({
                     message: userMessage,
                     session_id: null
-                }),
-                credentials: 'include'
-
+                })
             });
 
             const data = await res.json();

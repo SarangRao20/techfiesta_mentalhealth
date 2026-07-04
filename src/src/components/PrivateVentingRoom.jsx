@@ -348,61 +348,19 @@ const PrivateVentingRoom = () => {
 
                 {mode === 'text' ? (
                     <div className="w-full max-w-lg perspective-1000 relative">
-                        {/* ENHANCED ASH & FIRE PARTICLES */}
-                        {isBurning && [...Array(80)].map((_, i) => {
-                            const randomColor = Math.random();
-                            let colorClass = "ash-gray";
-                            if (randomColor > 0.5) colorClass = "ash-orange";
-                            if (randomColor > 0.75) colorClass = "ash-yellow";
-                            if (randomColor > 0.9) colorClass = "ash-white";
-
-                            return (
-                                <div
-                                    key={i}
-                                    className={`ash-particle ${colorClass}`}
-                                    style={{
-                                        left: `${Math.random() * 100}%`,
-                                        animationDelay: `${Math.random() * 2}s`,
-                                        width: `${Math.random() * 6 + 2}px`,
-                                        height: `${Math.random() * 6 + 2}px`,
-                                        animationDuration: `${Math.random() * 1.5 + 2.5}s`
-                                    }}
-                                />
-                            );
-                        })}
-
-                        {/* FIRE FLAMES */}
-                        {isBurning && [...Array(15)].map((_, i) => (
-                            <div
-                                key={`flame-${i}`}
-                                className="fire-flame"
-                                style={{
-                                    left: `${Math.random() * 100}%`,
-                                    animationDelay: `${Math.random() * 0.5}s`,
-                                    animationDuration: `${Math.random() * 0.3 + 0.4}s`
-                                }}
-                            />
-                        ))}
+                        {/* Glow effect */}
+                        <div className={`absolute -inset-1 bg-gradient-to-r from-orange-500/0 via-orange-500/10 to-orange-500/0 blur-xl transition-opacity duration-1000 ${isBurning ? 'opacity-100' : 'opacity-0'}`} />
 
                         <div className={`
-                            relative min-h-[400px] bg-[#fdfbf7] rounded-sm p-10
-                            transition-all duration-[3800ms] shadow-2xl overflow-visible
-                            ${isBurning ? 'paper-burn-animation char-look' : 'border border-neutral-300'}
-                        `}
-                            style={isBurning ? {
-                                maskImage: 'radial-gradient(ellipse at 50% 45%, transparent 0%, black 100%)',
-                                WebkitMaskImage: 'radial-gradient(ellipse at 50% 45%, transparent 0%, black 100%)',
-                                maskSize: '500% 500%',
-                                maskPosition: 'center',
-                                animation: 'burn-hole 3.8s forwards cubic-bezier(0.4, 0.0, 0.6, 1)'
-                            } : {}}>
-
+                            relative bg-[#1a1a1a] border border-white/5 rounded-xl shadow-2xl overflow-hidden
+                            transition-all duration-[2000ms] ease-in-out flex flex-col min-h-[400px]
+                            ${isBurning ? 'scale-90 opacity-0 translate-y-[-50px] rotate-3 brightness-150' : 'hover:border-white/10'}
+                        `}>
+                            {/* Burning overlay */}
                             {isBurning && (
-                                <>
-                                    <div className="absolute inset-0 z-30 fire-edge-glow pointer-events-none" />
-                                    <div className="absolute inset-0 z-20 burn-edges pointer-events-none" />
-                                    <div className="absolute inset-0 z-10 smoke-effect pointer-events-none" />
-                                </>
+                                <div className="absolute inset-0 z-50 bg-gradient-to-t from-orange-600/20 via-transparent to-transparent flex items-end justify-center">
+                                    <div className="w-full h-full bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-orange-500/40 via-red-900/20 to-transparent animate-pulse" />
+                                </div>
                             )}
 
                             <textarea
@@ -410,27 +368,38 @@ const PrivateVentingRoom = () => {
                                 onChange={(e) => setText(e.target.value)}
                                 disabled={isBurning}
                                 className={`
-                                    w-full h-[320px] bg-transparent
-                                    text-neutral-800 text-xl leading-[2.5rem] font-serif resize-none outline-none
-                                    transition-all duration-[2500ms]
-                                    ${isBurning ? 'text-orange-700 opacity-0 blur-2xl translate-y-[-60px]' : 'placeholder:text-neutral-300'}
+                                    flex-1 w-full bg-[#0a0a0a]/50 p-8 
+                                    text-neutral-300 text-lg leading-relaxed font-serif resize-none outline-none
+                                    placeholder:text-neutral-700 transition-colors duration-500
+                                    ${isBurning ? 'text-orange-200/50' : ''}
                                 `}
-                                placeholder="Write down what is hurting you... then click below to destroy it."
-                                style={{ backgroundImage: 'linear-gradient(#e5e5e5 1px, transparent 1px)', backgroundSize: '100% 2.5rem' }}
+                                placeholder="Type here. Your words are private and ephemeral.&#10;They exist only for a moment, then vanish forever."
+                                style={{ minHeight: '320px' }}
                             />
+
+                            {/* Footer */}
+                            <div className="px-6 py-4 bg-black/20 border-t border-white/5 flex justify-between items-center">
+                                <span className="text-xs text-neutral-600 uppercase tracking-widest">
+                                    {text.length} characters
+                                </span>
+                                <div className="flex gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-red-500/20" />
+                                    <div className="w-2 h-2 rounded-full bg-orange-500/20" />
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="mt-12 flex justify-center h-16">
+                        <div className="mt-8 flex justify-center h-16">
                             {showConfirmation ? (
                                 <div className="animate-fade-in text-orange-400 font-serif text-lg italic">It has been turned to ash.</div>
                             ) : (
                                 <button
                                     onClick={handleBurn}
                                     disabled={!text.trim() || isBurning}
-                                    className="group relative px-14 py-4 bg-white rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95 disabled:opacity-30"
+                                    className="group relative px-14 py-4 bg-white rounded-full overflow-hidden transition-all hover:scale-105 active:scale-95 disabled:opacity-30 border border-neutral-300"
                                 >
                                     <span className="relative z-10 font-bold tracking-[0.2em] text-black flex items-center gap-2">
-                                        {isBurning ? 'CONSUMING...' : 'INCINERATE'} <Flame size={20} />
+                                        {isBurning ? 'CONSUMING...' : 'INCINERATE'} <Flame size={20} className="text-orange-600" />
                                     </span>
                                     <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                                 </button>
