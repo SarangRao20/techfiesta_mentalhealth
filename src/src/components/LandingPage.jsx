@@ -1,8 +1,9 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import Register from './Register';
 import SignIn from './SignIn';
 const LandingPage = () => {
+  const navigate = useNavigate();
   const [scrollY, setScrollY] = useState(0);
   const [isVisible, setIsVisible] = useState({});
 
@@ -30,6 +31,27 @@ const LandingPage = () => {
 
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userStr = localStorage.getItem("user");
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.role === 'student' && !user.is_onboarded) {
+          navigate("/start-journey");
+        } else if (['teacher', 'mentor'].includes(user.role?.toLowerCase())) {
+          navigate("/app/mentor");
+        } else if (['counsellor', 'counselor'].includes(user.role?.toLowerCase())) {
+          navigate("/app/counselor-dashboard");
+        } else {
+          navigate("/app/dashboard");
+        }
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+      }
+    }
+  }, [navigate]);
 
   return (
     <div className="bg-gradient-to-br from-[#0E1116] via-[#16213e] to-[#1a1a2e] font-sans min-h-screen text-white relative overflow-hidden">

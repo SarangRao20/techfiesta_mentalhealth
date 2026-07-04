@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../config";
 
@@ -9,6 +9,27 @@ const SignIn = () => {
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userStr = localStorage.getItem("user");
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.role === 'student' && !user.is_onboarded) {
+          navigate("/start-journey");
+        } else if (['teacher', 'mentor'].includes(user.role?.toLowerCase())) {
+          navigate("/app/mentor");
+        } else if (['counsellor', 'counselor'].includes(user.role?.toLowerCase())) {
+          navigate("/app/counselor-dashboard");
+        } else {
+          navigate("/app/dashboard");
+        }
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+      }
+    }
+  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({
