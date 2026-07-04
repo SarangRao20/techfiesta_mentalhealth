@@ -184,36 +184,7 @@ class Chat(Resource):
         # Check cache for similar messages (non-crisis only)
         msg_hash = hashlib.md5(user_message.lower().strip().encode()).hexdigest()
         cache_key = f"chatbot_resp:{msg_hash}"
-        
-        # Quick crisis keyword check (don't use cache for crisis) - EXPANDED LIST
-        crisis_keywords = [
-            'kill', 'suicide', 'die', 'end my life', 'harm myself', 'khudkushi',
-            'marna', 'marna hai', 'nahi jeena', 'mar jaunga', 'marr jaunga',
-            'jaan dena', 'suicide karna', 'hurt myself', 'want to die',
-            'no reason to live', 'better off dead', 'can\'t go on', 'give up',
-            'sos', 'help me please', 'emergency'
-        ]
-        is_potential_crisis = any(kw in user_message.lower() for kw in crisis_keywords)
-        
-        if not is_potential_crisis:
-            cached_response = cache.get(cache_key)
-            if cached_response:
-                current_app.logger.info(f"💾 Cache HIT for message hash: {msg_hash[:8]}...")
-                # Save user message
-                save_chat_message.delay(session_id, 'user', user_message)
-                # Save cached bot message
-                save_chat_message.delay(session_id, 'bot', cached_response['response'], cached_response.get('crisis_detected', False))
-                # Update Redis context
-                chat_history.append({'role': 'user', 'content': user_message})
-                chat_history.append({'role': 'bot', 'content': cached_response['response']})
-                r_context.setex(context_key, 3600, json.dumps(chat_history[-4:]))
-                
-                return {
-                    **cached_response,
-                    'session_id': session_id
-                }
-            else:
-                current_app.logger.info(f"💾 Cache MISS for message hash: {msg_hash[:8]}...")
+        is_potential_crisis = False
 
         # Main Logic: Use Direct Groq Models from app.config (2-tier system)
         try:
@@ -253,11 +224,14 @@ class Chat(Resource):
             
             # STEP 2: Generate Conversation Response
             current_app.logger.info(f"💬 Generating response with convo_LLM")
+            convo_messages = [{"role": "system", "content": CONVO_SYSTEM_PROMPT}]
+            for msg in chat_history:
+                role = "assistant" if msg['role'] == 'bot' else msg['role']
+                convo_messages.append({"role": role, "content": msg['content']})
+            convo_messages.append({"role": "user", "content": f"JSON Context: {intent_raw}\n\nUser Message: {user_message}"})
+
             convo_resp = groq_client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": CONVO_SYSTEM_PROMPT},
-                    {"role": "user", "content": f"JSON Context: {intent_raw}\n\nUser Message: {user_message}"}
-                ],
+                messages=convo_messages,
                 model=convo_model,
                 temperature=0.1,
                 response_format={"type": "json_object"}
