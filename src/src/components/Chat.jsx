@@ -31,6 +31,7 @@ const FeatureRenderer = ({ feature, onClose }) => {
         case "AR Breathing":
             return <Ar_breathing onClose={onClose} />;
         case "Text Venting":
+        case "Private Venting Room":
             return <TextVenting onClose={onClose} />;
         case "Sound Venting":
             return <SoundVenting onClose={onClose} />;
@@ -291,12 +292,13 @@ const Chat = () => {
     };
 
     const setupSpeechRecognition = () => {
-        if (!('webkitSpeechRecognition' in window)) {
+        const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognitionClass) {
             alert('Speech recognition is not supported in this browser. Please use Chrome or Edge.');
             return null;
         }
 
-        const recognition = new window.webkitSpeechRecognition();
+        const recognition = new SpeechRecognitionClass();
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = 'en-IN';
