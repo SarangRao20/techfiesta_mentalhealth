@@ -219,8 +219,8 @@ class Chat(Resource):
         try:
             # Get Groq client and models from app config
             groq_client = current_app.config.get('GROQ_CLIENT')
-            intent_model = current_app.config.get('INTENT_MODEL', 'llama3-8b-8192')
-            convo_model = current_app.config.get('CONVO_MODEL', 'llama3-70b-8192')
+            intent_model = current_app.config.get('INTENT_MODEL', 'llama-3.1-8b-instant')
+            convo_model = current_app.config.get('CONVO_MODEL', 'llama-3.3-70b-versatile')
             
             if not groq_client:
                 raise Exception("Groq client not configured in app.config")

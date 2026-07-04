@@ -43,8 +43,8 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 # Global Groq client
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 app.config['GROQ_CLIENT'] = groq_client
-app.config['INTENT_MODEL'] = 'llama3-8b-8192'
-app.config['CONVO_MODEL'] = 'llama3-70b-8192'
+app.config['INTENT_MODEL'] = 'llama-3.1-8b-instant'
+app.config['CONVO_MODEL'] = 'llama-3.3-70b-versatile'
 
 # JWT Configuration
 app.config['JWT_SECRET_KEY'] = os.environ.get("JWT_SECRET_KEY", "super-secret-jwt-key")
