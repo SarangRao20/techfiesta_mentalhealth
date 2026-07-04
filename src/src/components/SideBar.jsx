@@ -22,6 +22,11 @@ import GlobalCrisisButton from "./GlobalCrisisButton";
 
 function SideBar() {
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("sidebar_collapsed") === "true";
+    } catch (e) { return false; }
+  });
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [username, setUsername] = useState(() => {
     try {
@@ -72,6 +77,12 @@ function SideBar() {
     };
   }, []);
 
+  const toggleCollapse = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem("sidebar_collapsed", String(next));
+  };
+
   const handleLogout = async () => {
     try {
       await fetch(`${API_URL}/api/auth/logout`, {
@@ -118,24 +129,36 @@ function SideBar() {
         className={`
           fixed top-0 left-0 h-screen z-40
           bg-[#0e1116]
-          transition-transform duration-300 ease-in-out
+          transition-all duration-300 ease-in-out
           ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-          w-64
+          ${collapsed ? "w-20" : "w-64"}
           border-r border-white/5
         `}
       >
+        {/* Desktop Collapse Button */}
+        <button
+          onClick={toggleCollapse}
+          className="hidden md:flex absolute top-6 right-[-12px] z-50 w-6 h-6 rounded-full bg-[#1c212c] border border-white/10 items-center justify-center hover:bg-neutral-800 text-white/60 hover:text-white transition-all duration-300"
+        >
+          {collapsed ? <ChevronRight size={12} /> : <span className="rotate-180 flex items-center justify-center"><ChevronRight size={12} /></span>}
+        </button>
+
         {/* Fixed Width Inner Wrapper to maintain structure during slide */}
-        <div className="w-64 h-full flex flex-col pt-20">
+        <div className={`h-full flex flex-col pt-20 transition-all duration-300 ${collapsed ? "w-20" : "w-64"}`}>
 
           {/* Navigation - Extremely Tight Spacing */}
-          <nav className="flex-1 space-y-4 text-sm px-4 custom-scrollbar overflow-y-auto">
+          <nav className={`flex-1 space-y-4 text-sm custom-scrollbar overflow-y-auto ${collapsed ? "px-2" : "px-4"}`}>
 
             {/* Show Dashboard for all */}
             <div className="space-y-0.5">
-              <div className="text-[10px] uppercase text-white/20 font-bold tracking-[0.2em] px-3 mb-1">
-                {(['teacher', 'mentor'].includes(role.toLowerCase())) ? "Mentor" :
-                  (['counsellor', 'counselor'].includes(role.toLowerCase())) ? "Counsellor" : "General"}
-              </div>
+              {!collapsed ? (
+                <div className="text-[10px] uppercase text-white/20 font-bold tracking-[0.2em] px-3 mb-1 transition-all duration-300">
+                  {(['teacher', 'mentor'].includes(role.toLowerCase())) ? "Mentor" :
+                    (['counsellor', 'counselor'].includes(role.toLowerCase())) ? "Counsellor" : "General"}
+                </div>
+              ) : (
+                <div className="h-4 border-b border-white/5 mb-2 mx-2" />
+              )}
               <NavItem
                 icon={LayoutDashboard}
                 label={
@@ -148,12 +171,14 @@ function SideBar() {
                     ['counsellor', 'counselor'].includes(role.toLowerCase()) ? "counselor-dashboard" :
                       "dashboard"
                 }
+                collapsed={collapsed}
+                onClick={() => setOpen(false)}
               />
               {/* Only show these for students */}
               {role.toLowerCase() === 'student' && (
                 <>
-                  <NavItem icon={MessageSquare} label="AI Dost" href="chat" />
-                  <NavItem icon={CheckSquare} label="Tasks" href="tasks-manager" />
+                  <NavItem icon={MessageSquare} label="AI Dost" href="chat" collapsed={collapsed} onClick={() => setOpen(false)} />
+                  <NavItem icon={CheckSquare} label="Tasks" href="tasks-manager" collapsed={collapsed} onClick={() => setOpen(false)} />
                 </>
               )}
             </div>
@@ -161,33 +186,44 @@ function SideBar() {
             {/* Only show Therapy for students */}
             {role.toLowerCase() === 'student' && (
               <div className="space-y-0.5">
-                <div className="text-[10px] uppercase text-white/20 font-bold tracking-[0.2em] px-3 mb-1">Therapy</div>
-                <NavItem icon={Wind} label="Venting" href="private-venting" />
-                <NavItem icon={Brain} label="Meditation" href="meditation-hub" />
+                {!collapsed ? (
+                  <div className="text-[10px] uppercase text-white/20 font-bold tracking-[0.2em] px-3 mb-1 transition-all duration-300">Therapy</div>
+                ) : (
+                  <div className="h-4 border-b border-white/5 mb-2 mx-2" />
+                )}
+                <NavItem icon={Wind} label="Venting" href="private-venting" collapsed={collapsed} onClick={() => setOpen(false)} />
+                <NavItem icon={Brain} label="Meditation" href="meditation-hub" collapsed={collapsed} onClick={() => setOpen(false)} />
               </div>
             )}
 
             {/* Clinical - students and counsellors only */}
             {(role.toLowerCase() === 'student' || ['counsellor', 'counselor'].includes(role.toLowerCase())) && (
               <div className="space-y-0.5">
-                <div className="text-[10px] uppercase text-white/20 font-bold tracking-[0.2em] px-3 mb-1">Clinical</div>
+                {!collapsed ? (
+                  <div className="text-[10px] uppercase text-white/20 font-bold tracking-[0.2em] px-3 mb-1 transition-all duration-300">Clinical</div>
+                ) : (
+                  <div className="h-4 border-b border-white/5 mb-2 mx-2" />
+                )}
                 {role.toLowerCase() === 'student' && (
                   <>
-                    <NavItem icon={ClipboardList} label="Assessments" href="assessments" />
-                    <NavItem icon={Eye} label="Inkblot" href="inkblot" />
-                     <NavItem icon={UserCog} label="Consult" href="consultation" />
+                    <NavItem icon={ClipboardList} label="Assessments" href="assessments" collapsed={collapsed} onClick={() => setOpen(false)} />
+                    <NavItem icon={Eye} label="Inkblot" href="inkblot" collapsed={collapsed} onClick={() => setOpen(false)} />
+                    <NavItem icon={UserCog} label="Consult" href="consultation" collapsed={collapsed} onClick={() => setOpen(false)} />
                   </>
                 )}
-               
               </div>
             )}
 
             {/* Only show Community for students */}
             {role.toLowerCase() === 'student' && (
               <div className="space-y-0.5">
-                <div className="text-[10px] uppercase text-white/20 font-bold tracking-[0.2em] px-3 mb-1">Community</div>
-                <NavItem icon={Users} label="Hall" href="community" />
-                <NavItem icon={BookOpen} label="Library" href="resources" />
+                {!collapsed ? (
+                  <div className="text-[10px] uppercase text-white/20 font-bold tracking-[0.2em] px-3 mb-1 transition-all duration-300">Community</div>
+                ) : (
+                  <div className="h-4 border-b border-white/5 mb-2 mx-2" />
+                )}
+                <NavItem icon={Users} label="Hall" href="community" collapsed={collapsed} onClick={() => setOpen(false)} />
+                <NavItem icon={BookOpen} label="Library" href="resources" collapsed={collapsed} onClick={() => setOpen(false)} />
               </div>
             )}
           </nav>
@@ -195,31 +231,32 @@ function SideBar() {
           {/* User Section - Compressed */}
           <div className="mt-auto px-4 pb-6 pt-3 border-t border-white/5 bg-[#0e1116]">
             <div
-              onClick={() => navigate("/app/profile")}
-              className="flex items-center gap-3 mb-4 px-2"
+              onClick={() => { navigate("/app/profile"); setOpen(false); }}
+              className={`flex items-center gap-3 mb-4 px-2 cursor-pointer transition-all duration-300 ${collapsed ? "justify-center" : ""}`}
             >
-
-              <div className="w-10 h-10 rounded-full bg-[#8e74ff] flex items-center justify-center text-white text-sm font-bold shadow-lg border border-white/10 overflow-hidden">
+              <div className="w-10 h-10 rounded-full bg-[#8e74ff] flex items-center justify-center text-white text-sm font-bold shadow-lg border border-white/10 overflow-hidden flex-shrink-0">
                 {profilePicture ? (
                   <img src={profilePicture} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   username.charAt(0).toUpperCase()
                 )}
               </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold text-white truncate leading-tight">{username}</span>
-                <span className="text-[11px] text-white/40 capitalize tracking-tight">{role}</span>
-              </div>
+              {!collapsed && (
+                <div className="flex flex-col min-w-0 transition-all duration-300">
+                  <span className="text-sm font-semibold text-white truncate leading-tight">{username}</span>
+                  <span className="text-[11px] text-white/40 capitalize tracking-tight">{role}</span>
+                </div>
+              )}
             </div>
 
             <button
               onClick={() => setShowLogoutConfirm(true)}
-              className="w-full flex items-center justify-center gap-2
+              className={`w-full flex items-center justify-center gap-2
                hover:bg-white/5 text-white/80 text-[11px] font-bold uppercase tracking-widest
-               py-2.5 rounded-xl transition-all duration-300 border border-white/40 group"
+               py-2.5 rounded-xl transition-all duration-300 border border-white/40 group ${collapsed ? "px-0" : ""}`}
             >
               <LogOut size={14} />
-              Log Out
+              {!collapsed && "Log Out"}
             </button>
           </div>
         </div>
@@ -229,16 +266,14 @@ function SideBar() {
       <main
         className={`
           flex-1 transition-all duration-300 ease-in-out
-          w-full md:ml-64
+          w-full ${collapsed ? "md:ml-20" : "md:ml-64"}
           min-h-screen
         `}
       >
-
         <Outlet />
 
         {/* Global SOS Button - Floating above content */}
         <GlobalCrisisButton />
-
       </main>
 
       {/* Logout Confirmation Modal */}
@@ -269,16 +304,24 @@ function SideBar() {
   );
 }
 
-function NavItem({ icon: Icon, label, href }) {
+function NavItem({ icon: Icon, label, href, collapsed, onClick }) {
   const navigate = useNavigate();
   return (
     <button
-      onClick={() => navigate(`/app/${href}`)}
-      className="flex items-center gap-3 w-full px-3 py-2 rounded-xl hover:bg-white/[0.04] transition-all duration-300 group"
+      onClick={() => {
+        navigate(`/app/${href}`);
+        if (onClick) onClick();
+      }}
+      className={`flex items-center gap-3 w-full px-3 py-2 rounded-xl hover:bg-white/[0.04] transition-all duration-300 group ${collapsed ? "justify-center" : ""}`}
+      title={collapsed ? label : ""}
     >
-      <Icon size={20} className="text-white/30 group-hover:text-white transition-colors duration-300" />
-      <span className="text-[15px] text-white/50 group-hover:text-white font-medium transition-all duration-300">{label}</span>
-      <ChevronRight size={14} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-white/20" />
+      <Icon size={20} className="text-white/30 group-hover:text-white transition-colors duration-300 flex-shrink-0" />
+      {!collapsed && (
+        <>
+          <span className="text-[15px] text-white/50 group-hover:text-white font-medium transition-all duration-300">{label}</span>
+          <ChevronRight size={14} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-white/20" />
+        </>
+      )}
     </button>
   );
 }
