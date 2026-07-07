@@ -115,6 +115,10 @@ const PrivateVentingRoom = () => {
 
     const startRecording = async () => {
         try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("Microphone not supported on this browser. Ensure you are using HTTPS and a compatible browser.");
+                return;
+            }
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             streamRef.current = stream;
 

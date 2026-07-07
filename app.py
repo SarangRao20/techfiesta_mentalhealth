@@ -78,6 +78,25 @@ api = Api(app,
           prefix='/api'
 )
 
+from flask_jwt_extended.exceptions import NoAuthorizationError, RevokedTokenError
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+
+@api.errorhandler(NoAuthorizationError)
+def handle_auth_error(e):
+    return {'message': str(e)}, 401
+
+@api.errorhandler(ExpiredSignatureError)
+def handle_expired_error(e):
+    return {'message': 'Token has expired'}, 401
+
+@api.errorhandler(InvalidTokenError)
+def handle_invalid_error(e):
+    return {'message': 'Invalid token'}, 401
+
+@api.errorhandler(RevokedTokenError)
+def handle_revoked_error(e):
+    return {'message': 'Token has been revoked'}, 401
+
 # Babel Configuration
 app.config['LANGUAGES'] = {
     'en': 'English',
