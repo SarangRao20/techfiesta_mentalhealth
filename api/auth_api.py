@@ -72,18 +72,29 @@ class Login(Resource):
             
             step_start = time.time()
             # Update streak in Redis (Syncs to DB in background)
-            streak_count = update_user_streak(r_streaks, user)
+            try:
+                streak_count = update_user_streak(r_streaks, user)
+            except Exception as e:
+                print(f"Warning: Streak update failed: {e}")
+                streak_count = user.login_streak or 0
             print(f"DEBUG: Streak Update took {time.time() - step_start:.4f}s")
             
             step_start = time.time()
-            # Invalidate profile cache
-            r_sessions.delete(f"user_profile:{user.id}")
+            # Invalidate profile cache safely
+            if r_sessions:
+                try:
+                    r_sessions.delete(f"user_profile:{user.id}")
+                except Exception as e:
+                    print(f"Warning: Cache invalidation failed: {e}")
             print(f"DEBUG: Cache Invalidation took {time.time() - step_start:.4f}s")
             
             step_start = time.time()
-            # Trigger background calculation so it's ready when dashboard calls
-            from api.dashboard_api import precalculate_dashboard_task
-            precalculate_dashboard_task.delay(user.id)
+            # Trigger background calculation safely
+            try:
+                from api.dashboard_api import precalculate_dashboard_task
+                precalculate_dashboard_task.delay(user.id)
+            except Exception as e:
+                print(f"Warning: Dashboard precalculate task failed: {e}")
             print(f"DEBUG: Celery Task Trigger took {time.time() - step_start:.4f}s")
 
             print(f"DEBUG: TOTAL LOGIN TIME: {time.time() - start_time:.4f}s")
@@ -257,7 +268,11 @@ class Profile(Resource):
         db.session.commit()
         
         # Invalidate profile cache so it re-fetches with new details
-        r_sessions.delete(f"user_profile:{user.id}")
+        if r_sessions:
+            try:
+                r_sessions.delete(f"user_profile:{user.id}")
+            except Exception:
+                pass
         
         # Also invalidate dashboard cache so the top-right profile pic updates
         from api.dashboard_api import invalidate_dashboard_cache
@@ -306,7 +321,11 @@ class Onboarding(Resource):
         db.session.commit()
         
         # Invalidate cache
-        r_sessions.delete(f"user_profile:{user.id}")
+        if r_sessions:
+            try:
+                r_sessions.delete(f"user_profile:{user.id}")
+            except Exception:
+                pass
         
         return {
             'message': 'Onboarding completed successfully',
