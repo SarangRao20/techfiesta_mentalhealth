@@ -26,7 +26,7 @@ st.title("🗣️ Buddy: Your Hinglish Chat Companion")
 # --- Sarvam AI Client Setup ---
 # Use st.secrets for secure API key management in Streamlit Cloud
 try:
-    SARVAM_API_KEY = os.getenv("SARVAM_API_KEY") or "sk_jmjax2on_fSBqLnrzts2zRlsEs4zn3XVH"
+    SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
     if not SARVAM_API_KEY:
         st.error("Please set SARVAM_API_KEY environment variable.")
         st.stop()
@@ -256,4 +256,3 @@ if st.button("🎤 Start Voice Chat"):
                 status.update(label="No speech detected.", state="error", expanded=False)
         except Exception as e:
             st.error(f"An error occurred during voice input: {e}")
-
